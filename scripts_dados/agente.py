@@ -14,7 +14,7 @@ print("Carregando o cérebro vetorial...")
 modelo_embedding = HuggingFaceEmbeddings(
     model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
-pasta_banco = "./banco_chroma_suzano"
+pasta_banco = "./banco_chroma"
 banco_vetorial = Chroma(persist_directory=pasta_banco, embedding_function=modelo_embedding)
 
 # ==========================================
