@@ -3,6 +3,8 @@
 *.py[cod]
 .web
 assets/external/
+*.pdf
+*.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -30,6 +32,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+banco_chroma*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
