@@ -2,6 +2,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 import pdfplumber
+import os 
+
 
 def fatiar_texto(texto):
     print("Iniciando o fatiamento do texto (Chunking)...")
@@ -61,31 +63,26 @@ def criar_banco_vetorial(fatias):
     print(f"Sucesso! Banco vetorial criado na pasta '{pasta_banco}'.")
     return db    
 
-# ==========================================
-# FLUXO PRINCIPAL DE EXECUÇÃO
-# ==========================================
-caminho_pdf_suzano = "scripts_dados/PE_1012025__Servios_de_Segurana_do_Trabalho__SRP_BLL.pdf" 
-
-# 1. Extrai o texto
-texto_bruto = extrair_texto_pdf(caminho_pdf_suzano)
-
-# 2. Fatiamento (Chunking)
-fatias = fatiar_texto(texto_bruto)
-
-# 3. Criação dos Embeddings e Salvamento no Vector DB
-banco_vetorial = criar_banco_vetorial(fatias)
-
-# ==========================================
-# TESTANDO A MÁGICA (A Busca Vetorial)
-# ==========================================
-print("\n--- TESTANDO A BUSCA SEMÂNTICA ---")
-pergunta = "Qual é o valor total da contratação ou da licitação?"
-print(f"Sua Pergunta: '{pergunta}'")
-
-# Vamos pedir para o banco trazer as 3 fatias que mais se parecem com a pergunta
-resultados = banco_vetorial.similarity_search(pergunta, k=3)
-
-for i, doc in enumerate(resultados):
-    print(f"\n[ RESULTADO {i+1} ENCONTRADO ]")
-    print(doc.page_content)
-    print("-" * 40)
+def processar_documento(caminho_arquivo: str):
+    """
+    Função chamada pela FastAPI quando um usuário faz upload de um PDF.
+    """
+    print(f"Iniciando o processamento do documento: {caminho_arquivo}")
+    
+    try:
+        # 1. Extrai o texto
+        texto_bruto = extrair_texto_pdf(caminho_arquivo)
+        
+        # 2. Fatiamento (Chunking)
+        fatias = fatiar_texto(texto_bruto)
+        
+        # 3. Criação/Atualização dos Embeddings no Vector DB
+        # O ChromaDB vai ADICIONAR os novos vetores ao banco existente
+        criar_banco_vetorial(fatias)
+        
+        # 4. Apaga o PDF temporário para não lotar o servidor
+        os.remove(caminho_arquivo)
+        
+        return {"status": "sucesso", "mensagem": f"Documento processado. {len(fatias)} fatias vetorizadas!"}
+    except Exception as e:
+        return {"status": "erro", "mensagem": str(e)}

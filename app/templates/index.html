@@ -34,6 +34,11 @@
         <input type="text" id="pergunta-input" placeholder="Ex: Qual o valor total do contrato?">
         <button onclick="enviarPergunta()">Investigar</button>
     </div>
+    <div style="background-color: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+        <label for="pdf-upload" style="font-weight: bold; cursor: pointer; color: #007bff;">📄 Anexar novo Edital (PDF)</label>
+        <input type="file" id="pdf-upload" accept=".pdf" style="display: none;" onchange="enviarPDF()">
+        <p id="upload-status" style="font-size: 12px; color: gray; margin-top: 5px;">Nenhum arquivo processado nesta sessão.</p>
+    </div>
 </div>
 
 <script>
@@ -69,6 +74,31 @@
         } finally {
             loading.style.display = "none";
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+    async function enviarPDF() {
+        const fileInput = document.getElementById("pdf-upload");
+        const statusText = document.getElementById("upload-status");
+        if (fileInput.files.length === 0) return;
+        const formData = new FormData();
+        formData.append("arquivo", fileInput.files[0]);
+
+        statusText.style.color = "blue";
+        statusText.innerText = "⏳ Lendo o PDF, fatiando textos e criando vetores... Aguarde.";
+
+        try {
+            const response = await fetch("/api/upload", {
+                method: "POST",
+                body: formData // Note que não usamos JSON.stringify aqui, usamos FormData para arquivos!
+            });
+
+            const data = await response.json();
+            statusText.style.color = "green";
+            statusText.innerText = "✅ " + data.mensagem;
+            
+        } catch (error) {
+            statusText.style.color = "red";
+            statusText.innerText = "❌ Erro ao enviar o arquivo.";
         }
     }
 </script>
