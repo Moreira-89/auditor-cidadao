@@ -1,4 +1,3 @@
-import os
 from dotenv import load_dotenv
 # Atualizamos a importação para remover o Warning!
 from langchain_chroma import Chroma

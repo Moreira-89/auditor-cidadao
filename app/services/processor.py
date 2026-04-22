@@ -2,7 +2,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 import pdfplumber
-import os
 
 def fatiar_texto(texto):
     print("Iniciando o fatiamento do texto (Chunking)...")
