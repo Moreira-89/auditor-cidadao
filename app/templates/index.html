@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditor Cidadão</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding: 50px; }
+        .chat-container { width: 100%; max-width: 600px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 30px; }
+        h1 { color: #2c3e50; text-align: center; }
+        .chat-box { height: 300px; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 20px; overflow-y: auto; background-color: #fafafa; }
+        .input-group { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        button { padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        button:hover { background-color: #0056b3; }
+        .mensagem-usuario { color: #007bff; font-weight: bold; margin-bottom: 5px; }
+        .mensagem-ia { color: #333; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .loading { font-style: italic; color: gray; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <h1>🕵️‍♂️ Auditor Cidadão</h1>
+    <p style="text-align: center; color: gray;">Base de Dados: Prefeitura de Suzano</p>
+    
+    <div class="chat-box" id="chat-box">
+        <div class="mensagem-ia"><strong>Auditor:</strong> Olá! Faça uma pergunta sobre a licitação.</div>
+    </div>
+    
+    <p class="loading" id="loading-text">Analisando documentos governamentais...</p>
+    
+    <div class="input-group">
+        <input type="text" id="pergunta-input" placeholder="Ex: Qual o valor total do contrato?">
+        <button onclick="enviarPergunta()">Investigar</button>
+    </div>
+</div>
+
+<script>
+    async function enviarPergunta() {
+        const input = document.getElementById("pergunta-input");
+        const chatBox = document.getElementById("chat-box");
+        const loading = document.getElementById("loading-text");
+        const pergunta = input.value.trim();
+
+        if (!pergunta) return;
+
+        // Adiciona a pergunta na tela
+        chatBox.innerHTML += `<div class="mensagem-usuario">Você: ${pergunta}</div>`;
+        input.value = ""; // limpa o input
+        chatBox.scrollTop = chatBox.scrollHeight; // rola para baixo
+        
+        loading.style.display = "block"; // Mostra o "Pensando..."
+
+        try {
+            // Chamada para a nossa FastAPI
+            const response = await fetch("/api/perguntar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pergunta: pergunta })
+            });
+
+            const data = await response.json();
+
+            // Adiciona a resposta da IA na tela
+            chatBox.innerHTML += `<div class="mensagem-ia"><strong>Auditor:</strong> ${data.resposta}</div>`;
+        } catch (error) {
+            chatBox.innerHTML += `<div class="mensagem-ia" style="color: red;"><strong>Erro:</strong> Falha ao conectar com o servidor.</div>`;
+        } finally {
+            loading.style.display = "none";
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+</script>
+</body>
+</html>

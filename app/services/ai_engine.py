@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-# Atualizamos a importação para remover o Warning!
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
@@ -50,12 +49,13 @@ cadeia_rag = (
     | StrOutputParser()
 )
 
-print("\n--- AUDITOR CIDADÃO PRONTO ---")
-pergunta = "Qual é o valor total da contratação ou da licitação?"
-print(f"\nSua Pergunta: '{pergunta}'")
-print("\nPensando...")
-
-resposta_final = cadeia_rag.invoke(pergunta)
-
-print(f"\nResposta do Agente:\n{resposta_final}")
-print("-" * 40)
+def consultar_auditor(pergunta_usuario: str) -> str:
+    """
+    Função que recebe a pergunta da FastAPI, consulta o RAG e retorna a string de resposta.
+    """
+    try:
+        # invoke roda o modelo e traz a resposta baseada no banco Chroma
+        resposta = cadeia_rag.invoke(pergunta_usuario)
+        return resposta
+    except Exception as e:
+        return f"Erro interno ao consultar o modelo: {str(e)}"
