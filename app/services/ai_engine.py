@@ -1,33 +1,34 @@
+import logging
+
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_groq import ChatGroq
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
+from langchain_groq import ChatGroq
+from langchain_huggingface import HuggingFaceEmbeddings
 
 load_dotenv()
 
-print("Carregando o cérebro vetorial...")
+logger = logging.getLogger(__name__)
+logger.info("Inicializando o motor de IA e carregando o banco vetorial ChromaDB...")
+
 modelo_embedding = HuggingFaceEmbeddings(
     model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
 pasta_banco = "./banco_chroma"
-banco_vetorial = Chroma(persist_directory=pasta_banco, embedding_function=modelo_embedding)
-
-# ==========================================
-# O SEGREDO DO ENGENHEIRO SÊNIOR: MMR
-# ==========================================
-# fetch_k=50: Olha os 50 mais parecidos no banco
-# k=15: Escolhe os 15 melhores e MAIS DIVERSOS dentre os 50
-retriever = banco_vetorial.as_retriever(
-    search_type="mmr", 
-    search_kwargs={"k": 15, "fetch_k": 50}
+banco_vetorial = Chroma(
+    persist_directory=pasta_banco, embedding_function=modelo_embedding
 )
 
-# Seu novo modelo! Excelente escolha.
-print("Conectando ao Llama 3.3...")
-llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1) 
+# Configura o retriever utilizando MMR (Maximal Marginal Relevance)
+# para garantir diversidade e precisão nos trechos retornados
+retriever = banco_vetorial.as_retriever(
+    search_type="mmr", search_kwargs={"k": 15, "fetch_k": 50}
+)
+
+logger.info("Conectando ao modelo LLaMA via Groq...")
+llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1)
 
 template = """Você é o "Auditor Cidadão", um assistente de inteligência artificial especializado em análise de licitações, contratos públicos e editais.
 Sua missão é fornecer respostas precisas, imparciais e diretas com base estritamente nos documentos oficiais fornecidos.
@@ -59,13 +60,22 @@ cadeia_rag = (
     | StrOutputParser()
 )
 
+
 def consultar_auditor(pergunta_usuario: str) -> str:
     """
-    Função que recebe a pergunta da FastAPI, consulta o RAG e retorna a string de resposta.
+    Processa a pergunta do usuário através da cadeia RAG (Retrieval-Augmented Generation).
+
+    Args:
+        pergunta_usuario (str): A pergunta formulada pelo usuário final.
+
+    Returns:
+        str: A resposta gerada pelo modelo LLaMA fundamentada no contexto vetorial.
     """
+    logger.info(f"Processando nova pergunta: {pergunta_usuario}")
     try:
-        # invoke roda o modelo e traz a resposta baseada no banco Chroma
         resposta = cadeia_rag.invoke(pergunta_usuario)
+        logger.info("Resposta gerada com sucesso pela IA.")
         return resposta
     except Exception as e:
+        logger.error(f"Erro durante a execução do RAG: {e}", exc_info=True)
         return f"Erro interno ao consultar o modelo: {str(e)}"
