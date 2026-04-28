@@ -3,7 +3,7 @@ from app.models.consulta_cnpj import ConsultaCNPJ
 from app.services.tools import consultar_receita_federal
 import json
 
-def run_agent(texto_edital: str) -> str:
+def run_agent(texto_edital: str, lista_cnpj: list) -> str:
     """
     Executa o agente de auditoria sobre o texto de um edital ou contrato público.
 
@@ -17,6 +17,7 @@ def run_agent(texto_edital: str) -> str:
     Args:
         texto_edital (str): Texto extraído do edital, contrato ou documento público
                            que será analisado pelo agente.
+        lista_cnpj (list[str]): Lista de CNPJs encontrados no documento.
 
     Returns:
         str: Análise gerada pelo modelo com base no documento e nos dados da Receita
@@ -27,6 +28,17 @@ def run_agent(texto_edital: str) -> str:
     # do agente) e a mensagem do usuário (o texto do edital). A cada volta do laço,
     # novas mensagens são appendadas aqui — isso permite que o modelo "lembre" de tudo
     # que aconteceu, incluindo os resultados das ferramentas executadas.
+    
+    cnpjs_formatados = ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado."
+
+    prompt_dinamico = f"""
+        O usuário enviou um edital público. Nosso sistema de extração encontrou os seguintes CNPJs no documento:
+        [{cnpjs_formatados}]
+    
+        Por favor, utilize a ferramenta de consulta à Receita Federal para validar cada um destes CNPJs 
+        e me entregue um relatório com a Razão Social e a Situação Cadastral de cada empresa.
+    """
+
     messages=[
         {
             "role": "system",
@@ -56,11 +68,11 @@ def run_agent(texto_edital: str) -> str:
             - Baseie suas conclusões estritamente nos documentos oficiais e nos dados retornados pela ferramenta.
             - Seja preciso, imparcial e direto.
             - Sinalize claramente quando uma informação não pôde ser verificada.
-            """,
+            """
         },
         {
             "role": "user",
-            "content": texto_edital,
+            "content": prompt_dinamico
         }
     ]
 
