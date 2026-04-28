@@ -93,22 +93,26 @@ def run_agent(texto_edital: str) -> str:
         )
 
         if response.choices[0].message.tool_calls:
-            # O modelo identificou um CNPJ e acionou a ferramenta consultar_receita_federal.
-            # Extrai o objeto tool_call (contém nome da função, argumentos e um ID único)
-            # e desserializa os argumentos JSON para obter o CNPJ solicitado.
-            tool_call = response.choices[0].message.tool_calls[0]
-            extrair_cnpj = json.loads(tool_call.function.arguments)["cnpj"]
-
-            resultado_tool = consultar_receita_federal(extrair_cnpj)
-
-            # Devolve ao modelo: primeiro a mensagem dele com o pedido de tool, depois o resultado
+            # O modelo pode solicitar múltiplas ferramentas em um único turno (ex: edital
+            # com vários CNPJs). A mensagem do assistente é appendada UMA única vez pois ela
+            # carrega todos os tool_calls juntos. Os resultados são appendados individualmente.
             messages.append(response.choices[0].message)
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "name": "consultar_receita_federal",
-                "content": json.dumps(resultado_tool, ensure_ascii=False)
-            })
+
+            for tool_call in response.choices[0].message.tool_calls:
+                # Extrai o objeto tool_call (contém nome da função, argumentos e um ID único)
+                # e desserializa os argumentos JSON para obter o CNPJ solicitado.
+                extrair_cnpj = json.loads(tool_call.function.arguments)["cnpj"]
+
+                resultado_tool = consultar_receita_federal(extrair_cnpj)
+
+                # Cada resultado é vinculado ao seu tool_call_id correspondente.
+                # Sem esse vínculo, a API rejeita o contexto como inválido.
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "name": "consultar_receita_federal",
+                    "content": json.dumps(resultado_tool, ensure_ascii=False)
+                })
 
             tentativa += 1
 
