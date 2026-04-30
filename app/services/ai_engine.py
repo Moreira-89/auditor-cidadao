@@ -3,12 +3,8 @@ import json
 from app.core.config_groq import retornar_cliente_groq
 from app.models.consulta_cnpj import ConsultaCNPJ
 from app.services.tools import consultar_receita_federal
-from app.models.pergunta_request import PerguntaRequest
 
-request = PerguntaRequest()
-
-
-def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str) -> str:
+def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name: str) -> str:
     """
     Executa o agente de auditoria sobre o texto de um edital ou contrato público.
 
@@ -41,14 +37,14 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str) -> str:
     prompt_dinamico = f"""
         O usuário enviou um edital público: {contexto}. Nosso sistema de extração encontrou os seguintes CNPJs no documento: [{cnpjs_formatados}]. O usuário fez a seguinte pergunta sobre o edital: {pergunta_usuário}.
 
-        Por favor, responda educadamente e de forma clara e objetiva possível para o usuário chamado "{request.user_name}". Se necessário for, use a ferramenta de consulta à Receita Federal para validar cada um destes CNPJs para dar ainda mais enbasamento na sua resposta para o usuario.
+        Por favor, responda educadamente e de forma clara e objetiva possível para o usuário chamado "{user_name}". Se necessário for, use a ferramenta de consulta à Receita Federal para validar cada um destes CNPJs para dar ainda mais enbasamento na sua resposta para o usuario.
     """
 
     messages = [
         {
             "role": "system",
             "content": f"""
-            Você é o 'Auditor Cidadão', um assistente especializado em análise de licitações, contratos públicos e editais brasileiros. O usuário se chama {request.user_name}. Dirija-se a ele de forma cordial e profissional.
+            Você é o 'Auditor Cidadão', um assistente especializado em análise de licitações, contratos públicos e editais brasileiros. O usuário se chama {user_name}. Dirija-se a ele de forma cordial e profissional.
 
             ## TAREFA PRIMÁRIA — OBRIGATÓRIA
 

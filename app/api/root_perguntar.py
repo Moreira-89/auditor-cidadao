@@ -62,7 +62,8 @@ async def executar_pergunta(request: PerguntaRequest):
     resposta = run_agent(
         pergunta_usuário=request.pergunta,
         lista_cnpj=request.lista_cnpjs,
-        contexto=contexto
+        contexto=contexto,
+        user_name=request.user_name
     )
 
     # Retorna a resposta final empacotada em um JSON
