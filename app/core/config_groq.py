@@ -1,8 +1,10 @@
-from groq import Groq
-from dotenv import load_dotenv
 import os
 
+from dotenv import load_dotenv
+from groq import Groq
+
 load_dotenv()
+
 
 def retornar_cliente_groq():
     """Retorna um cliente Groq inicializado com a chave de API."""
