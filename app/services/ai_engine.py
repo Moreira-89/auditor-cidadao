@@ -4,25 +4,36 @@ from app.core.config_groq import retornar_cliente_groq
 from app.models.consulta_cnpj import ConsultaCNPJ
 from app.services.tools import consultar_receita_federal
 
+# -----------------------------------------------------------------------------
+# MOTOR DE INTELIGÊNCIA ARTIFICIAL (AGENTE)
+# -----------------------------------------------------------------------------
 def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name: str) -> str:
     """
-    Executa o agente de auditoria sobre o texto de um edital ou contrato público.
+    Executa o "Agente" de auditoria (LLM autônomo) para analisar o edital e responder à pergunta.
 
-    O agente opera em um laço (agentic loop): a cada iteração ele chama o modelo
-    de linguagem e verifica se o modelo quer executar alguma ferramenta (ex: consulta
-    de CNPJ na Receita Federal). Se sim, executa a ferramenta e devolve o resultado
-    ao modelo na próxima iteração. O laço termina quando o modelo produz uma resposta
-    textual final (sem pedido de ferramenta) ou quando o número máximo de tentativas
-    é atingido.
+    COMO FUNCIONA O "AGENTIC LOOP":
+    Diferente de um ChatGPT normal onde você manda uma pergunta e ele cospe a resposta,
+    um Agente de IA funciona em "turnos" (laços).
+    
+    1. Turno 1: Enviamos o sistema, o edital, a pergunta e os CNPJs para o modelo.
+       Nós também passamos a ele uma lista de "Ferramentas" (Tools) que ele tem permissão para usar.
+    2. Decisão: O modelo percebe que há CNPJs e que ele não sabe os dados atuais dessas empresas. 
+       Em vez de responder ao usuário, ele nos responde: "Por favor, execute a ferramenta X para o CNPJ Y".
+    3. Execução Local: Nosso código em Python captura esse pedido, faz a requisição na BrasilAPI
+       (usando a função consultar_receita_federal) e guarda a resposta JSON.
+    4. Turno 2: Nós enviamos a resposta JSON de volta pro modelo e dizemos: "Aqui está o 
+       que a ferramenta retornou. Pode continuar."
+    5. Resposta Final: O modelo junta o que leu no edital com os dados concretos da Receita Federal
+       e formula a resposta final para o usuário.
 
     Args:
-        pergunta_usuário (str): Pergunta do usuário sobre o edital.
-        lista_cnpj (list[str]): Lista de CNPJs encontrados no documento.
-        contexto (str): Contexto de documentos relevantes para a análise.
+        pergunta_usuário (str): Pergunta feita pelo usuário.
+        lista_cnpj (list[str]): CNPJs pré-extraídos na fase de upload para "forçar" a IA a pesquisá-los.
+        contexto (str): Parágrafos do edital recuperados do Pinecone (Busca Semântica).
+        user_name (str): Nome do usuário logado para personalização.
 
     Returns:
-        str: Análise gerada pelo modelo com base no documento e nos dados da Receita
-             Federal, ou uma mensagem de erro se o processo falhar.
+        str: A resposta final e analisada pronta para ser exibida no front-end.
     """
 
     # Histórico de mensagens da conversa. Começa com o system prompt (identidade e regras

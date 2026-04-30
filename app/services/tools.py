@@ -5,27 +5,28 @@ def consultar_receita_federal(cnpj: str) -> dict:
     """
     Consulta os dados cadastrais de uma empresa brasileira na Receita Federal a partir do seu CNPJ.
 
-    Use esta função sempre que precisar verificar ou enriquecer informações sobre uma empresa
-    mencionada em um edital, contrato ou documento público. Ela é especialmente útil para:
+    COMO FUNCIONA:
+    Este arquivo atua como uma "Ferramenta" (Tool) para a Inteligência Artificial. 
+    Lembre-se que o LLM (Llama 3) é um modelo de linguagem treinado até uma data 
+    específica e não tem acesso direto à internet para checar dados em tempo real.
+    
+    Portanto, nós construímos esta função Python tradicional e "damos" ela para o LLM. 
+    Quando o modelo descobre um CNPJ, ele pede para executar essa função. Nós (o sistema)
+    executamos o request HTTP na BrasilAPI, pegamos os dados reais e devolvemos
+    como um JSON para a IA ler e incluir na sua resposta final.
+
+    Casos de uso:
     - Confirmar se a razão social declarada no documento corresponde ao CNPJ informado.
-    - Verificar se a empresa está com situação cadastral ATIVA perante a Receita Federal.
+    - Verificar se a empresa está com situação cadastral ATIVA.
     - Identificar o ramo de atividade (CNAE) e cruzar com o objeto do contrato.
 
     Args:
-        cnpj (str): CNPJ da empresa a ser consultada. Pode ser enviado com ou sem formatação
-                    (ex: "12.345.678/0001-99" ou "12345678000199"). A API aceita ambos os formatos.
+        cnpj (str): CNPJ da empresa. Pode vir formatado ("12.345.678/0001-99") ou 
+                    só em números. A BrasilAPI resolve os dois.
 
     Returns:
-        dict: Em caso de sucesso, retorna um dicionário com os seguintes campos:
-            - razao_social (str): Nome jurídico oficial da empresa registrado na Receita Federal.
-            - nome_fantasia (str | None): Nome comercial da empresa, se houver.
-            - descricao_situacao_cadastral (str): Situação atual da empresa (ex: "ATIVA", "BAIXADA", "SUSPENSA").
-            - cnae_fiscal_descricao (str): Descrição da atividade econômica principal da empresa.
-            - data_inicio_atividade (str): Data de abertura da empresa no formato "AAAA-MM-DD".
-
-              Em caso de falha (API indisponível, CNPJ inexistente, erro de rede), retorna:
-            - error (str): Mensagem descrevendo o motivo da falha. Informe este erro ao usuário
-                           e prossiga a análise apenas com os dados disponíveis no documento.
+        dict: Dicionário contendo os dados mastigados da empresa (razão social, status, etc) 
+              ou um dicionário com a chave "error" em caso de falha.
     """
     url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj}"
 
