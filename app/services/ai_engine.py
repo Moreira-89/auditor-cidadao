@@ -1,49 +1,61 @@
+import json
+
 from app.core.config_groq import retornar_cliente_groq
 from app.models.consulta_cnpj import ConsultaCNPJ
 from app.services.tools import consultar_receita_federal
-import json
 
-def run_agent(texto_edital: str, lista_cnpj: list) -> str:
+# -----------------------------------------------------------------------------
+# MOTOR DE INTELIGÊNCIA ARTIFICIAL (AGENTE)
+# -----------------------------------------------------------------------------
+def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name: str) -> str:
     """
-    Executa o agente de auditoria sobre o texto de um edital ou contrato público.
+    Executa o "Agente" de auditoria (LLM autônomo) para analisar o edital e responder à pergunta.
 
-    O agente opera em um laço (agentic loop): a cada iteração ele chama o modelo
-    de linguagem e verifica se o modelo quer executar alguma ferramenta (ex: consulta
-    de CNPJ na Receita Federal). Se sim, executa a ferramenta e devolve o resultado
-    ao modelo na próxima iteração. O laço termina quando o modelo produz uma resposta
-    textual final (sem pedido de ferramenta) ou quando o número máximo de tentativas
-    é atingido.
+    COMO FUNCIONA O "AGENTIC LOOP":
+    Diferente de um ChatGPT normal onde você manda uma pergunta e ele cospe a resposta,
+    um Agente de IA funciona em "turnos" (laços).
+    
+    1. Turno 1: Enviamos o sistema, o edital, a pergunta e os CNPJs para o modelo.
+       Nós também passamos a ele uma lista de "Ferramentas" (Tools) que ele tem permissão para usar.
+    2. Decisão: O modelo percebe que há CNPJs e que ele não sabe os dados atuais dessas empresas. 
+       Em vez de responder ao usuário, ele nos responde: "Por favor, execute a ferramenta X para o CNPJ Y".
+    3. Execução Local: Nosso código em Python captura esse pedido, faz a requisição na BrasilAPI
+       (usando a função consultar_receita_federal) e guarda a resposta JSON.
+    4. Turno 2: Nós enviamos a resposta JSON de volta pro modelo e dizemos: "Aqui está o 
+       que a ferramenta retornou. Pode continuar."
+    5. Resposta Final: O modelo junta o que leu no edital com os dados concretos da Receita Federal
+       e formula a resposta final para o usuário.
 
     Args:
-        texto_edital (str): Texto extraído do edital, contrato ou documento público
-                           que será analisado pelo agente.
-        lista_cnpj (list[str]): Lista de CNPJs encontrados no documento.
+        pergunta_usuário (str): Pergunta feita pelo usuário.
+        lista_cnpj (list[str]): CNPJs pré-extraídos na fase de upload para "forçar" a IA a pesquisá-los.
+        contexto (str): Parágrafos do edital recuperados do Pinecone (Busca Semântica).
+        user_name (str): Nome do usuário logado para personalização.
 
     Returns:
-        str: Análise gerada pelo modelo com base no documento e nos dados da Receita
-             Federal, ou uma mensagem de erro se o processo falhar.
+        str: A resposta final e analisada pronta para ser exibida no front-end.
     """
 
     # Histórico de mensagens da conversa. Começa com o system prompt (identidade e regras
     # do agente) e a mensagem do usuário (o texto do edital). A cada volta do laço,
     # novas mensagens são appendadas aqui — isso permite que o modelo "lembre" de tudo
     # que aconteceu, incluindo os resultados das ferramentas executadas.
-    
-    cnpjs_formatados = ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado."
+
+    cnpjs_formatados = (
+        ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado."
+    )
 
     prompt_dinamico = f"""
-        O usuário enviou um edital público. Nosso sistema de extração encontrou os seguintes CNPJs no documento:
-        [{cnpjs_formatados}]
-    
-        Por favor, utilize a ferramenta de consulta à Receita Federal para validar cada um destes CNPJs 
-        e me entregue um relatório com a Razão Social e a Situação Cadastral de cada empresa.
+        O usuário enviou um edital público: {contexto}. Nosso sistema de extração encontrou os seguintes CNPJs no documento: [{cnpjs_formatados}]. O usuário fez a seguinte pergunta sobre o edital: {pergunta_usuário}.
+
+        Por favor, responda educadamente e de forma clara e objetiva possível para o usuário chamado "{user_name}". Se necessário for, use a ferramenta de consulta à Receita Federal para validar cada um destes CNPJs para dar ainda mais enbasamento na sua resposta para o usuario.
     """
 
-    messages=[
+    messages = [
         {
             "role": "system",
-            "content": """
-            Você é o 'Auditor Cidadão', um assistente especializado em análise de licitações, contratos públicos e editais brasileiros.
+            "content": f"""
+            Você é o 'Auditor Cidadão', um assistente especializado em análise de licitações, contratos públicos e editais brasileiros. O usuário se chama {user_name}. Dirija-se a ele de forma cordial e profissional.
 
             ## TAREFA PRIMÁRIA — OBRIGATÓRIA
 
@@ -68,12 +80,9 @@ def run_agent(texto_edital: str, lista_cnpj: list) -> str:
             - Baseie suas conclusões estritamente nos documentos oficiais e nos dados retornados pela ferramenta.
             - Seja preciso, imparcial e direto.
             - Sinalize claramente quando uma informação não pôde ser verificada.
-            """
+            """,
         },
-        {
-            "role": "user",
-            "content": prompt_dinamico
-        }
+        {"role": "user", "content": prompt_dinamico},
     ]
 
     # Instancia o cliente da API Groq (as credenciais são lidas de variáveis de ambiente
@@ -90,18 +99,19 @@ def run_agent(texto_edital: str, lista_cnpj: list) -> str:
     #   2. Se o modelo retornar tool_calls → executa a ferramenta e continua.
     #   3. Se o modelo retornar texto puro → resposta final encontrada, encerra.
     while tentativa < 3:
-
         response = cliente.chat.completions.create(
-            model="llama-3.3-70b-versatile", # melhor modelo gratuito da groq para trabalhar com editais de licitação. É o modelo mais robusto da lista. Para auditoria, modelos menores (como o 8B) falham em entender nuances jurídicas e perdem o fio da meada ao cruzar dados de dois arquivos diferentes. O 70B tem o raciocínio necessário para identificar se um contrato está em desacordo com o edital original. Mas futuramente testar com o Claude 3.5 Sonnet que é o padrão de ouro.
+            model="llama-3.3-70b-versatile",  # melhor modelo gratuito da groq para trabalhar com editais de licitação. É o modelo mais robusto da lista. Para auditoria, modelos menores (como o 8B) falham em entender nuances jurídicas e perdem o fio da meada ao cruzar dados de dois arquivos diferentes. O 70B tem o raciocínio necessário para identificar se um contrato está em desacordo com o edital original. Mas futuramente testar com o Claude 3.5 Sonnet que é o padrão de ouro.
             messages=messages,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "consultar_receita_federal",
-                    "description": "Consulta dados abertos da Receita Federal utilizando o CNPJ.",
-                    "parameters": ConsultaCNPJ.model_json_schema()
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "consultar_receita_federal",
+                        "description": "Consulta dados abertos da Receita Federal utilizando o CNPJ.",
+                        "parameters": ConsultaCNPJ.model_json_schema(),
+                    },
                 }
-            }]
+            ],
         )
 
         if response.choices[0].message.tool_calls:
@@ -119,12 +129,14 @@ def run_agent(texto_edital: str, lista_cnpj: list) -> str:
 
                 # Cada resultado é vinculado ao seu tool_call_id correspondente.
                 # Sem esse vínculo, a API rejeita o contexto como inválido.
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "name": "consultar_receita_federal",
-                    "content": json.dumps(resultado_tool, ensure_ascii=False)
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": "consultar_receita_federal",
+                        "content": json.dumps(resultado_tool, ensure_ascii=False),
+                    }
+                )
 
             tentativa += 1
 
