@@ -1,28 +1,47 @@
+"""
+Resumo: Utilitário para extração de CNPJs a partir de textos brutos.
+
+COMO FUNCIONA:
+1. Varrer Texto: A função recebe um texto extraído (ex: edital) e aplica expressões regulares.
+2. Extração: Identifica tanto padrões formatados quanto numéricos puros que representem um CNPJ.
+3. Normalização: Garante que os retornos sejam formatados uniformemente, removendo pontuações e duplicatas.
+"""
+
 import re
+
+# -----------------------------------------------------------------------------
+# EXTRAÇÃO DE DADOS
+# -----------------------------------------------------------------------------
 
 def extrair_cnpj(texto: str) -> list[str]:
     """
-    Função auxiliar para extração de CNPJs do texto do edital.
+    Objetivo: Extrair e normalizar CNPJs de um texto usando Expressões Regulares.
 
     COMO FUNCIONA:
-    Recebe um bloco de texto (uma string inteira, que pode ser todo o edital) e
-    utiliza uma Expressão Regular (Regex) para varrer o texto em busca de padrões
-    específicos que se pareçam com um CNPJ formatado (XX.XXX.XXX/XXXX-XX).
-    
-    A regex `\b\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}\b` significa:
-    - `\b`: Limite de palavra (garante que não é um número gigantesco com o CNPJ no meio)
-    - `\d{2}`: Dois dígitos, seguido de um ponto `\.`
-    - `\d{3}`: Três dígitos, seguido de um ponto `\.`
-    - `\d{3}`: Três dígitos, seguido de uma barra `\/`
-    - `\d{4}`: Quatro dígitos (geralmente a filial), seguido de um traço `\-`
-    - `\d{2}`: Dois dígitos finais (verificadores)
+    1. Busca Formatada: Encontra CNPJs com pontuação (XX.XXX.XXX/XXXX-XX).
+    2. Busca Limpa: Encontra CNPJs puramente numéricos (14 dígitos).
+    3. Normalização: Soma os resultados, remove a formatação e exclui as redundâncias mantendo a ordem.
 
     Args:
-        texto (str): O texto extraído do PDF do edital.
+        texto (str): O texto bruto onde a busca será executada (ex: texto do edital).
 
     Returns:
-        list[str]: Uma lista contendo todas as strings que deram "match" com o formato do CNPJ.
+        list[str]: Uma lista contendo todas as strings de CNPJs únicos encontrados e limpos (apenas números).
     """
-    # Encontra todas as ocorrências do padrão no texto e retorna como lista
-    cnpjs = re.findall(r"\b\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}\b", texto)
-    return cnpjs
+    # --- 1. Busca Formatada ---
+    # Encontra todas as ocorrências de um CNPJ que possua pontos, barras e traço.
+    cnpjs_formatados = re.findall(r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b", texto)
+    
+    # --- 2. Busca Limpa ---
+    # Encontra ocorrências que consistem de exatamente 14 dígitos sequenciais.
+    cnpjs_limpos = re.findall(r"\b\d{14}\b", texto)
+
+    # Une ambas as listas
+    todos = cnpjs_formatados + cnpjs_limpos
+
+    # --- 3. Normalização ---
+    # Aplica regex de substituição para remover quaisquer pontuações residuais dos matches.
+    normalizados = [re.sub(r"[./-]", "", c) for c in todos]
+
+    # Retorna usando dict.fromkeys para eliminar duplicatas enquanto a ordem original é preservada.
+    return list(dict.fromkeys(normalizados))

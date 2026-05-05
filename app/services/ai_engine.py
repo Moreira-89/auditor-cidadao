@@ -1,3 +1,11 @@
+"""
+Resumo: Motor de Inteligência Artificial para análise autônoma de documentos públicos.
+
+COMO FUNCIONA:
+1. Prompting: Configura a persona e as diretrizes estritas do "Auditor Cidadão".
+2. Agentic Loop: Inicia um ciclo onde o LLM pode analisar o documento e invocar ferramentas (como consultar dados da Receita Federal) iterativamente até ter as informações necessárias para formar a resposta final.
+"""
+
 import json
 
 from app.core.config_groq import retornar_cliente_groq
@@ -9,22 +17,14 @@ from app.services.tools import consultar_receita_federal
 # -----------------------------------------------------------------------------
 def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name: str) -> str:
     """
-    Executa o "Agente" de auditoria (LLM autônomo) para analisar o edital e responder à pergunta.
+    Objetivo: Executa o "Agente" de auditoria (LLM autônomo) para analisar o edital e responder à pergunta.
 
-    COMO FUNCIONA O "AGENTIC LOOP":
-    Diferente de um ChatGPT normal onde você manda uma pergunta e ele cospe a resposta,
-    um Agente de IA funciona em "turnos" (laços).
-    
-    1. Turno 1: Enviamos o sistema, o edital, a pergunta e os CNPJs para o modelo.
-       Nós também passamos a ele uma lista de "Ferramentas" (Tools) que ele tem permissão para usar.
-    2. Decisão: O modelo percebe que há CNPJs e que ele não sabe os dados atuais dessas empresas. 
-       Em vez de responder ao usuário, ele nos responde: "Por favor, execute a ferramenta X para o CNPJ Y".
-    3. Execução Local: Nosso código em Python captura esse pedido, faz a requisição na BrasilAPI
-       (usando a função consultar_receita_federal) e guarda a resposta JSON.
-    4. Turno 2: Nós enviamos a resposta JSON de volta pro modelo e dizemos: "Aqui está o 
-       que a ferramenta retornou. Pode continuar."
-    5. Resposta Final: O modelo junta o que leu no edital com os dados concretos da Receita Federal
-       e formula a resposta final para o usuário.
+    COMO FUNCIONA:
+    1. Preparação do Contexto e Prompt: Recebe a pergunta, o contexto recuperado do vetor e os CNPJs, e formata um prompt para a LLM.
+    2. Instanciação do Cliente: Cria e configura o cliente da API da Groq para requisições do modelo.
+    3. Loop Iterativo (Agentic Loop): Inicia um laço controlado pelo limite de iterações.
+    4. Solicitação de Ferramentas: Se o modelo pedir a execução de uma ferramenta (ex: consultar CNPJ), ela é executada e o resultado é devolvido ao modelo no mesmo loop.
+    5. Finalização: Quando o modelo não pede mais ferramentas, ele gera a resposta textual que será retornada. Se o limite de iterações for alcançado sem resposta, devolve um aviso controlado.
 
     Args:
         pergunta_usuário (str): Pergunta feita pelo usuário.
@@ -36,14 +36,12 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
         str: A resposta final e analisada pronta para ser exibida no front-end.
     """
 
-    # Histórico de mensagens da conversa. Começa com o system prompt (identidade e regras
-    # do agente) e a mensagem do usuário (o texto do edital). A cada volta do laço,
-    # novas mensagens são appendadas aqui — isso permite que o modelo "lembre" de tudo
-    # que aconteceu, incluindo os resultados das ferramentas executadas.
-
+    # --- 1. Preparação do Contexto e Prompt ---
     cnpjs_formatados = (
         ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado."
     )
+
+    MAX_ITERACOES = 7
 
     prompt_dinamico = f"""
         O usuário enviou um edital público: {contexto}. Nosso sistema de extração encontrou os seguintes CNPJs no documento: [{cnpjs_formatados}]. O usuário fez a seguinte pergunta sobre o edital: {pergunta_usuário}.
@@ -85,6 +83,7 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
         {"role": "user", "content": prompt_dinamico},
     ]
 
+    # --- 2. Instanciação do Cliente ---
     # Instancia o cliente da API Groq (as credenciais são lidas de variáveis de ambiente
     # dentro de retornar_cliente_groq(), mantendo segredos fora do código).
     cliente = retornar_cliente_groq()
@@ -93,12 +92,8 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
     # caso o modelo continue pedindo ferramentas sem convergir para uma resposta final.
     tentativa = 0
 
-    # --- AGENTIC LOOP ---
-    # Cada iteração representa um "turno" do agente:
-    #   1. Chama o modelo com o histórico atual.
-    #   2. Se o modelo retornar tool_calls → executa a ferramenta e continua.
-    #   3. Se o modelo retornar texto puro → resposta final encontrada, encerra.
-    while tentativa < 3:
+    # --- 3. Loop Iterativo (Agentic Loop) ---
+    while tentativa < MAX_ITERACOES:
         response = cliente.chat.completions.create(
             model="llama-3.3-70b-versatile",  # melhor modelo gratuito da groq para trabalhar com editais de licitação. É o modelo mais robusto da lista. Para auditoria, modelos menores (como o 8B) falham em entender nuances jurídicas e perdem o fio da meada ao cruzar dados de dois arquivos diferentes. O 70B tem o raciocínio necessário para identificar se um contrato está em desacordo com o edital original. Mas futuramente testar com o Claude 3.5 Sonnet que é o padrão de ouro.
             messages=messages,
@@ -115,6 +110,7 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
         )
 
         if response.choices[0].message.tool_calls:
+            # --- 4. Solicitação de Ferramentas ---
             # O modelo pode solicitar múltiplas ferramentas em um único turno (ex: edital
             # com vários CNPJs). A mensagem do assistente é appendada UMA única vez pois ela
             # carrega todos os tool_calls juntos. Os resultados são appendados individualmente.
@@ -123,9 +119,9 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
             for tool_call in response.choices[0].message.tool_calls:
                 # Extrai o objeto tool_call (contém nome da função, argumentos e um ID único)
                 # e desserializa os argumentos JSON para obter o CNPJ solicitado.
-                extrair_cnpj = json.loads(tool_call.function.arguments)["cnpj"]
+                cnpj_extraido = json.loads(tool_call.function.arguments)["cnpj"]
 
-                resultado_tool = consultar_receita_federal(extrair_cnpj)
+                resultado_tool = consultar_receita_federal(cnpj_extraido)
 
                 # Cada resultado é vinculado ao seu tool_call_id correspondente.
                 # Sem esse vínculo, a API rejeita o contexto como inválido.
@@ -141,11 +137,14 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
             tentativa += 1
 
         else:
+            # --- 5. Finalização (Sucesso) ---
             # O modelo não pediu nenhuma ferramenta: ele já processou todos os dados
             # disponíveis (documento + resultados das consultas) e produziu a análise final.
             response_final = str(response.choices[0].message.content)
             return response_final
 
+    # --- 5. Finalização (Limite Atingido) ---
     # Atingiu o limite de tentativas sem o modelo produzir uma resposta textual final.
     # Retorna uma mensagem de erro controlada em vez de deixar a função retornar None.
-    return "[ERRO] - Falha no processo de auditoria. Tente novamente"
+    return "[AVISO] O agente atingiu o limite de iterações. A análise pode estar incompleta. Tente reformular a pergunta ou enviar menos CNPJs."
+
