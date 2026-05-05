@@ -16,9 +16,6 @@ import re
 
 import requests
 
-# -----------------------------------------------------------------------------
-# VALIDAÇÃO
-# -----------------------------------------------------------------------------
 
 def validar_digitos_cnpj(cnpj: str) -> bool:
     """
@@ -68,10 +65,6 @@ def validar_digitos_cnpj(cnpj: str) -> bool:
     # --- 5. Comparação Final ---
     return int(cnpj[12]) == digito1 and int(cnpj[13]) == digito2
 
-
-# -----------------------------------------------------------------------------
-# FERRAMENTAS DO AGENTE
-# -----------------------------------------------------------------------------
 
 def consultar_receita_federal(cnpj: str) -> dict:
     """
