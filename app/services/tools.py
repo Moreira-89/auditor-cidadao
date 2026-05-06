@@ -1,17 +1,3 @@
-"""
-Resumo: Ferramentas (Tools) disponíveis para o Agente de IA consultar dados externos em tempo real.
-
-COMO FUNCIONA:
-1. Contrato com o Agente: As funções deste arquivo são "doadas" ao LLM como ferramentas invocáveis.
-   Quando o modelo detecta um CNPJ, ele requisita a execução de `consultar_receita_federal`. O código
-   Python faz a chamada HTTP real, e o JSON de retorno volta para o modelo continuar a análise.
-2. Validação Defensiva: Antes de qualquer chamada à rede, o CNPJ é validado estruturalmente e pelos
-   seus dígitos verificadores. Isso evita que o agente desperdice iterações (e tempo do usuário)
-   consultando CNPJs claramente inválidos que o próprio modelo pode ter gerado mal-formados.
-3. Tratamento de Erros: Todos os erros retornam um dicionário com a chave "error", não uma exceção.
-   O agente consegue ler esse erro e comunicar ao usuário o que aconteceu de forma amigável.
-"""
-
 import re
 
 import requests

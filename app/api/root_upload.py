@@ -1,12 +1,3 @@
-"""
-Resumo: Rota da API para upload e processamento inicial de editais.
-
-COMO FUNCIONA:
-1. Recepção: Recebe o PDF do usuário e seus metadados.
-2. Processamento: Lê os bytes, extrai o texto do PDF e envia para indexação no banco de dados vetorial.
-3. Extração Complementar: Extrai os CNPJs presentes no edital para alimentar a próxima etapa do fluxo.
-"""
-
 import io
 import asyncio
 

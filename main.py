@@ -1,14 +1,3 @@
-"""
-Arquivo de Ponto de Entrada (Entry Point) da Aplicação.
-
-COMO FUNCIONA:
-Este é o arquivo que o servidor `uvicorn` procura para iniciar a API.
-Ele inicializa a aplicação FastAPI e define metadados (título, descrição, versão)
-que vão aparecer automaticamente no Swagger UI (/docs).
-Aqui também importamos e "anexamos" todas as rotas (routers) criadas nos outros arquivos,
-para que a aplicação principal saiba que elas existem.
-"""
-
 from fastapi import FastAPI
 
 from app.api.root_perguntar import router as perguntar_router

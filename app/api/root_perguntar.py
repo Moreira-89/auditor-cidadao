@@ -1,11 +1,3 @@
-"""
-Resumo: Rota da API responsável pela interação de perguntas e respostas com o usuário.
-
-COMO FUNCIONA:
-1. Roteamento: Define o endpoint POST para interagir com o "Auditor Cidadão".
-2. Delegação: Recebe a requisição, busca o contexto no Pinecone usando o Gerenciador Vetorial e aciona o motor de inteligência artificial.
-"""
-
 from fastapi import APIRouter
 
 from app.core.dependencies import gerenciador

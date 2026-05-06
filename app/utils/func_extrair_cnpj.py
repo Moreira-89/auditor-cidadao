@@ -1,17 +1,9 @@
-"""
-Resumo: Utilitário para extração de CNPJs a partir de textos brutos.
-
-COMO FUNCIONA:
-1. Varrer Texto: A função recebe um texto extraído (ex: edital) e aplica expressões regulares.
-2. Extração: Identifica tanto padrões formatados quanto numéricos puros que representem um CNPJ.
-3. Normalização: Garante que os retornos sejam formatados uniformemente, removendo pontuações e duplicatas.
-"""
-
 import re
 
 # -----------------------------------------------------------------------------
 # EXTRAÇÃO DE DADOS
 # -----------------------------------------------------------------------------
+
 
 def extrair_cnpj(texto: str) -> list[str]:
     """
@@ -31,7 +23,7 @@ def extrair_cnpj(texto: str) -> list[str]:
     # --- 1. Busca Formatada ---
     # Encontra todas as ocorrências de um CNPJ que possua pontos, barras e traço.
     cnpjs_formatados = re.findall(r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b", texto)
-    
+
     # --- 2. Busca Limpa ---
     # Encontra ocorrências que consistem de exatamente 14 dígitos sequenciais.
     cnpjs_limpos = re.findall(r"\b\d{14}\b", texto)

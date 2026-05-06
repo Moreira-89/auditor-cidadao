@@ -1,15 +1,3 @@
-"""
-Resumo: Motor de Inteligência Artificial para análise autônoma de documentos públicos.
-
-COMO FUNCIONA:
-1. Prompting: Configura a persona e as diretrizes estritas do "Auditor Cidadão", incluindo regras de imunidade
-   contra Prompt Injection (manipulação via conteúdo do documento).
-2. Estruturação do Prompt: Usa delimitadores XML para separar claramente dados (o edital, CNPJs) de instruções,
-   impedindo que o modelo confunda conteúdo de terceiros com comandos a serem obedecidos.
-3. Agentic Loop: Inicia um ciclo onde o LLM pode analisar o documento e invocar ferramentas (como consultar
-   dados da Receita Federal) iterativamente até ter as informações necessárias para formar a resposta final.
-"""
-
 import json
 
 # Importamos o cliente Groq como singleton do módulo de dependências.
