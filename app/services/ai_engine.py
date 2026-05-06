@@ -12,7 +12,10 @@ COMO FUNCIONA:
 
 import json
 
-from app.core.config_groq import retornar_cliente_groq
+# Importamos o cliente Groq como singleton do módulo de dependências.
+# O objeto já foi instanciado uma única vez na inicialização do servidor;
+# aqui apenas recebemos a referência para reutilizá-la sem custo adicional.
+from app.core.dependencies import cliente_groq
 from app.models.consulta_cnpj import ConsultaCNPJ
 from app.services.tools import consultar_receita_federal
 
@@ -29,10 +32,10 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
        impedindo que conteúdo malicioso dentro do edital seja interpretado como instrução.
     2. System Prompt com Imunidade: O prompt de sistema inclui uma seção de REGRAS DE SEGURANÇA que instrui
        o modelo a ignorar tentativas de Prompt Injection e a nunca revelar suas instruções internas.
-    3. Instanciação do Cliente: Cria e configura o cliente da API da Groq para requisições do modelo.
-    4. Loop Iterativo (Agentic Loop): Inicia um laço controlado pelo limite de iterações.
-    5. Solicitação de Ferramentas: Se o modelo pedir a execução de uma ferramenta (ex: consultar CNPJ), ela é executada e o resultado é devolvido ao modelo no mesmo loop.
-    6. Finalização: Quando o modelo não pede mais ferramentas, ele gera a resposta textual que será retornada. Se o limite de iterações for alcançado sem resposta, devolve um aviso controlado.
+    3. Loop Iterativo (Agentic Loop): Inicia um laço controlado pelo limite de iterações, usando o cliente
+       Groq singleton importado de `dependencies` — sem custo de instanciação por requisição.
+    4. Solicitação de Ferramentas: Se o modelo pedir a execução de uma ferramenta (ex: consultar CNPJ), ela é executada e o resultado é devolvido ao modelo no mesmo loop.
+    5. Finalização: Quando o modelo não pede mais ferramentas, ele gera a resposta textual que será retornada. Se o limite de iterações for alcançado sem resposta, devolve um aviso controlado.
 
     Args:
         pergunta_usuário (str): Pergunta feita pelo usuário.
@@ -122,18 +125,19 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
         {"role": "user", "content": prompt_dinamico},
     ]
 
-    # --- 3. Instanciação do Cliente ---
-    # Instancia o cliente da API Groq (as credenciais são lidas de variáveis de ambiente
-    # dentro de retornar_cliente_groq(), mantendo segredos fora do código).
-    cliente = retornar_cliente_groq()
+    # --- 3. Loop Iterativo (Agentic Loop) ---
+    # Usamos diretamente o singleton `cliente_groq` importado de `dependencies`.
+    # Não há instanciação aqui: o objeto já existe na memória desde a inicialização
+    # do servidor, e apenas reutilizamos a referência. Isso elimina o overhead de
+    # criar uma nova conexão HTTP a cada chamada de `run_agent`.
 
     # Contador de segurança: impede que o agente fique preso em um laço infinito
     # caso o modelo continue pedindo ferramentas sem convergir para uma resposta final.
     tentativa = 0
 
-    # --- 4. Loop Iterativo (Agentic Loop) ---
+    # --- 3. Loop Iterativo (Agentic Loop) ---
     while tentativa < MAX_ITERACOES:
-        response = cliente.chat.completions.create(
+        response = cliente_groq.chat.completions.create(
             model="llama-3.3-70b-versatile",  # melhor modelo gratuito da groq para trabalhar com editais de licitação. É o modelo mais robusto da lista. Para auditoria, modelos menores (como o 8B) falham em entender nuances jurídicas e perdem o fio da meada ao cruzar dados de dois arquivos diferentes. O 70B tem o raciocínio necessário para identificar se um contrato está em desacordo com o edital original. Mas futuramente testar com o Claude 3.5 Sonnet que é o padrão de ouro.
             messages=messages,
             tools=[
@@ -149,7 +153,7 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
         )
 
         if response.choices[0].message.tool_calls:
-            # --- 5. Solicitação de Ferramentas ---
+            # --- 4. Solicitação de Ferramentas ---
             # O modelo pode solicitar múltiplas ferramentas em um único turno (ex: edital
             # com vários CNPJs). A mensagem do assistente é appendada UMA única vez pois ela
             # carrega todos os tool_calls juntos. Os resultados são appendados individualmente.
@@ -176,13 +180,13 @@ def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name
             tentativa += 1
 
         else:
-            # --- 6. Finalização (Sucesso) ---
+            # --- 5. Finalização (Sucesso) ---
             # O modelo não pediu nenhuma ferramenta: ele já processou todos os dados
             # disponíveis (documento + resultados das consultas) e produziu a análise final.
             response_final = str(response.choices[0].message.content)
             return response_final
 
-    # --- 6. Finalização (Limite Atingido) ---
+    # --- 5. Finalização (Limite Atingido) ---
     # Atingiu o limite de tentativas sem o modelo produzir uma resposta textual final.
     # Retorna uma mensagem de erro controlada em vez de deixar a função retornar None.
     return "[AVISO] O agente atingiu o limite de iterações. A análise pode estar incompleta. Tente reformular a pergunta ou enviar menos CNPJs."
