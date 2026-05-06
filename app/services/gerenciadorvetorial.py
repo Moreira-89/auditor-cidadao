@@ -1,10 +1,10 @@
 import os
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
-from pinecone_text.sparse import BM25Encoder
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
+from pinecone_text.sparse import BM25Encoder
 
 
 # -----------------------------------------------------------------------------
