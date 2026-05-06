@@ -1,17 +1,8 @@
-"""
-Resumo: Orquestrador da comunicação com o banco de dados vetorial (Pinecone).
-
-COMO FUNCIONA:
-1. Inicialização: Configura o modelo de embedding (HuggingFace) e o cliente Pinecone.
-2. Fragmentação: Divide textos longos (editais) em partes menores (chunks) para processamento via RecursiveCharacterTextSplitter.
-3. Persistência: Converte cada chunk em um vetor matemático e salva no Pinecone em lote, junto aos metadados.
-4. Busca: Realiza buscas por similaridade semântica para recuperar as partes do texto mais relevantes para a pergunta do usuário.
-"""
-
 import os
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
+from pinecone_text.sparse import BM25Encoder
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
 
@@ -38,6 +29,7 @@ class GerenciadorVetorial:
         self.modelo_embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         self.pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         self.index_name = "auditor-cidadao"
+        self.bm25 = BM25Encoder().default()
 
     # ------------------------------------------------------------------
     # MÉTODOS INTERNOS
