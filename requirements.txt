@@ -20,3 +20,4 @@ pinecone-client==6.0.0
 sentence-transformers==5.4.1
 langchain-community==0.4.1
 langchain-pinecone==0.2.13
+pinecone-text[splade]==0.11.0
