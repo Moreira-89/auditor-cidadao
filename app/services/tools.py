@@ -2,6 +2,9 @@ import re
 import requests
 from langchain.tools import BaseTool, tool
 from validate_docbr import CNPJ
+from app.core.dependencies import gerenciador
+from typing_extensions import Annotated
+from langgraph.prebuilt import InjectedState
 
 
 # -----------------------------------------------------------------------------
@@ -84,6 +87,31 @@ def consultar_receita_federal(cnpj: str) -> dict:
         # Captura qualquer outro erro inesperado da biblioteca requests (ex: SSL, redirect loop).
         return {"error": f"Erro inesperado ao consultar o CNPJ {cnpj_limpo}: {str(e)}"}
 
+@tool
+def buscar_contexto_edital(
+    pergunta: str,
+    # O InjectedState avisa o LangGraph para puxar o valor direto da chave "estado" do AgentState
+    estado: Annotated[str, InjectedState("estado")],
+    # O mesmo para o município
+    municipio: Annotated[str, InjectedState("municipio")]
+) -> str:
+    """
+    Realiza uma busca semântica avançada dentro do edital ativo indexado no banco vetorial.
+    Deve ser usada sempre que precisares de encontrar regras, cláusulas, multas ou exigências do edital.
+    
+    Args:
+        pergunta: O termo ou dúvida específica que desejas pesquisar no texto do edital.
+    """
+    
+    # Dentro da ferramenta, simplesmente delegas o trabalho para o método
+    # do teu GerenciadorVetorial que já faz o similarity_search perfeitamente!
+    contexto = gerenciador.buscar_contexto(
+        pergunta=pergunta,
+        estado=estado,
+        municipio=municipio
+    )
+    
+    return contexto
 
-TOOLS: list[BaseTool] = [consultar_receita_federal]
+TOOLS: list[BaseTool] = [consultar_receita_federal, buscar_contexto_edital]
 TOOLS_BY_NAME: dict[str, BaseTool] = {t.name: t for t in TOOLS}
