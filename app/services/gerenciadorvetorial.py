@@ -4,7 +4,6 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
-from pinecone_text.sparse import BM25Encoder
 
 
 # -----------------------------------------------------------------------------
@@ -29,7 +28,6 @@ class GerenciadorVetorial:
         self.modelo_embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         self.pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         self.index_name = "auditor-cidadao"
-        self.bm25 = BM25Encoder().default()
 
     # ------------------------------------------------------------------
     # MÉTODOS INTERNOS
@@ -126,6 +124,12 @@ class GerenciadorVetorial:
         )
 
         # --- 3. Consolidação ---
+        # Se nenhum chunk for encontrado (edital não indexado ou filtros muito restritivos),
+        # retornamos uma mensagem de fallback explícita. Isso evita que o agente receba
+        # a tag <DOCUMENTO_OFICIAL> vazia e tente "adivinhar" o conteúdo do edital.
+        if not documentos_encontrados:
+            return "Nenhum trecho relevante encontrado no edital para a combinação de estado, município e pergunta informados. Verifique se o edital foi indexado corretamente."
+
         contexto_final = "\n\n".join([doc.page_content for doc in documentos_encontrados])
 
         return contexto_final
@@ -134,7 +138,7 @@ class GerenciadorVetorial:
     # MÉTODOS PÚBLICOS / ORQUESTRADOR
     # ------------------------------------------------------------------
 
-    def executar(self, texto_edital: str, metadados: dict) -> str:
+    def executar(self, texto_edital: str, metadados: dict) -> None:
         """
         Objetivo: Ponto de entrada público para injetar o edital no banco vetorial.
 
@@ -145,10 +149,12 @@ class GerenciadorVetorial:
 
         Args:
             texto_edital (str): O texto bruto do edital extraído pelo pdfplumber.
-            metadados (dict): Metadados complementares (nome do arquivo, cidade).
+            metadados (dict): Metadados complementares para o filtro de busca posterior
+                              (ex: {'estado': 'SP', 'municipio': 'São Paulo', 'arquivo': 'edital.pdf'}).
 
         Returns:
-            str: Mensagem de conclusão ao usuário.
+            None: A função opera por efeito colateral (persistência no Pinecone).
+                  A mensagem de confirmação é responsabilidade do chamador (endpoint de upload).
 
         Raises:
             ValueError: Se o edital não tiver texto ou estiver vazio.
@@ -159,8 +165,6 @@ class GerenciadorVetorial:
 
         # --- 2. Fragmentação do Texto ---
         lista_chunks = self.chunkizar_documento(texto_edital)
-        
+
         # --- 3. Salvamento ---
         self.processar_e_salvar(lista_chunks, metadados)
-
-        return "Edital analisado com sucesso! Pode fazer perguntas sobre o edital..."

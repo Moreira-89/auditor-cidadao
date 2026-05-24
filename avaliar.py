@@ -118,7 +118,7 @@ def avaliar_caso(caso: dict) -> dict:
 
     # --- 2. Execução do Agente ---
     resposta = run_agent(
-        pergunta_usuário=caso["pergunta"],
+        pergunta_usuario=caso["pergunta"],
         lista_cnpj=caso["cnpjs"],
         contexto=contexto,
         user_name="Avaliador",

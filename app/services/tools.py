@@ -39,7 +39,7 @@ def consultar_receita_federal(cnpj: str) -> dict:
     if not CNPJ().validate(cnpj_limpo):
         return {"error": f"CNPJ inválido: '{cnpj}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal."}
 
-    # --- 4. Requisição à BrasilAPI ---
+    # --- 3. Requisição à BrasilAPI ---
     # Usamos o CNPJ já limpo (só números) na URL — é o formato esperado pela API.
     url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}"
 
@@ -48,7 +48,7 @@ def consultar_receita_federal(cnpj: str) -> dict:
         # O agente ficaria preso esperando e esgotaria o MAX_ITERACOES sem resposta útil.
         response = requests.get(url, timeout=5)
 
-        # --- 5. Tratamento da Resposta ---
+        # --- 4. Tratamento da Resposta ---
         if response.status_code == 200:
             data = response.json()
 
@@ -86,4 +86,4 @@ def consultar_receita_federal(cnpj: str) -> dict:
 
 
 TOOLS: list[BaseTool] = [consultar_receita_federal]
-TOOLS_BY_NAME: dict[str, BaseTool] = {tool.name: tool for tool in TOOLS}
+TOOLS_BY_NAME: dict[str, BaseTool] = {t.name: t for t in TOOLS}

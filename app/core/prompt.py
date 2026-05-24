@@ -52,6 +52,6 @@ PROMPT_DINAMICO = """
     </CNPJS_EXTRAIDOS>
 
     <PERGUNTA_DO_USUARIO>
-    {pergunta_usuário}
+    {pergunta_usuario}
     </PERGUNTA_DO_USUARIO>
 """
