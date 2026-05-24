@@ -1,6 +1,6 @@
 import re
 import requests
-from langchain.tools import tool
+from langchain.tools import BaseTool, tool
 from validate_docbr import CNPJ
 
 
@@ -83,3 +83,7 @@ def consultar_receita_federal(cnpj: str) -> dict:
     except requests.exceptions.RequestException as e:
         # Captura qualquer outro erro inesperado da biblioteca requests (ex: SSL, redirect loop).
         return {"error": f"Erro inesperado ao consultar o CNPJ {cnpj_limpo}: {str(e)}"}
+
+
+TOOLS: list[BaseTool] = [consultar_receita_federal]
+TOOLS_BY_NAME: dict[str, BaseTool] = {tool.name: tool for tool in TOOLS}

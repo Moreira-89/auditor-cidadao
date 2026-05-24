@@ -24,3 +24,6 @@ class PerguntaRequest(BaseModel):
     lista_cnpjs: list[str] = Field(
         description="Lista de CNPJs encontrados no edital."
     )
+    thread_id: str | None = Field(
+        default=None, description="Identificador único da thread/sessão de conversa."
+    )

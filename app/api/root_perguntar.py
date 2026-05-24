@@ -58,7 +58,8 @@ def executar_pergunta(request: PerguntaRequest):
         pergunta_usuário=request.pergunta,
         lista_cnpj=request.lista_cnpjs,
         contexto=contexto,
-        user_name=request.user_name
+        user_name=request.user_name,
+        thread_id=request.thread_id
     )
 
     # Retorna a resposta final empacotada em um JSON
