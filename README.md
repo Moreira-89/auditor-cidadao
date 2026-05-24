@@ -50,6 +50,68 @@ O projeto é dividido em dois grandes passos:
 └── requirements.txt  # Dependências do projeto
 ```
 
+## Arquitetura do Projeto
+
+```Mermaid
+stateDiagram
+  direction TB
+
+  [*] --> Usuario
+  
+  state "Hospedagem (Render/Railway)" as Hospedagem {
+    direction LR
+
+    Usuario --> RootUpload: Acessa plataforma Auditor Cidadão
+    
+    state "Rota /upload" as RootUpload {
+      direction TB
+      Entrada : Usuário informa estado e cidade, depois faz o upload do edital
+
+      Entrada --> GerenciadorVetorial : Usuário clica no botão "Upload"
+      
+      state "Classe Gerenciador Vetorial" as GerenciadorVetorial {
+        direction TB
+        Processo : Importa modelo embedding, faz chunking, gera vetores e salva no Pinecone
+      }
+    }
+
+    RootUpload --> RootPerguntar : Redireciona usuário para o chat
+
+    state "Rota /conversar-com-auditor" as RootPerguntar {
+      direction LR
+      
+        Usuario_Pergunta 
+
+      Usuario_Pergunta --> buscar_contexto
+
+      state "Função buscar_contexto acionada" as buscar_contexto{
+          processo: Consulta Pinecone + Consolidação das informações
+      }
+
+      buscar_contexto --> run_agent
+
+      state "Auditor Cidadão" as run_agent{
+        direction LR
+
+        start --> node_call_lmm
+
+        node_call_lmm --> node_call_tools: faz chamada as funções
+
+        node_call_tools --> node_call_lmm: retorna resultado das funções
+
+        node_call_lmm --> end
+
+        end --> [*]
+
+      }
+
+
+     
+
+    }
+  }
+```
+
 ---
 
 ## ⚙️ Configuração e Instalação

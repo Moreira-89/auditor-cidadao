@@ -1,69 +1,24 @@
 import re
-
 import requests
+from langchain.tools import tool
+from validate_docbr import CNPJ
 
 
-def validar_digitos_cnpj(cnpj: str) -> bool:
-    """
-    Objetivo: Validar os dois dígitos verificadores de um CNPJ usando o algoritmo oficial da Receita Federal.
-
-    COMO FUNCIONA:
-    1. Limpeza e Checagem Básica: Remove pontuações e valida se são exatamente 14 dígitos numéricos.
-    2. Rejeição de Sequências Triviais: CNPJs com todos os dígitos iguais (ex: 11111111111111)
-       são matematicamente válidos pelo algoritmo, mas são sabidamente inválidos e usados como
-       "CNPJs nulos" em sistemas legados — rejeitamos aqui.
-    3. Cálculo do 1º Dígito Verificador: Multiplica os 12 primeiros dígitos por pesos decrescentes
-       [5,4,3,2,9,8,7,6,5,4,3,2], soma os produtos, tira o resto da divisão por 11 e aplica a regra:
-       se o resto < 2, o dígito é 0; caso contrário, é 11 - resto.
-    4. Cálculo do 2º Dígito Verificador: Repete o processo com os 13 primeiros dígitos e pesos
-       [6,5,4,3,2,9,8,7,6,5,4,3,2].
-    5. Comparação Final: Verifica se os dígitos calculados batem com os dois últimos do CNPJ original.
-
-    Args:
-        cnpj (str): CNPJ a ser validado. Pode conter pontuações (elas serão removidas internamente).
-
-    Returns:
-        bool: True se o CNPJ passar em todas as validações, False caso contrário.
-    """
-    # --- 1. Limpeza e Checagem Básica ---
-    cnpj = re.sub(r"[./-]", "", cnpj)
-    if len(cnpj) != 14 or not cnpj.isdigit():
-        return False
-
-    # --- 2. Rejeição de Sequências Triviais ---
-    # set(cnpj) retorna o conjunto de caracteres únicos — se tiver só 1 elemento,
-    # todos os dígitos são iguais (ex: "00000000000000"), o que é um CNPJ nulo.
-    if len(set(cnpj)) == 1:
-        return False
-
-    # --- 3. Cálculo do 1º Dígito Verificador ---
-    pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    soma1 = sum(int(cnpj[i]) * pesos1[i] for i in range(12))
-    resto1 = soma1 % 11
-    digito1 = 0 if resto1 < 2 else 11 - resto1
-
-    # --- 4. Cálculo do 2º Dígito Verificador ---
-    pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    soma2 = sum(int(cnpj[i]) * pesos2[i] for i in range(13))
-    resto2 = soma2 % 11
-    digito2 = 0 if resto2 < 2 else 11 - resto2
-
-    # --- 5. Comparação Final ---
-    return int(cnpj[12]) == digito1 and int(cnpj[13]) == digito2
-
-
+# -----------------------------------------------------------------------------
+# FERRAMENTAS DO AGENTE (TOOLS)
+# -----------------------------------------------------------------------------
+@tool
 def consultar_receita_federal(cnpj: str) -> dict:
     """
     Objetivo: Consultar os dados cadastrais de uma empresa brasileira na Receita Federal a partir do CNPJ.
 
     COMO FUNCIONA:
-    1. Limpeza do CNPJ: Remove pontuações para garantir um input padronizado antes da validação.
-    2. Validação Estrutural: Checa se o CNPJ tem exatamente 14 dígitos numéricos.
-    3. Validação dos Dígitos Verificadores: Executa o algoritmo oficial para confirmar que o CNPJ
-       é matematicamente legítimo — evitando chamadas HTTP desnecessárias para CNPJs inválidos.
-    4. Requisição à BrasilAPI: Faz o GET para a API pública e aguarda a resposta (timeout de 5s).
-    5. Tratamento da Resposta: Em caso de sucesso (200), filtra e retorna apenas os campos úteis
-       para a análise de auditoria. Para qualquer erro HTTP ou de rede, retorna um dict com "error".
+    1. Limpeza do CNPJ: Remove pontuações e hífens para padronizar o input em um formato numérico limpo.
+    2. Validação Estrutural e de Dígitos: Utiliza a biblioteca especializada `validate-docbr` para conferir
+       se o CNPJ é matematicamente autêntico, prevenindo requisições HTTP desnecessárias para números inválidos.
+    3. Requisição à BrasilAPI: Faz uma chamada HTTP GET para a API pública com um timeout de 5 segundos.
+    4. Tratamento da Resposta: Se a consulta for bem-sucedida (200), filtra e retorna os campos de interesse.
+       Caso contrário ou em falha de conexão/timeout, retorna um dicionário informando o erro.
 
     Args:
         cnpj (str): CNPJ enviado pelo agente de IA. Pode vir formatado ("12.345.678/0001-99")
@@ -78,15 +33,10 @@ def consultar_receita_federal(cnpj: str) -> dict:
     # o CNPJ em diferentes formatos dependendo de como o leu no documento.
     cnpj_limpo = re.sub(r"[./-]", "", cnpj)
 
-    # --- 2. Validação Estrutural ---
-    # Garantia mínima: deve ser composto apenas de dígitos e ter exatamente 14 caracteres.
-    if not cnpj_limpo.isdigit() or len(cnpj_limpo) != 14:
-        return {"error": f"CNPJ inválido: '{cnpj}'. Deve conter exatamente 14 dígitos numéricos."}
-
-    # --- 3. Validação dos Dígitos Verificadores ---
-    # Checagem matemática pelo algoritmo oficial. Evita chamadas HTTP para CNPJs
-    # tecnicamente bem formados mas logicamente impossíveis (ex: 00.000.000/0000-00).
-    if not validar_digitos_cnpj(cnpj_limpo):
+    # --- 2. Validação Estrutural e de Dígitos ---
+    # Usamos a biblioteca especializada do ecossistema brasileiro para certificar
+    # que o documento é real e matematicamente correto antes de fazermos a consulta de rede.
+    if not CNPJ().validate(cnpj_limpo):
         return {"error": f"CNPJ inválido: '{cnpj}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal."}
 
     # --- 4. Requisição à BrasilAPI ---

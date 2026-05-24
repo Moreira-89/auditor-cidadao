@@ -1,9 +1,5 @@
 import json
 
-# Importamos o cliente Groq como singleton do módulo de dependências.
-# O objeto já foi instanciado uma única vez na inicialização do servidor;
-# aqui apenas recebemos a referência para reutilizá-la sem custo adicional.
-from app.core.dependencies import cliente_groq
 from app.models.consulta_cnpj import ConsultaCNPJ
 from app.services.tools import consultar_receita_federal
 
