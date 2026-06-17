@@ -8,7 +8,15 @@ from app.core.prompt import SYSTEM_PROMPT, PROMPT_DINAMICO
 # -----------------------------------------------------------------------------
 # MOTOR DE INTELIGÊNCIA ARTIFICIAL (AGENTE)
 # -----------------------------------------------------------------------------
-def run_agent(pergunta_usuario: str, lista_cnpj: list, contexto: str, user_name: str, thread_id: str | None = None) -> str:
+def run_agent(
+    pergunta_usuario: str,
+    lista_cnpj: list,
+    contexto: str,
+    user_name: str,
+    estado: str,
+    municipio: str,
+    thread_id: str | None = None,
+) -> str:
     """
     Resumo Principal: Executa o agente de auditoria, processando a pergunta do usuário,
     gerenciando o histórico conversacional através de threads e retornando a resposta da LLM.
@@ -23,6 +31,8 @@ def run_agent(pergunta_usuario: str, lista_cnpj: list, contexto: str, user_name:
        - Caso seja um turno subsequente: envia apenas a nova pergunta do usuário. O checkpointer
          restaura automaticamente o histórico pregresso da thread.
     4. Execução do Grafo com Configuração: Invoca o grafo singleton com o payload e o thread_id.
+       As chaves `estado` e `municipio` são sempre incluídas no payload para que o LangGraph
+       consiga injetá-las automaticamente na ferramenta `buscar_contexto_edital` via `InjectedState`.
     5. Retorno do Resultado: Extrai e retorna o texto da última mensagem gerada pelo agente.
 
     Args:
@@ -30,6 +40,9 @@ def run_agent(pergunta_usuario: str, lista_cnpj: list, contexto: str, user_name:
         lista_cnpj (list): Lista de CNPJs pré-extraídos do edital pelo endpoint de upload.
         contexto (str): Trechos mais relevantes do edital (RAG) recuperados do Pinecone.
         user_name (str): Nome do usuário logado, usado para personalização do prompt.
+        estado (str): Sigla do estado do edital (ex: 'SP'). Propagada ao estado do grafo
+                      para ser injetada automaticamente na ferramenta de busca no edital.
+        municipio (str): Nome do município do edital (ex: 'São Paulo'). Idem ao estado.
         thread_id (str | None): Identificador único da sessão de chat. Se None, um UUID
                                  é gerado automaticamente para criar uma nova conversa.
 
@@ -76,7 +89,14 @@ def run_agent(pergunta_usuario: str, lista_cnpj: list, contexto: str, user_name:
     # --- 4. Execução do Grafo com Configuração ---
     # O LangGraph usa o 'thread_id' no config para recuperar e salvar o estado no checkpointer.
     # Após cada invocação, o estado atualizado (com a nova mensagem) é persisitido automaticamente.
-    result = graph.invoke({"messages": mensagens_entrada}, config=config)
+    # As chaves `estado` e `municipio` são incluídas em TODOS os turnos (mesmo os subsequentes).
+    # O InMemorySaver NÃO persiste chaves arbitrárias do estado entre invocações — apenas `messages`
+    # recebe tratamento especial via `add_messages`. Portanto, é necessário repassar `estado` e
+    # `municipio` a cada chamada para que o InjectedState da ferramenta consiga lê-los do estado ativo.
+    result = graph.invoke(
+        {"messages": mensagens_entrada, "estado": estado, "municipio": municipio},
+        config=config,
+    )
 
     # --- 5. Retorno do Resultado ---
     # A última mensagem da lista é sempre a resposta final do agente após convergir.
@@ -107,6 +127,8 @@ if __name__ == "__main__":
     teste_user = "Lucas"
     teste_contexto = "Este é um edital de licitação simulado para testes no console local."
     teste_cnpjs = ["46.523.056/0001-21"]
+    teste_estado = "SP"
+    teste_municipio = "São Paulo"
 
     # ID de thread fixo para que o histórico persista ao longo de toda a sessão de terminal.
     cli_thread_id = "cli-local-test-session"
@@ -134,6 +156,8 @@ if __name__ == "__main__":
                 lista_cnpj=teste_cnpjs,
                 contexto=teste_contexto,
                 user_name=teste_user,
+                estado=teste_estado,
+                municipio=teste_municipio,
                 thread_id=cli_thread_id,
             )
 

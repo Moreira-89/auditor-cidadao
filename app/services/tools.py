@@ -3,6 +3,7 @@ import requests
 from langchain.tools import BaseTool, tool
 from validate_docbr import CNPJ
 from app.core.dependencies import gerenciador
+from app.models.consulta_cnpj import ConsultaCNPJ
 from typing_extensions import Annotated
 from langgraph.prebuilt import InjectedState
 
@@ -10,7 +11,7 @@ from langgraph.prebuilt import InjectedState
 # -----------------------------------------------------------------------------
 # FERRAMENTAS DO AGENTE (TOOLS)
 # -----------------------------------------------------------------------------
-@tool
+@tool(args_schema=ConsultaCNPJ)
 def consultar_receita_federal(cnpj: str) -> dict:
     """
     Objetivo: Consultar os dados cadastrais de uma empresa brasileira na Receita Federal a partir do CNPJ.

@@ -66,6 +66,8 @@ async def executar_pergunta(request: PerguntaRequest):
         lista_cnpj=request.lista_cnpjs,
         contexto=contexto,
         user_name=request.user_name,
+        estado=request.estado,
+        municipio=request.municipio,
         thread_id=request.thread_id
     )
 

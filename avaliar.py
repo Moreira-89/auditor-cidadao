@@ -122,6 +122,8 @@ def avaliar_caso(caso: dict) -> dict:
         lista_cnpj=caso["cnpjs"],
         contexto=contexto,
         user_name="Avaliador",
+        estado=caso["estado"],
+        municipio=caso["municipio"],
     )
     duracao = time.time() - inicio
 
