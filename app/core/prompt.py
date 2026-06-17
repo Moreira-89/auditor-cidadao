@@ -40,7 +40,7 @@ SYSTEM_PROMPT = """
             """
 
 PROMPT_DINAMICO = """
-    Por favor, {user_name}, responda à pergunta abaixo com base no documento e nos CNPJs fornecidos.
+    Analise o documento e os CNPJs abaixo para responder à pergunta de {user_name}.
     Use a ferramenta de consulta à Receita Federal para validar cada CNPJ listado e embasar sua análise.
 
     <DOCUMENTO_OFICIAL>

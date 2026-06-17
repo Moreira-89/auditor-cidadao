@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditor Cidadão — Painel de Testes</title>
+    <meta name="description" content="Painel de testes e validações para o sistema Auditor Cidadão — IA para fiscalização de gastos públicos.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ===========================
+         CABEÇALHO
+         =========================== -->
+    <header class="header" role="banner">
+        <div class="header-brand">
+            <span class="header-icon" aria-hidden="true">🕵️</span>
+            <span class="header-title">Auditor Cidadão</span>
+            <span class="header-badge">Painel de Testes</span>
+        </div>
+        <div class="header-meta">
+            <span class="session-label">Sessão:</span>
+            <code class="session-id" id="session-id-display" title="Thread ID da conversa atual">—</code>
+            <button class="btn-ghost" id="btn-nova-sessao" title="Gera um novo Thread ID e reinicia o histórico da conversa">
+                ↺ Nova sessão
+            </button>
+        </div>
+    </header>
+
+    <!-- ===========================
+         LAYOUT PRINCIPAL
+         =========================== -->
+    <main class="layout" role="main">
+
+        <!-- PAINEL LATERAL (configuração + upload) -->
+        <aside class="sidebar" role="complementary" aria-label="Painel de configuração e upload">
+
+            <!-- Configurações -->
+            <section class="card" aria-labelledby="config-title">
+                <h2 class="card-title" id="config-title">
+                    <span aria-hidden="true">⚙️</span> Configuração
+                </h2>
+
+                <div class="field">
+                    <label class="field-label" for="input-username">Seu nome</label>
+                    <input class="input" type="text" id="input-username" placeholder="Ex: Lucas" autocomplete="off">
+                </div>
+
+                <div class="field-row">
+                    <div class="field">
+                        <label class="field-label" for="input-estado">Estado</label>
+                        <input class="input input-sm" type="text" id="input-estado"
+                               placeholder="SP" maxlength="2" autocomplete="off">
+                    </div>
+                    <div class="field" style="flex:2">
+                        <label class="field-label" for="input-municipio">Município</label>
+                        <input class="input" type="text" id="input-municipio"
+                               placeholder="Ex: São Paulo" autocomplete="off">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Upload de PDF -->
+            <section class="card" aria-labelledby="upload-title">
+                <h2 class="card-title" id="upload-title">
+                    <span aria-hidden="true">📄</span> Edital (PDF)
+                </h2>
+
+                <div class="upload-zone" id="upload-zone" role="button" tabindex="0"
+                     aria-label="Área de upload — arraste um PDF ou clique para selecionar">
+                    <input type="file" id="file-input" accept=".pdf" hidden aria-hidden="true">
+                    <div class="upload-icon" aria-hidden="true">📂</div>
+                    <p class="upload-text">
+                        Arraste o PDF aqui<br>
+                        <span class="upload-sub">ou clique para selecionar</span>
+                    </p>
+                </div>
+
+                <div class="file-info hidden" id="file-info" role="status">
+                    <span aria-hidden="true">📋</span>
+                    <span class="file-name" id="file-name-display"></span>
+                    <button class="btn-remove" id="btn-remove-file" aria-label="Remover arquivo selecionado">✕</button>
+                </div>
+
+                <button class="btn-primary" id="btn-upload" disabled>
+                    <span aria-hidden="true">⬆</span> Indexar Edital
+                </button>
+
+                <div id="upload-status" class="status-msg hidden" role="status" aria-live="polite"></div>
+            </section>
+
+            <!-- CNPJs Encontrados (aparece após o upload) -->
+            <section class="card hidden" id="card-cnpjs" aria-labelledby="cnpjs-title">
+                <h2 class="card-title" id="cnpjs-title">
+                    <span aria-hidden="true">🏢</span> CNPJs Encontrados
+                </h2>
+                <div class="cnpj-list" id="cnpj-list" role="list"
+                     aria-label="CNPJs extraídos automaticamente do edital"></div>
+            </section>
+
+            <!-- Painel de Debug -->
+            <section class="card card-debug" aria-labelledby="debug-title">
+                <h2 class="card-title" id="debug-title">
+                    <span aria-hidden="true">🔬</span> Debug
+                </h2>
+                <div class="debug-row">
+                    <span class="debug-key">Endpoint</span>
+                    <code class="debug-val" id="debug-base">localhost:8000</code>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">Thread ID</span>
+                    <code class="debug-val debug-truncate" id="debug-thread">—</code>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">Edital indexado</span>
+                    <code class="debug-val" id="debug-indexed">Não</code>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">CNPJs</span>
+                    <code class="debug-val" id="debug-cnpjs">0</code>
+                </div>
+                <div class="debug-row">
+                    <span class="debug-key">Turnos</span>
+                    <code class="debug-val" id="debug-turns">0</code>
+                </div>
+            </section>
+
+        </aside>
+
+        <!-- PAINEL DE CHAT -->
+        <section class="chat-panel" aria-labelledby="chat-heading">
+
+            <div class="chat-header">
+                <h1 class="chat-title" id="chat-heading">Conversa com o Auditor</h1>
+                <p class="chat-subtitle">
+                    Preencha as configurações, indexe um edital e faça perguntas ao agente de auditoria.
+                </p>
+            </div>
+
+            <!-- Área de mensagens -->
+            <div class="chat-messages" id="chat-messages"
+                 role="log" aria-live="polite" aria-label="Histórico da conversa">
+
+                <!-- Estado vazio inicial -->
+                <div class="chat-empty" id="chat-empty" aria-hidden="false">
+                    <div class="chat-empty-icon" aria-hidden="true">🕵️‍♂️</div>
+                    <p class="chat-empty-title">Nenhuma conversa iniciada</p>
+                    <p class="chat-empty-sub">
+                        Preencha as configurações no painel ao lado, indexe um edital e faça sua primeira pergunta.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Indicador de processamento -->
+            <div class="typing-indicator hidden" id="typing-indicator"
+                 role="status" aria-label="Agente processando a resposta">
+                <div class="typing-avatar" aria-hidden="true">🤖</div>
+                <div class="typing-dots" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="typing-text">Auditando...</span>
+            </div>
+
+            <!-- Área de input -->
+            <div class="chat-input-area">
+                <textarea
+                    class="chat-input"
+                    id="chat-input"
+                    placeholder="Faça uma pergunta sobre o edital..."
+                    rows="1"
+                    disabled
+                    aria-label="Campo de pergunta ao agente"
+                    aria-describedby="input-hint"
+                ></textarea>
+                <button class="btn-send" id="btn-send" disabled aria-label="Enviar pergunta">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="input-hint" id="input-hint">
+                Pressione <kbd>Enter</kbd> para enviar &middot; <kbd>Shift+Enter</kbd> para nova linha
+            </p>
+
+        </section>
+
+    </main>
+
+    <!-- Toast de notificação -->
+    <div class="toast hidden" id="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Dependências externas -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+
+    <!-- Lógica da aplicação -->
+    <script src="/static/js/app.js"></script>
+
+</body>
+</html>
