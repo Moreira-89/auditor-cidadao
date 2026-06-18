@@ -5,6 +5,7 @@
 assets/external/
 *.txt
 avaliacao_log.json
+limpar_banco.py
 
 # PDF's reais
 app/editais_teste/edital*.pdf
