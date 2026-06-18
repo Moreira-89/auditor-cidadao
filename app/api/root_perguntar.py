@@ -44,6 +44,12 @@ async def executar_pergunta(request: PerguntaRequest):
         dict: Resposta gerada pela Inteligência Artificial.
     """
 
+    print(f"\n💬 [CHAT] Pergunta recebida de '{request.user_name}'")
+    print(f"   Thread: {request.thread_id}")
+    print(f"   Filtros: {request.estado} / {request.municipio}")
+    print(f"   CNPJs na sessão: {request.lista_cnpjs}")
+    print(f"   Pergunta: '{request.pergunta[:100]}{'...' if len(request.pergunta) > 100 else ''}'")
+
     # --- 1. Busca de Contexto (Retrieval) ---
     # Em vez de enviar o edital inteiro para o LLM (o que seria caro e poderia
     # estourar o limite de tokens), buscamos apenas os parágrafos mais relevantes.
@@ -55,6 +61,7 @@ async def executar_pergunta(request: PerguntaRequest):
         estado=request.estado,
         municipio=request.municipio
     )
+    print(f"   🔍 [CHAT] Contexto RAG recuperado ({len(contexto):,} chars)")
 
     # --- 2. Execução do Agente (Generation) ---
     # Passamos o contexto enxuto (apenas as partes relevantes do edital) para o LLM.
@@ -70,6 +77,7 @@ async def executar_pergunta(request: PerguntaRequest):
         municipio=request.municipio,
         thread_id=request.thread_id
     )
+    print(f"   ✅ [CHAT] Resposta gerada ({len(resposta):,} chars)\n")
 
     # Retorna a resposta final empacotada em um JSON
     return {"resultado_pergunta": resposta}

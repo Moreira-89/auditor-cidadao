@@ -65,6 +65,7 @@ class GerenciadorVetorial:
 
         # --- 2. Processamento ---
         lista_chunks = text_splitter.split_text(texto_edital)
+        print(f"   ✂️  [RAG] Chunkização: {len(lista_chunks)} chunks gerados (max {tamanho_chunk} chars, overlap {overlap})")
 
         return lista_chunks
 
@@ -80,12 +81,14 @@ class GerenciadorVetorial:
             metadados (dict): Dados extras para filtrar buscas posteriores (estado, município).
         """
         # --- 1. Persistência em Lote ---
+        print(f"   📁 [RAG] Enviando {len(lista_chunks)} chunks para o Pinecone | metadados: {metadados}")
         PineconeVectorStore.from_texts(
             texts=lista_chunks,
             embedding=self.modelo_embedding,
             index_name=self.index_name,
             metadatas=[metadados] * len(lista_chunks),
         )
+        print(f"   📁 [RAG] Upsert concluído no índice '{self.index_name}'")
 
     def buscar_contexto(
         self, pergunta: str, estado: str, municipio: str
@@ -114,6 +117,7 @@ class GerenciadorVetorial:
 
         # --- 2. Busca por Similaridade ---
         # Localiza os 3 trechos mais parecidos semanticamente.
+        print(f"   🔍 [RAG] Buscando: '{pergunta[:80]}' | Filtro: {estado}/{municipio}")
         documentos_encontrados = vector_store.similarity_search(
             query=pergunta,
             k=3,
@@ -122,6 +126,7 @@ class GerenciadorVetorial:
                 "municipio": municipio,
             }
         )
+        print(f"   🔍 [RAG] {len(documentos_encontrados)} documento(s) encontrado(s)")
 
         # --- 3. Consolidação ---
         # Se nenhum chunk for encontrado (edital não indexado ou filtros muito restritivos),
