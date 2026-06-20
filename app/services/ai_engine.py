@@ -64,9 +64,10 @@ async def run_agent(
 
     # --- 3. Construção do Payload de Entrada ---
     if conversa_iniciada:
+        texto_protegido = f"<PERGUNTA>{pergunta_usuario}</PERGUNTA>"
         # Turnos subsequentes: apenas a nova pergunta é enviada para evitar redundância.
         # O checkpointer restaura o histórico pregresso automaticamente.
-        mensagens_entrada = [HumanMessage(content=pergunta_usuario)]
+        mensagens_entrada = [HumanMessage(content=texto_protegido)]
     else:
         # Primeiro turno: injetamos as regras de segurança e os dados da sessão.
         # O SYSTEM_PROMPT contém as instruções permanentes do agente (papel, regras, escopo).
@@ -101,4 +102,4 @@ async def run_agent(
 
     # --- 5. Retorno do Resultado ---
     # A última mensagem da lista é sempre a resposta final do agente após convergir.
-    return str(result["messages"][-1].content)
+    return str(result["messages"][-1].content)
