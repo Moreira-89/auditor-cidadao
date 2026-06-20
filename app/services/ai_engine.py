@@ -48,6 +48,11 @@ async def run_agent(
     Returns:
         str: A resposta final da LLM consolidada e pronta para ser exibida ao usuário.
     """
+    # --- 0. Sanitização de Segurança ---
+    # Escapamos sinais de maior e menor para evitar que o usuário injete tags XML/HTML
+    # (ex: </PERGUNTA>) e quebre o isolamento estrutural do prompt.
+    pergunta_usuario = pergunta_usuario.replace("<", "&lt;").replace(">", "&gt;")
+
     # --- 1. Resolução da Thread ---
     # Garantimos que exista um thread_id válido. O UUID garante unicidade global por sessão.
     if not thread_id:
