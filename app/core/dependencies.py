@@ -1,17 +1,20 @@
+import os
+
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 
 from app.core.logging_config import logger
 from app.services.gerenciadorvetorial import GerenciadorVetorial
 
-# -----------------------------------------------------------------------------
-# INICIALIZAÇÃO DO AMBIENTE
-# -----------------------------------------------------------------------------
-# --- 1. CARREGAR VARIÁVEIS DE AMBIENTE ---
-# Lemos as configurações do arquivo .env e as injetamos na memória do sistema operativo.
-# O motivo técnico desta chamada precoce é garantir que todos os drivers de banco de dados,
-# serviços vetoriais e clientes LLM consigam ler as credenciais corretas desde a partida.
 load_dotenv()
+
+
+# -----------------------------------------------------------------------------
+# CONSTANTES DE CONFIGURAÇÃO DO LLM
+# -----------------------------------------------------------------------------
+LLM_MODEL = os.getenv("LLM_MODEL", "groq:llama-3.3-70b-versatile")
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "2048"))
 
 
 # -----------------------------------------------------------------------------

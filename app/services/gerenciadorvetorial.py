@@ -5,6 +5,8 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
 
+from app.core.logging_config import logger
+
 
 # -----------------------------------------------------------------------------
 # CLASSE GERENCIADOR VETORIAL
@@ -65,7 +67,8 @@ class GerenciadorVetorial:
 
         # --- 2. Processamento ---
         lista_chunks = text_splitter.split_text(texto_edital)
-        print(f"   ✂️  [RAG] Chunkização: {len(lista_chunks)} chunks gerados (max {tamanho_chunk} chars, overlap {overlap})")
+        logger.info("Chunkização concluída | chunks=%d | tamanho_max=%d | overlap=%d",
+                    len(lista_chunks), tamanho_chunk, overlap)
 
         return lista_chunks
 
@@ -81,14 +84,15 @@ class GerenciadorVetorial:
             metadados (dict): Dados extras para filtrar buscas posteriores (estado, município).
         """
         # --- 1. Persistência em Lote ---
-        print(f"   📁 [RAG] Enviando {len(lista_chunks)} chunks para o Pinecone | metadados: {metadados}")
+        logger.info("Enviando chunks ao Pinecone | chunks=%d | index=%s | metadados=%s",
+                    len(lista_chunks), self.index_name, metadados)
         PineconeVectorStore.from_texts(
             texts=lista_chunks,
             embedding=self.modelo_embedding,
             index_name=self.index_name,
             metadatas=[metadados] * len(lista_chunks),
         )
-        print(f"   📁 [RAG] Upsert concluído no índice '{self.index_name}'")
+        logger.info("Upsert concluído | index=%s", self.index_name)
 
     def buscar_contexto(
         self, pergunta: str, estado: str, municipio: str
@@ -117,7 +121,8 @@ class GerenciadorVetorial:
 
         # --- 2. Busca por Similaridade ---
         # Localiza os 3 trechos mais parecidos semanticamente.
-        print(f"   🔍 [RAG] Buscando: '{pergunta[:80]}' | Filtro: {estado}/{municipio}")
+        logger.info("Busca semântica | pergunta=%s | estado=%s | municipio=%s",
+                    pergunta[:80], estado, municipio)
         documentos_encontrados = vector_store.similarity_search(
             query=pergunta,
             k=3,
@@ -126,7 +131,7 @@ class GerenciadorVetorial:
                 "municipio": municipio,
             }
         )
-        print(f"   🔍 [RAG] {len(documentos_encontrados)} documento(s) encontrado(s)")
+        logger.info("Busca concluída | documentos_encontrados=%d", len(documentos_encontrados))
 
         # --- 3. Consolidação ---
         # Se nenhum chunk for encontrado (edital não indexado ou filtros muito restritivos),
