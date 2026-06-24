@@ -82,12 +82,16 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
     _log = logging.getLogger("mcp.coercao")
 
     async def coroutine_com_coercao(**kwargs):
+        import json as _json
+
         _log.info("[COERCAO] kwargs recebidos: %s", kwargs)
         args_convertidos = {}
 
         for chave, valor in kwargs.items():
-            if valor is None:
-                continue  # Remove nulls — o MCP usa defaults internos
+
+            # Remove None E a string "null" que o LLM às vezes gera
+            if valor is None or valor == "null":
+                continue
 
             tipo_esperado = properties.get(chave, {}).get("type", "string")
             tipo_item = properties.get(chave, {}).get("items", {}).get("type", "string")
@@ -109,34 +113,50 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
                     args_convertidos[chave] = valor
 
             elif tipo_esperado == "array" and isinstance(valor, str):
-                # Descobre o tipo dos elementos internos do array
-                tipo_item = properties.get(chave, {}).get("items", {}).get("type", "string")
+                # LLM pode mandar o array inteiro como string JSON: '[6, 8, 9]'
+                # Precisamos parsear antes de embrulhar
+                try:
+                    parsed = _json.loads(valor)
+                except (_json.JSONDecodeError, ValueError):
+                    parsed = valor  # não é JSON, trata como elemento único
 
-                # Converte o item para o tipo correto antes de empacotar na lista
-                if tipo_item in ("integer", "number"):
-                    try:
-                        item_convertido = int(valor) if tipo_item == "integer" else float(valor)
-                    except ValueError:
-                        item_convertido = valor
+                if isinstance(parsed, list):
+                    # Converte cada item interno para o tipo correto
+                    if tipo_item in ("integer", "number"):
+                        convertidos = []
+                        for item in parsed:
+                            if isinstance(item, str):
+                                try:
+                                    convertidos.append(int(item) if tipo_item == "integer" else float(item))
+                                except ValueError:
+                                    convertidos.append(item)
+                            else:
+                                convertidos.append(item)  # já é número, mantém
+                        args_convertidos[chave] = convertidos
+                    else:
+                        args_convertidos[chave] = parsed
                 else:
-                    item_convertido = valor
-
-                args_convertidos[chave] = [item_convertido]
+                    # Era um valor escalar em formato JSON (ex: "8" → 8)
+                    if tipo_item in ("integer", "number"):
+                        try:
+                            args_convertidos[chave] = [int(parsed) if tipo_item == "integer" else float(parsed)]
+                        except (ValueError, TypeError):
+                            args_convertidos[chave] = [parsed]
+                    else:
+                        args_convertidos[chave] = [parsed]
 
             elif tipo_esperado == "array" and isinstance(valor, list):
-                # Array já veio como lista — garante que os itens internos também estejam corretos
-                tipo_item = properties.get(chave, {}).get("items", {}).get("type", "string")
                 if tipo_item in ("integer", "number"):
-                    items_convertidos = []
+                    convertidos = []
                     for item in valor:
                         if isinstance(item, str):
                             try:
-                                items_convertidos.append(int(item) if tipo_item == "integer" else float(item))
+                                convertidos.append(int(item) if tipo_item == "integer" else float(item))
                             except ValueError:
-                                items_convertidos.append(item)
+                                convertidos.append(item)
                         else:
-                            items_convertidos.append(item)
-                    args_convertidos[chave] = items_convertidos
+                            convertidos.append(item)
+                    args_convertidos[chave] = convertidos
                 else:
                     args_convertidos[chave] = valor
 
@@ -144,7 +164,16 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
                 args_convertidos[chave] = valor
 
         _log.info("[COERCAO] args_convertidos enviados ao MCP: %s", args_convertidos)
-        return await original_coroutine(**args_convertidos)
+        resultado = await original_coroutine(**args_convertidos)
+
+        # Trunca o resultado para evitar estouro de contexto no Groq free tier.
+        # O LLM recebe os primeiros N caracteres — suficiente para análise,
+        # sem consumir todo o limite de tokens com dados brutos do PNCP.
+        MAX_CHARS = 4000
+        if isinstance(resultado, str) and len(resultado) > MAX_CHARS:
+            resultado = resultado[:MAX_CHARS] + "\n\n[... resultado truncado para caber no contexto ...]"
+
+        return resultado
 
     return coroutine_com_coercao
 
