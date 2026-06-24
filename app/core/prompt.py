@@ -170,3 +170,8 @@ Estado: {estado}
 {pergunta_usuario}
 </PERGUNTA>
 """
+
+TOOL_STATUS_MAP = {
+    "consultar_receita_federal": "Validando CNPJ junto à Receita Federal",
+    "buscar_contexto_edital": "Analisando o edital",
+}

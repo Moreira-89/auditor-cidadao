@@ -8,7 +8,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Emoji&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -19,7 +19,7 @@
          =========================== -->
     <header class="header" role="banner">
         <div class="header-brand">
-            <span class="header-icon" aria-hidden="true">🕵️</span>
+            <span class="header-icon noto-emoji" aria-hidden="true">🕵️</span>
             <span class="header-title">Auditor Cidadão</span>
             <span class="header-badge">Painel de Testes</span>
         </div>
@@ -43,7 +43,7 @@
             <!-- Configurações -->
             <section class="card" aria-labelledby="config-title">
                 <h2 class="card-title" id="config-title">
-                    <span aria-hidden="true">⚙️</span> Configuração
+                    <span class="noto-emoji" aria-hidden="true">⚙️</span> Configuração
                 </h2>
 
                 <div class="field">
@@ -68,13 +68,13 @@
             <!-- Upload de PDF -->
             <section class="card" aria-labelledby="upload-title">
                 <h2 class="card-title" id="upload-title">
-                    <span aria-hidden="true">📄</span> Edital (PDF)
+                    <span class="noto-emoji" aria-hidden="true">📄</span> Edital (PDF)
                 </h2>
 
                 <div class="upload-zone" id="upload-zone" role="button" tabindex="0"
                      aria-label="Área de upload — arraste um PDF ou clique para selecionar">
                     <input type="file" id="file-input" accept=".pdf" hidden aria-hidden="true">
-                    <div class="upload-icon" aria-hidden="true">📂</div>
+                    <div class="upload-icon noto-emoji" aria-hidden="true">📂</div>
                     <p class="upload-text">
                         Arraste o PDF aqui<br>
                         <span class="upload-sub">ou clique para selecionar</span>
@@ -82,7 +82,7 @@
                 </div>
 
                 <div class="file-info hidden" id="file-info" role="status">
-                    <span aria-hidden="true">📋</span>
+                    <span class="noto-emoji" aria-hidden="true">📋</span>
                     <span class="file-name" id="file-name-display"></span>
                     <button class="btn-remove" id="btn-remove-file" aria-label="Remover arquivo selecionado">✕</button>
                 </div>
@@ -97,7 +97,7 @@
             <!-- CNPJs Encontrados (aparece após o upload) -->
             <section class="card hidden" id="card-cnpjs" aria-labelledby="cnpjs-title">
                 <h2 class="card-title" id="cnpjs-title">
-                    <span aria-hidden="true">🏢</span> CNPJs Encontrados
+                    <span class="noto-emoji" aria-hidden="true">🏢</span> CNPJs Encontrados
                 </h2>
                 <div class="cnpj-list" id="cnpj-list" role="list"
                      aria-label="CNPJs extraídos automaticamente do edital"></div>
@@ -106,7 +106,7 @@
             <!-- Painel de Debug -->
             <section class="card card-debug" aria-labelledby="debug-title">
                 <h2 class="card-title" id="debug-title">
-                    <span aria-hidden="true">🔬</span> Debug
+                    <span class="noto-emoji" aria-hidden="true">🔬</span> Debug
                 </h2>
                 <div class="debug-row">
                     <span class="debug-key">Endpoint</span>
@@ -148,7 +148,7 @@
 
                 <!-- Estado vazio inicial -->
                 <div class="chat-empty" id="chat-empty" aria-hidden="false">
-                    <div class="chat-empty-icon" aria-hidden="true">🕵️‍♂️</div>
+                    <div class="chat-empty-icon noto-emoji" aria-hidden="true">🕵️</div>
                     <p class="chat-empty-title">Nenhuma conversa iniciada</p>
                     <p class="chat-empty-sub">
                         Preencha as configurações no painel ao lado, indexe um edital e faça sua primeira pergunta.
@@ -160,7 +160,7 @@
             <!-- Indicador de processamento -->
             <div class="typing-indicator hidden" id="typing-indicator"
                  role="status" aria-label="Agente processando a resposta">
-                <div class="typing-avatar" aria-hidden="true">🤖</div>
+                <div class="typing-avatar noto-emoji" aria-hidden="true">🤖</div>
                 <div class="typing-dots" aria-hidden="true">
                     <span></span><span></span><span></span>
                 </div>

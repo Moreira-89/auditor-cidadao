@@ -324,7 +324,7 @@ function addMessage(role, content) {
     const messageEl = document.createElement('div');
     messageEl.className = `message ${role}`;
     messageEl.innerHTML = `
-        <div class="message-avatar" aria-hidden="true">${avatarEmoji}</div>
+        <div class="message-avatar noto-emoji" aria-hidden="true">${avatarEmoji}</div>
         <div class="message-body">
             <div class="message-meta">
                 <span>${labelText}</span>
@@ -350,11 +350,15 @@ function escapeHtml(text) {
 }
 
 /**
- * Cria uma bolha de mensagem AI vazia e a adiciona ao chat.
- * Retorna o elemento .message-bubble para ser preenchido progressivamente via streaming.
- * @returns {HTMLElement} O elemento da bolha (message-bubble) onde o conteúdo será injetado.
+ * Cria uma bolha de mensagem AI com o accordion de Chain of Thought.
+ * Retorna um objeto com referências aos elementos que serão atualizados via streaming:
+ *   - bubbleEl: a div .message-bubble onde a resposta final é renderizada
+ *   - cotAccordion: o <details> do accordion de pensamento
+ *   - cotBody: o container onde os steps de status são adicionados
+ *   - cotSpinner: o spinner do summary (removido quando o stream acaba)
+ * @returns {{ bubbleEl: HTMLElement, cotAccordion: HTMLElement, cotBody: HTMLElement, cotSpinner: HTMLElement }}
  */
-function createEmptyAIMessage() {
+function createStreamingAIMessage() {
     if (!dom.chatEmpty.classList.contains('hidden')) {
         dom.chatEmpty.classList.add('hidden');
     }
@@ -362,24 +366,92 @@ function createEmptyAIMessage() {
     const messageEl = document.createElement('div');
     messageEl.className = 'message ai';
     messageEl.innerHTML = `
-        <div class="message-avatar" aria-hidden="true">🤖</div>
+        <div class="message-avatar noto-emoji" aria-hidden="true">🤖</div>
         <div class="message-body">
             <div class="message-meta">
                 <span>Auditor Cidadão</span>
                 <span>${agora()}</span>
             </div>
-            <div class="message-bubble"></div>
+            <div class="message-bubble">
+                <details class="cot-accordion" open>
+                    <summary>
+                        <span class="cot-arrow">▶</span>
+                        <span class="cot-icon noto-emoji">🧠</span>
+                        <span>Pensando...</span>
+                        <span class="cot-spinner"></span>
+                    </summary>
+                    <div class="cot-body"></div>
+                </details>
+                <div class="cot-response"></div>
+            </div>
         </div>
     `;
 
     dom.chatMessages.appendChild(messageEl);
     dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
 
-    return messageEl.querySelector('.message-bubble');
+    return {
+        bubbleEl:     messageEl.querySelector('.cot-response'),
+        cotAccordion: messageEl.querySelector('.cot-accordion'),
+        cotBody:      messageEl.querySelector('.cot-body'),
+        cotSpinner:   messageEl.querySelector('.cot-spinner'),
+    };
 }
 
 /**
- * Lê o conteúdo do textarea, envia ao agente e exibe a resposta via streaming SSE.
+ * Adiciona um step de status ao accordion de Chain of Thought.
+ * @param {HTMLElement} cotBody - Container dos steps
+ * @param {string} statusText - Texto descritivo do status
+ */
+function addCotStep(cotBody, statusText) {
+    // Marca o step anterior como concluído
+    const prevStep = cotBody.querySelector('.cot-step:last-child:not(.done)');
+    if (prevStep) prevStep.classList.add('done');
+
+    const stepEl = document.createElement('div');
+    stepEl.className = 'cot-step';
+    stepEl.innerHTML = `
+        <span class="cot-step-icon noto-emoji">⚙️</span>
+        <span class="cot-step-text">${escapeHtml(statusText)}</span>
+        <span class="cot-step-spinner"></span>
+    `;
+    cotBody.appendChild(stepEl);
+}
+
+/**
+ * Finaliza o accordion de CoT: marca todos os steps como done,
+ * troca o spinner do summary por um checkmark e recolhe o bloco.
+ */
+function finalizeCot(cotAccordion, cotBody, cotSpinner) {
+    // Marca o último step como concluído
+    const lastStep = cotBody.querySelector('.cot-step:last-child:not(.done)');
+    if (lastStep) lastStep.classList.add('done');
+
+    // Troca spinner por checkmark no summary
+    if (cotSpinner) {
+        const doneEl = document.createElement('span');
+        doneEl.className = 'cot-done';
+        doneEl.textContent = '✓ Concluído';
+        cotSpinner.replaceWith(doneEl);
+    }
+
+    // Atualiza o texto do summary
+    const summaryTextEl = cotAccordion.querySelector('summary > span:nth-child(3)');
+    if (summaryTextEl) {
+        const stepCount = cotBody.querySelectorAll('.cot-step').length;
+        summaryTextEl.textContent = stepCount > 0
+            ? `Raciocínio do agente (${stepCount} etapa${stepCount > 1 ? 's' : ''})`
+            : 'Raciocínio do agente';
+    }
+
+    // Recolhe e diminui opacidade
+    cotAccordion.removeAttribute('open');
+    cotAccordion.classList.add('collapsed');
+}
+
+/**
+ * Lê o conteúdo do textarea, envia ao agente e exibe a resposta via streaming SSE
+ * com o accordion de Chain of Thought mostrando as etapas do agente em tempo real.
  */
 async function sendMessage() {
     const texto = dom.chatInput.value.trim();
@@ -414,57 +486,69 @@ async function sendMessage() {
             throw new Error(err.detail || `Erro HTTP ${response.status}`);
         }
 
-        // --- Leitura do stream SSE ---
-        // Cria a bolha do agente vazia para ir preenchendo em tempo real
-        const bubbleEl = createEmptyAIMessage();
+        // --- Leitura do stream SSE com Chain of Thought ---
+        const { bubbleEl, cotAccordion, cotBody, cotSpinner } = createStreamingAIMessage();
         const reader   = response.body.getReader();
         const decoder  = new TextDecoder('utf-8');
         let accumulated = '';
-        let leftover    = '';   // buffer para chunks SSE parciais
+        let leftover    = '';
+        let hasSteps    = false;
 
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
 
-            // Decodifica o chunk binário e junta com sobras do chunk anterior
             const text = leftover + decoder.decode(value, { stream: true });
             leftover = '';
 
-            // Cada evento SSE termina com \n\n — separamos por linhas
             const lines = text.split('\n');
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
 
-                // Linha com prefixo "data: " contém o texto do agente
                 if (line.startsWith('data: ')) {
-                    const payload = line.slice(6); // remove "data: "
+                    const payload = line.slice(6);
                     try {
-                        accumulated += JSON.parse(payload);
+                        const event = JSON.parse(payload);
+
+                        if (event.type === 'token' && event.content) {
+                            accumulated += event.content;
+                        } else if (event.type === 'status' && event.content) {
+                            addCotStep(cotBody, event.content);
+                            hasSteps = true;
+                            dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
+                        }
                     } catch {
-                        accumulated += payload; // fallback: usa o texto cru
+                        accumulated += payload;
                     }
                 } else if (line === '' && i < lines.length - 1) {
-                    // Linha vazia entre eventos SSE — ignorar
                     continue;
                 } else if (line !== '') {
-                    // Pode ser um chunk incompleto no final — guardar para o próximo read
                     if (i === lines.length - 1) {
                         leftover = line;
                     }
                 }
             }
 
-            // Renderiza o markdown acumulado até agora na bolha
-            bubbleEl.innerHTML = marked.parse(accumulated);
+            // Renderiza o markdown acumulado na área de resposta
+            if (accumulated) {
+                bubbleEl.innerHTML = marked.parse(accumulated);
+            }
             dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
         }
 
-        // Garante renderização final completa
+        // --- Finalização ---
         if (!accumulated.trim()) {
             bubbleEl.innerHTML = marked.parse('*(resposta vazia)*');
         } else {
             bubbleEl.innerHTML = marked.parse(accumulated);
+        }
+
+        // Se não houve nenhum step de status, oculta o accordion inteiro
+        if (!hasSteps) {
+            cotAccordion.classList.add('hidden');
+        } else {
+            finalizeCot(cotAccordion, cotBody, cotSpinner);
         }
 
         syncDebug();

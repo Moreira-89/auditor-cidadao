@@ -1,10 +1,9 @@
 import json
 import uuid
-import asyncio
 
 from app.services.build_graph import graph
 from langchain_core.messages import HumanMessage, SystemMessage
-from app.core.prompt import SYSTEM_PROMPT, PROMPT_DINAMICO
+from app.core.prompt import SYSTEM_PROMPT, PROMPT_DINAMICO, TOOL_STATUS_MAP
 
 
 # -----------------------------------------------------------------------------
@@ -112,6 +111,14 @@ async def run_agent(
         config=config,
         version="v2"
     ):
-        if evento["event"] == "on_chat_model_stream":
-            if not evento["data"]["chunk"].tool_calls:
-                yield "data: " + json.dumps(evento["data"]["chunk"].content) + "\n\n"
+        kind = evento["event"]
+
+        if kind == "on_chat_model_stream":
+            chunk = evento["data"]["chunk"]
+            if chunk.content and not chunk.tool_calls:
+                yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
+
+        elif kind == "on_tool_start":
+            tool_name = evento["name"]
+            mensagem = TOOL_STATUS_MAP.get(tool_name, "Processando...")
+            yield f"data: {json.dumps({'type': 'status', 'content': mensagem})}\n\n"
