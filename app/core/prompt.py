@@ -169,6 +169,7 @@ Estado: {estado}
 <PERGUNTA>
 {pergunta_usuario}
 </PERGUNTA>
+Data de hoje: {data_hoje}
 """
 
 TOOL_STATUS_MAP = {

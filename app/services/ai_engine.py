@@ -1,8 +1,9 @@
 import json
 import uuid
 
-from app.services.build_graph import graph
+from app.services.build_graph import get_graph
 from langchain_core.messages import HumanMessage, SystemMessage
+from datetime import date
 from app.core.prompt import SYSTEM_PROMPT, PROMPT_DINAMICO, TOOL_STATUS_MAP
 
 
@@ -65,7 +66,7 @@ async def run_agent(
     # Consultamos o estado do grafo SINGLETON (compartilhado entre todos os requests HTTP).
     # Ao contrário de recriar o grafo por request, aqui o InMemorySaver é o MESMO objeto
     # em memória, portanto o histórico de mensagens de cada thread persiste entre chamadas.
-    state = graph.get_state(config)
+    state = get_graph().get_state(config)
     conversa_iniciada = len(state.values.get("messages", [])) > 0
 
     # --- 3. Construção do Payload de Entrada ---
@@ -84,12 +85,14 @@ async def run_agent(
             ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado no documento."
         )
         system_message = SystemMessage(content=SYSTEM_PROMPT.format(user_name=user_name))
+        data_hoje = date.today().strftime("%Y-%m-%d")
         human_message = HumanMessage(
             content=PROMPT_DINAMICO.format(
                 pergunta_usuario=pergunta_usuario,
                 cnpjs_formatados=cnpjs_formatados,
                 municipio=municipio,
                 estado=estado,
+                data_hoje=data_hoje,
             )
         )
         mensagens_entrada = [system_message, human_message]
@@ -102,7 +105,7 @@ async def run_agent(
     # recebe tratamento especial via `add_messages`. Portanto, é necessário repassar `estado` e
     # `municipio` a cada chamada para que o InjectedState da ferramenta consiga lê-los do estado ativo.
 
-    async for evento in graph.astream_events(
+    async for evento in get_graph().astream_events(
         input={
             "messages": mensagens_entrada,
             "estado": estado,

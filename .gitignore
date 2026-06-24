@@ -8,6 +8,7 @@ avaliacao_log.json
 limpar_banco.py
 Auditor*
 notebooks/
+test_mcp_connection.py
 
 # PDF's reais
 app/editais_teste/edital*.pdf
