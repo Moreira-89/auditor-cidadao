@@ -1,6 +1,6 @@
 import os
 
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
@@ -27,7 +27,7 @@ class GerenciadorVetorial:
     def __init__(self):
         # --- 1. Inicialização ---
         # Instancia dependências na criação para serem reutilizadas em várias chamadas.
-        self.modelo_embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        self.modelo_embedding = OpenAIEmbeddings(model="text-embedding-3-small")
         self.pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         self.index_name = "auditor-cidadao"
 

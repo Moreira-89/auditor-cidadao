@@ -487,6 +487,7 @@ async function sendMessage() {
         }
 
         // --- Leitura do stream SSE com Chain of Thought ---
+        dom.typingIndicator.classList.add('hidden');
         const { bubbleEl, cotAccordion, cotBody, cotSpinner } = createStreamingAIMessage();
         const reader   = response.body.getReader();
         const decoder  = new TextDecoder('utf-8');

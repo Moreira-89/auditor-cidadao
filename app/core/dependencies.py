@@ -12,9 +12,9 @@ load_dotenv()
 # -----------------------------------------------------------------------------
 # CONSTANTES DE CONFIGURAÇÃO DO LLM
 # -----------------------------------------------------------------------------
-LLM_MODEL = os.getenv("LLM_MODEL", "groq:llama-3.3-70b-versatile")
-LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
-LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "2048"))
+LLM_MODEL = os.getenv("LLM_MODEL")
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS"))
 
 
 # -----------------------------------------------------------------------------
@@ -43,7 +43,7 @@ except Exception as e:
 # -----------------------------------------------------------------------------
 # CONFIGURAÇÃO DE MODELOS DE LINGUAGEM (LLM)
 # -----------------------------------------------------------------------------
-def retornar_cliente_llm(model_name: str = "groq:llama-3.3-70b-versatile", config_params: dict | None = None):
+def retornar_cliente_llm(model_name: str, config_params: dict | None = None):
     """
     Resumo Principal: Criar e retornar uma instância do cliente LLM inicializada.
 
