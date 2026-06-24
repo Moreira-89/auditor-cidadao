@@ -172,6 +172,6 @@ Estado: {estado}
 """
 
 TOOL_STATUS_MAP = {
-    "consultar_receita_federal": "Validando CNPJ junto à Receita Federal",
+    "consultar_receita_federal": "Validando CNPJ junto na Receita Federal",
     "buscar_contexto_edital": "Analisando o edital",
 }
