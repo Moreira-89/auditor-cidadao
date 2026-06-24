@@ -350,7 +350,36 @@ function escapeHtml(text) {
 }
 
 /**
- * Lê o conteúdo do textarea, envia ao agente e exibe a resposta.
+ * Cria uma bolha de mensagem AI vazia e a adiciona ao chat.
+ * Retorna o elemento .message-bubble para ser preenchido progressivamente via streaming.
+ * @returns {HTMLElement} O elemento da bolha (message-bubble) onde o conteúdo será injetado.
+ */
+function createEmptyAIMessage() {
+    if (!dom.chatEmpty.classList.contains('hidden')) {
+        dom.chatEmpty.classList.add('hidden');
+    }
+
+    const messageEl = document.createElement('div');
+    messageEl.className = 'message ai';
+    messageEl.innerHTML = `
+        <div class="message-avatar" aria-hidden="true">🤖</div>
+        <div class="message-body">
+            <div class="message-meta">
+                <span>Auditor Cidadão</span>
+                <span>${agora()}</span>
+            </div>
+            <div class="message-bubble"></div>
+        </div>
+    `;
+
+    dom.chatMessages.appendChild(messageEl);
+    dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
+
+    return messageEl.querySelector('.message-bubble');
+}
+
+/**
+ * Lê o conteúdo do textarea, envia ao agente e exibe a resposta via streaming SSE.
  */
 async function sendMessage() {
     const texto = dom.chatInput.value.trim();
@@ -385,8 +414,59 @@ async function sendMessage() {
             throw new Error(err.detail || `Erro HTTP ${response.status}`);
         }
 
-        const data = await response.json();
-        addMessage('ai', data.resultado_pergunta || '*(resposta vazia)*');
+        // --- Leitura do stream SSE ---
+        // Cria a bolha do agente vazia para ir preenchendo em tempo real
+        const bubbleEl = createEmptyAIMessage();
+        const reader   = response.body.getReader();
+        const decoder  = new TextDecoder('utf-8');
+        let accumulated = '';
+        let leftover    = '';   // buffer para chunks SSE parciais
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            // Decodifica o chunk binário e junta com sobras do chunk anterior
+            const text = leftover + decoder.decode(value, { stream: true });
+            leftover = '';
+
+            // Cada evento SSE termina com \n\n — separamos por linhas
+            const lines = text.split('\n');
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Linha com prefixo "data: " contém o texto do agente
+                if (line.startsWith('data: ')) {
+                    const payload = line.slice(6); // remove "data: "
+                    try {
+                        accumulated += JSON.parse(payload);
+                    } catch {
+                        accumulated += payload; // fallback: usa o texto cru
+                    }
+                } else if (line === '' && i < lines.length - 1) {
+                    // Linha vazia entre eventos SSE — ignorar
+                    continue;
+                } else if (line !== '') {
+                    // Pode ser um chunk incompleto no final — guardar para o próximo read
+                    if (i === lines.length - 1) {
+                        leftover = line;
+                    }
+                }
+            }
+
+            // Renderiza o markdown acumulado até agora na bolha
+            bubbleEl.innerHTML = marked.parse(accumulated);
+            dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
+        }
+
+        // Garante renderização final completa
+        if (!accumulated.trim()) {
+            bubbleEl.innerHTML = marked.parse('*(resposta vazia)*');
+        } else {
+            bubbleEl.innerHTML = marked.parse(accumulated);
+        }
+
         syncDebug();
 
     } catch (error) {

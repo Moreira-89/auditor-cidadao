@@ -1,4 +1,6 @@
+import json
 import uuid
+import asyncio
 
 from app.services.build_graph import graph
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -100,11 +102,16 @@ async def run_agent(
     # O InMemorySaver NÃO persiste chaves arbitrárias do estado entre invocações — apenas `messages`
     # recebe tratamento especial via `add_messages`. Portanto, é necessário repassar `estado` e
     # `municipio` a cada chamada para que o InjectedState da ferramenta consiga lê-los do estado ativo.
-    result = await graph.ainvoke(
-        {"messages": mensagens_entrada, "estado": estado, "municipio": municipio},
-        config=config,
-    )
 
-    # --- 5. Retorno do Resultado ---
-    # A última mensagem da lista é sempre a resposta final do agente após convergir.
-    return str(result["messages"][-1].content)
+    async for evento in graph.astream_events(
+        input={
+            "messages": mensagens_entrada,
+            "estado": estado,
+            "municipio": municipio
+        },
+        config=config,
+        version="v2"
+    ):
+        if evento["event"] == "on_chat_model_stream":
+            if not evento["data"]["chunk"].tool_calls:
+                yield "data: " + json.dumps(evento["data"]["chunk"].content) + "\n\n"
