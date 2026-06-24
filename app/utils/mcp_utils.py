@@ -1,3 +1,5 @@
+import json
+import logging
 from typing import Any, Union, Optional, get_origin, get_args
 
 from pydantic import create_model
@@ -77,7 +79,10 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
     """
     properties = schema_dict.get("properties", {})
 
+    _log = logging.getLogger("mcp.coercao")
+
     async def coroutine_com_coercao(**kwargs):
+        _log.info("[COERCAO] kwargs recebidos: %s", kwargs)
         args_convertidos = {}
 
         for chave, valor in kwargs.items():
@@ -85,6 +90,11 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
                 continue  # Remove nulls — o MCP usa defaults internos
 
             tipo_esperado = properties.get(chave, {}).get("type", "string")
+            tipo_item = properties.get(chave, {}).get("items", {}).get("type", "string")
+            _log.info(
+                "[COERCAO] campo=%s | valor=%r | tipo_esperado=%s | tipo_item=%s",
+                chave, valor, tipo_esperado, tipo_item,
+            )
 
             if tipo_esperado == "integer" and isinstance(valor, str):
                 try:
@@ -133,6 +143,7 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
             else:
                 args_convertidos[chave] = valor
 
+        _log.info("[COERCAO] args_convertidos enviados ao MCP: %s", args_convertidos)
         return await original_coroutine(**args_convertidos)
 
     return coroutine_com_coercao
@@ -143,6 +154,19 @@ def patch_mcp_tools_para_groq(tools: list) -> list:
     Reconstrói os schemas das MCP tools tornando tipos estritos permissivos.
     Trata tanto schemas Pydantic (model_fields) quanto dicts (JSON Schema).
     """
+    # DEBUG TEMPORÁRIO — remover após diagnóstico
+    for tool in tools:
+        if tool.name == "search_licitacoes":
+            schema = getattr(tool, "args_schema", None)
+            print("\n=== SCHEMA REAL: search_licitacoes ===")
+            if isinstance(schema, dict):
+                print(json.dumps(schema, indent=2, ensure_ascii=False))
+            elif hasattr(schema, "model_json_schema"):
+                print(json.dumps(schema.model_json_schema(), indent=2, ensure_ascii=False))
+            else:
+                print(f"Tipo desconhecido: {type(schema)}")
+            print("=====================================\n")
+            
     resultado = []
 
     for tool in tools:
