@@ -411,7 +411,6 @@ function addCotStep(cotBody, statusText) {
     const stepEl = document.createElement('div');
     stepEl.className = 'cot-step';
     stepEl.innerHTML = `
-        <span class="cot-step-icon noto-emoji">⚙️</span>
         <span class="cot-step-text">${escapeHtml(statusText)}</span>
         <span class="cot-step-spinner"></span>
     `;
