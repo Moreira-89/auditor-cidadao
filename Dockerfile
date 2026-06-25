@@ -5,6 +5,7 @@ FROM python:3.12-slim
 # Evita que o Python bufferize stdout/stderr
 # Isso garante que os logs apareçam em tempo real no Railway/Docker
 ENV PYTHONUNBUFFERED=1
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 
 # Instala Node.js 20 LTS via NodeSource
 # Node.js é necessário para o subprocess do MCP LiciNexus (npx @licinexusbr/mcp)
