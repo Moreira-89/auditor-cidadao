@@ -1,151 +1,127 @@
 import json
+import uuid
 
-from app.core.config_groq import retornar_cliente_groq
-from app.models.consulta_cnpj import ConsultaCNPJ
-from app.services.tools import consultar_receita_federal
+from app.services.build_graph import get_graph
+from langchain_core.messages import HumanMessage, SystemMessage
+from datetime import date
+from app.core.prompt import SYSTEM_PROMPT, PROMPT_DINAMICO, TOOL_STATUS_MAP
+
 
 # -----------------------------------------------------------------------------
 # MOTOR DE INTELIGÊNCIA ARTIFICIAL (AGENTE)
 # -----------------------------------------------------------------------------
-def run_agent(pergunta_usuário: str, lista_cnpj: list, contexto: str, user_name: str) -> str:
+async def run_agent(
+    pergunta_usuario: str,
+    lista_cnpj: list,
+    user_name: str,
+    estado: str,
+    municipio: str,
+    thread_id: str | None = None,
+) -> str:
     """
-    Executa o "Agente" de auditoria (LLM autônomo) para analisar o edital e responder à pergunta.
+    Resumo Principal: Executa o agente de auditoria de forma assíncrona, processando a pergunta
+    do usuário, gerenciando o histórico conversacional e retornando a resposta da LLM.
 
-    COMO FUNCIONA O "AGENTIC LOOP":
-    Diferente de um ChatGPT normal onde você manda uma pergunta e ele cospe a resposta,
-    um Agente de IA funciona em "turnos" (laços).
-    
-    1. Turno 1: Enviamos o sistema, o edital, a pergunta e os CNPJs para o modelo.
-       Nós também passamos a ele uma lista de "Ferramentas" (Tools) que ele tem permissão para usar.
-    2. Decisão: O modelo percebe que há CNPJs e que ele não sabe os dados atuais dessas empresas. 
-       Em vez de responder ao usuário, ele nos responde: "Por favor, execute a ferramenta X para o CNPJ Y".
-    3. Execução Local: Nosso código em Python captura esse pedido, faz a requisição na BrasilAPI
-       (usando a função consultar_receita_federal) e guarda a resposta JSON.
-    4. Turno 2: Nós enviamos a resposta JSON de volta pro modelo e dizemos: "Aqui está o 
-       que a ferramenta retornou. Pode continuar."
-    5. Resposta Final: O modelo junta o que leu no edital com os dados concretos da Receita Federal
-       e formula a resposta final para o usuário.
+    COMO FUNCIONA:
+    1. Resolução da Thread: Garante que exista um thread_id válido (gera UUID se não fornecido).
+    2. Resolução do Histórico do Checkpointer: Consulta o grafo SINGLETON para verificar se a
+       thread informada já possui histórico de mensagens salvo no InMemorySaver compartilhado.
+    3. Construção do Payload de Entrada:
+       - Caso seja o primeiro turno: injeta o SystemMessage (instruções e regras de segurança)
+         e o HumanMessage com os CNPJs extraídos e metadados geográficos. O contexto do edital
+         NÃO é pré-injetado — o agente o busca autonomamente via a tool buscar_contexto_edital.
+       - Caso seja um turno subsequente: envia apenas a nova pergunta do usuário. O checkpointer
+         restaura automaticamente o histórico pregresso da thread.
+    4. Execução Assíncrona do Grafo: Invoca o grafo via ainvoke para não bloquear o event loop.
+       As chaves `estado` e `municipio` são sempre incluídas para que o ToolNode as injete
+       automaticamente nos parâmetros InjectedState da ferramenta buscar_contexto_edital.
+    5. Retorno do Resultado: Extrai e retorna o texto da última mensagem gerada pelo agente.
 
     Args:
-        pergunta_usuário (str): Pergunta feita pelo usuário.
-        lista_cnpj (list[str]): CNPJs pré-extraídos na fase de upload para "forçar" a IA a pesquisá-los.
-        contexto (str): Parágrafos do edital recuperados do Pinecone (Busca Semântica).
-        user_name (str): Nome do usuário logado para personalização.
+        pergunta_usuario (str): Dúvida ou requisição enviada pelo usuário sobre o edital.
+        lista_cnpj (list): Lista de CNPJs pré-extraídos do edital pelo endpoint de upload.
+        user_name (str): Nome do usuário logado, usado para personalização do system prompt.
+        estado (str): Sigla do estado do edital (ex: 'SP'). Propagada ao estado do grafo
+                      para ser injetada automaticamente na ferramenta de busca no edital.
+        municipio (str): Nome do município do edital (ex: 'São Paulo'). Idem ao estado.
+        thread_id (str | None): Identificador único da sessão de chat. Se None, um UUID
+                                 é gerado automaticamente para criar uma nova conversa.
 
     Returns:
-        str: A resposta final e analisada pronta para ser exibida no front-end.
+        str: A resposta final da LLM consolidada e pronta para ser exibida ao usuário.
     """
+    # --- 0. Sanitização de Segurança ---
+    # Escapamos sinais de maior e menor para evitar que o usuário injete tags XML/HTML
+    # (ex: </PERGUNTA>) e quebre o isolamento estrutural do prompt.
+    pergunta_usuario = pergunta_usuario.replace("<", "&lt;").replace(">", "&gt;")
 
-    # Histórico de mensagens da conversa. Começa com o system prompt (identidade e regras
-    # do agente) e a mensagem do usuário (o texto do edital). A cada volta do laço,
-    # novas mensagens são appendadas aqui — isso permite que o modelo "lembre" de tudo
-    # que aconteceu, incluindo os resultados das ferramentas executadas.
+    # --- 1. Resolução da Thread ---
+    # Garantimos que exista um thread_id válido. O UUID garante unicidade global por sessão.
+    if not thread_id:
+        thread_id = str(uuid.uuid4())
 
-    cnpjs_formatados = (
-        ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado."
-    )
+    config = {"configurable": {"thread_id": thread_id}}
 
-    prompt_dinamico = f"""
-        O usuário enviou um edital público: {contexto}. Nosso sistema de extração encontrou os seguintes CNPJs no documento: [{cnpjs_formatados}]. O usuário fez a seguinte pergunta sobre o edital: {pergunta_usuário}.
+    # --- 2. Resolução do Histórico do Checkpointer ---
+    # Consultamos o estado do grafo SINGLETON (compartilhado entre todos os requests HTTP).
+    # Ao contrário de recriar o grafo por request, aqui o InMemorySaver é o MESMO objeto
+    # em memória, portanto o histórico de mensagens de cada thread persiste entre chamadas.
+    state = get_graph().get_state(config)
+    conversa_iniciada = len(state.values.get("messages", [])) > 0
 
-        Por favor, responda educadamente e de forma clara e objetiva possível para o usuário chamado "{user_name}". Se necessário for, use a ferramenta de consulta à Receita Federal para validar cada um destes CNPJs para dar ainda mais enbasamento na sua resposta para o usuario.
-    """
-
-    messages = [
-        {
-            "role": "system",
-            "content": f"""
-            Você é o 'Auditor Cidadão', um assistente especializado em análise de licitações, contratos públicos e editais brasileiros. O usuário se chama {user_name}. Dirija-se a ele de forma cordial e profissional.
-
-            ## TAREFA PRIMÁRIA — OBRIGATÓRIA
-
-            Ao receber qualquer documento (edital, contrato ou anexo), sua **primeira e obrigatória ação** é:
-            1. Identificar **todos os CNPJs** mencionados no documento.
-            2. Para **cada CNPJ encontrado**, chamar imediatamente a ferramenta `consultar_receita_federal`.
-            3. **Nunca pular esta etapa.** Se não houver CNPJ explícito, informe ao usuário antes de prosseguir.
-
-            ## COMPORTAMENTO APÓS A CONSULTA
-
-            **Se a ferramenta retornar dados com sucesso:**
-            - Use os dados retornados (razão social, status, CNAE, etc.) como fonte primária de verdade.
-            - Compare-os com as informações declaradas no documento e sinalize qualquer divergência.
-
-            **Se a ferramenta retornar um erro (ex: CNPJ inválido, serviço indisponível, timeout):**
-            - Informe claramente ao usuário: "Não foi possível consultar o CNPJ [XXXX] junto à Receita Federal: [motivo do erro]."
-            - Continue a análise utilizando **apenas** as informações disponíveis no documento, sinalizando que os dados da Receita Federal não puderam ser verificados.
-            - **Nunca invente ou assuma** dados que deveriam ter vindo da ferramenta.
-
-            ## REGRAS GERAIS
-
-            - Baseie suas conclusões estritamente nos documentos oficiais e nos dados retornados pela ferramenta.
-            - Seja preciso, imparcial e direto.
-            - Sinalize claramente quando uma informação não pôde ser verificada.
-            """,
-        },
-        {"role": "user", "content": prompt_dinamico},
-    ]
-
-    # Instancia o cliente da API Groq (as credenciais são lidas de variáveis de ambiente
-    # dentro de retornar_cliente_groq(), mantendo segredos fora do código).
-    cliente = retornar_cliente_groq()
-
-    # Contador de segurança: impede que o agente fique preso em um laço infinito
-    # caso o modelo continue pedindo ferramentas sem convergir para uma resposta final.
-    tentativa = 0
-
-    # --- AGENTIC LOOP ---
-    # Cada iteração representa um "turno" do agente:
-    #   1. Chama o modelo com o histórico atual.
-    #   2. Se o modelo retornar tool_calls → executa a ferramenta e continua.
-    #   3. Se o modelo retornar texto puro → resposta final encontrada, encerra.
-    while tentativa < 3:
-        response = cliente.chat.completions.create(
-            model="llama-3.3-70b-versatile",  # melhor modelo gratuito da groq para trabalhar com editais de licitação. É o modelo mais robusto da lista. Para auditoria, modelos menores (como o 8B) falham em entender nuances jurídicas e perdem o fio da meada ao cruzar dados de dois arquivos diferentes. O 70B tem o raciocínio necessário para identificar se um contrato está em desacordo com o edital original. Mas futuramente testar com o Claude 3.5 Sonnet que é o padrão de ouro.
-            messages=messages,
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "consultar_receita_federal",
-                        "description": "Consulta dados abertos da Receita Federal utilizando o CNPJ.",
-                        "parameters": ConsultaCNPJ.model_json_schema(),
-                    },
-                }
-            ],
+    # --- 3. Construção do Payload de Entrada ---
+    if conversa_iniciada:
+        texto_protegido = f"<PERGUNTA>{pergunta_usuario}</PERGUNTA>"
+        # Turnos subsequentes: apenas a nova pergunta é enviada para evitar redundância.
+        # O checkpointer restaura o histórico pregresso automaticamente.
+        mensagens_entrada = [HumanMessage(content=texto_protegido)]
+    else:
+        # Primeiro turno: injetamos as regras de segurança e os dados da sessão.
+        # O SYSTEM_PROMPT contém as instruções permanentes do agente (papel, regras, escopo).
+        # O PROMPT_DINAMICO injeta os CNPJs extraídos, metadados geográficos e a pergunta.
+        # Nota: o contexto do edital NÃO é pré-injetado aqui. O agente usa a ferramenta
+        # buscar_contexto_edital para recuperar trechos relevantes conforme a necessidade.
+        cnpjs_formatados = (
+            ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado no documento."
         )
+        system_message = SystemMessage(content=SYSTEM_PROMPT.format(user_name=user_name))
+        data_hoje = date.today().strftime("%Y-%m-%d")
+        human_message = HumanMessage(
+            content=PROMPT_DINAMICO.format(
+                pergunta_usuario=pergunta_usuario,
+                cnpjs_formatados=cnpjs_formatados,
+                municipio=municipio,
+                estado=estado,
+                data_hoje=data_hoje,
+            )
+        )
+        mensagens_entrada = [system_message, human_message]
 
-        if response.choices[0].message.tool_calls:
-            # O modelo pode solicitar múltiplas ferramentas em um único turno (ex: edital
-            # com vários CNPJs). A mensagem do assistente é appendada UMA única vez pois ela
-            # carrega todos os tool_calls juntos. Os resultados são appendados individualmente.
-            messages.append(response.choices[0].message)
+    # --- 4. Execução Assíncrona do Grafo ---
+    # ainvoke é o equivalente assíncrono de invoke. Não bloqueia o event loop do FastAPI,
+    # permitindo que o servidor atenda outras requisições enquanto o agente processa.
+    # As chaves `estado` e `municipio` são incluídas em TODOS os turnos (mesmo os subsequentes).
+    # O InMemorySaver NÃO persiste chaves arbitrárias do estado entre invocações — apenas `messages`
+    # recebe tratamento especial via `add_messages`. Portanto, é necessário repassar `estado` e
+    # `municipio` a cada chamada para que o InjectedState da ferramenta consiga lê-los do estado ativo.
 
-            for tool_call in response.choices[0].message.tool_calls:
-                # Extrai o objeto tool_call (contém nome da função, argumentos e um ID único)
-                # e desserializa os argumentos JSON para obter o CNPJ solicitado.
-                extrair_cnpj = json.loads(tool_call.function.arguments)["cnpj"]
+    async for evento in get_graph().astream_events(
+        input={
+            "messages": mensagens_entrada,
+            "estado": estado,
+            "municipio": municipio
+        },
+        config=config,
+        version="v2"
+    ):
+        kind = evento["event"]
 
-                resultado_tool = consultar_receita_federal(extrair_cnpj)
+        if kind == "on_chat_model_stream":
+            chunk = evento["data"]["chunk"]
+            if chunk.content and not chunk.tool_calls:
+                yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
 
-                # Cada resultado é vinculado ao seu tool_call_id correspondente.
-                # Sem esse vínculo, a API rejeita o contexto como inválido.
-                messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "name": "consultar_receita_federal",
-                        "content": json.dumps(resultado_tool, ensure_ascii=False),
-                    }
-                )
-
-            tentativa += 1
-
-        else:
-            # O modelo não pediu nenhuma ferramenta: ele já processou todos os dados
-            # disponíveis (documento + resultados das consultas) e produziu a análise final.
-            response_final = str(response.choices[0].message.content)
-            return response_final
-
-    # Atingiu o limite de tentativas sem o modelo produzir uma resposta textual final.
-    # Retorna uma mensagem de erro controlada em vez de deixar a função retornar None.
-    return "[ERRO] - Falha no processo de auditoria. Tente novamente"
+        elif kind == "on_tool_start":
+            tool_name = evento["name"]
+            mensagem = TOOL_STATUS_MAP.get(tool_name, "Processando...")
+            yield f"data: {json.dumps({'type': 'status', 'content': mensagem})}\n\n"

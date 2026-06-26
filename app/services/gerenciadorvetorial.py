@@ -1,67 +1,63 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
+import os
+
+from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
 
+from app.core.logging_config import logger
 
+
+# -----------------------------------------------------------------------------
+# CLASSE GERENCIADOR VETORIAL
+# -----------------------------------------------------------------------------
 class GerenciadorVetorial:
-    """Orquestra o pipeline completo de indexação vetorial de editais públicos.
+    """
+    Objetivo: Orquestrar o pipeline completo de indexação vetorial e recuperação (RAG).
 
-    Responsável por três etapas sequenciais:
-    1. **Chunking** — divide o texto bruto em fragmentos semânticos via
-       ``RecursiveCharacterTextSplitter``.
-    2. **Embedding + Indexação** — converte os chunks em vetores usando o modelo
-       ``all-MiniLM-L6-v2`` (HuggingFace) e os persiste no Pinecone Vector Store,
-       junto com os metadados do edital.
-
-    O método de entrada pública é :meth:`executar`, que encadeia as etapas acima
-    de forma transparente. Os métodos internos (:meth:`chunkizar_documento` e
-    :meth:`processar_e_salvar`) ficam disponíveis para uso e testes isolados.
+    COMO FUNCIONA:
+    1. Instanciação: Ao inicializar, a classe carrega o modelo de linguagem local 'all-MiniLM-L6-v2' para gerar embeddings e autentica a conexão com a API do Pinecone.
+    2. Utilização: Encapsula os métodos responsáveis por particionar o texto (chunking), convertê-lo e persistir no banco, além de expor o mecanismo de busca.
 
     Attributes:
-        modelo_embedding (HuggingFaceEmbeddings): Modelo de embedding carregado na
-            inicialização. Reutilizado em todas as chamadas para evitar recarregamento.
-        pinecone (Pinecone): Cliente autenticado do Pinecone.
-        index_name (str): Nome do índice Pinecone onde os vetores serão armazenados.
+        modelo_embedding (HuggingFaceEmbeddings): Modelo de embedding carregado.
+        index_name (str): Nome do índice Pinecone.
     """
 
     def __init__(self):
-        self.modelo_embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        self.pinecone = Pinecone(api_key="[PINECONE_API_KEY]")
+        # --- 1. Inicialização ---
+        # Instancia dependências na criação para serem reutilizadas em várias chamadas.
+        self.modelo_embedding = OpenAIEmbeddings(model="text-embedding-3-small")
+        self.pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         self.index_name = "auditor-cidadao"
 
     # ------------------------------------------------------------------
-    # Métodos internos
+    # MÉTODOS INTERNOS
     # ------------------------------------------------------------------
 
     def chunkizar_documento(
         self, texto_edital: str, tamanho_chunk: int = 2000, overlap: int = 200
     ) -> list[str]:
-        """Divide um texto em chunks semânticos usando ``RecursiveCharacterTextSplitter``.
+        """
+        Objetivo: Dividir um texto bruto em chunks semânticos para o banco de dados.
 
-        Ao contrário de uma divisão simples por caracteres, esta função tenta preservar
-        a coerência semântica do texto respeitando uma hierarquia de separadores:
-        parágrafos (``\\n\\n``) → linhas (``\\n``) → sentenças (``.``) → palavras (`` ``).
-        Só avança para o próximo separador se o chunk ainda ultrapassar ``tamanho_chunk``
-        com o separador anterior — garantindo fragmentos mais naturais e adequados para
-        pipelines de RAG aplicados a editais e documentos jurídicos longos.
+        COMO FUNCIONA:
+        1. Configuração do Splitter: Define os separadores lógicos (parágrafos, linhas, frases, palavras) e os limites de caracteres (chunk_size e overlap).
+        2. Processamento: Tenta separar o texto respeitando a coerência, só dividindo na palavra se a frase for grande demais. Retorna a lista de pedaços.
 
         Args:
-            texto_edital (str): Texto bruto do edital a ser fragmentado.
-            tamanho_chunk (int): Tamanho máximo de cada chunk, em número de caracteres.
-                Padrão: 2000.
-            overlap (int): Número de caracteres compartilhados entre chunks consecutivos.
-                A sobreposição preserva contexto nas bordas e melhora a qualidade da
-                recuperação semântica. Deve ser menor que ``tamanho_chunk``. Padrão: 200.
+            texto_edital (str): Texto bruto do edital.
+            tamanho_chunk (int): Tamanho máximo do bloco de texto.
+            overlap (int): Número de caracteres repetidos entre blocos vizinhos para não quebrar o sentido.
 
         Returns:
-            list[str]: Lista de strings representando os chunks do texto original,
-                respeitando os separadores configurados. Retorna uma lista vazia se
-                ``texto_edital`` for vazio ou ``None``.
+            list[str]: Lista contendo todos os fragmentos gerados.
         """
         if not texto_edital:
             return []
 
+        # --- 1. Configuração do Splitter ---
+        # Usa RecursiveCharacterTextSplitter da LangChain para criar blocos coesos.
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=tamanho_chunk,
             chunk_overlap=overlap,
@@ -69,115 +65,116 @@ class GerenciadorVetorial:
             separators=["\n\n", "\n", ".", " "],
         )
 
+        # --- 2. Processamento ---
         lista_chunks = text_splitter.split_text(texto_edital)
+        logger.info("Chunkização concluída | chunks=%d | tamanho_max=%d | overlap=%d",
+                    len(lista_chunks), tamanho_chunk, overlap)
 
         return lista_chunks
 
     def processar_e_salvar(self, lista_chunks: list[str], metadados: dict) -> None:
-        """Converte chunks em vetores e os persiste no Pinecone Vector Store.
+        """
+        Objetivo: Converter chunks de texto em vetores e gravar no Pinecone.
 
-        Utiliza ``PineconeVectorStore.from_texts`` para gerar embeddings e indexar
-        todos os chunks em uma única operação em lote. Os mesmos ``metadados`` são
-        replicados para cada chunk, permitindo filtros por edital na recuperação.
+        COMO FUNCIONA:
+        1. Persistência em Lote: Usa a LangChain para gerar os embeddings e realizar o upsert (envio) dos dados para o Pinecone em um único lote otimizado.
 
         Args:
-            lista_chunks (list[str]): Lista de fragmentos de texto a serem vetorizados
-                e salvos. Gerada tipicamente por :meth:`chunkizar_documento`.
-            metadados (dict): Dicionário com informações do edital associado aos chunks
-                (ex: ``{"municipio": "São Paulo", "estado": "SP", "arquivo": "edital.pdf"}``).
-                O mesmo dicionário é aplicado a todos os chunks.
+            lista_chunks (list[str]): Fragmentos do texto do edital.
+            metadados (dict): Dados extras para filtrar buscas posteriores (estado, município).
         """
+        # --- 1. Persistência em Lote ---
+        logger.info("Enviando chunks ao Pinecone | chunks=%d | index=%s | metadados=%s",
+                    len(lista_chunks), self.index_name, metadados)
         PineconeVectorStore.from_texts(
             texts=lista_chunks,
             embedding=self.modelo_embedding,
             index_name=self.index_name,
             metadatas=[metadados] * len(lista_chunks),
         )
+        logger.info("Upsert concluído | index=%s", self.index_name)
 
     def buscar_contexto(
         self, pergunta: str, estado: str, municipio: str
     ) -> str:
         """
-        Realiza a Busca Semântica (Retrieval) no banco de dados vetorial Pinecone.
+        Objetivo: Realizar a Busca Semântica (Retrieval) no Pinecone baseada na pergunta.
 
         COMO FUNCIONA:
-        Em vez de procurar por palavras-chave exatas (como no Google antigo), esta 
-        função transforma a `pergunta` em um vetor matemático. Em seguida, ela 
-        procura no Pinecone quais "fatias" (chunks) de texto do edital têm 
-        vetores matematicamente mais próximos ao vetor da pergunta. 
-        Assim, conseguimos achar textos com o mesmo significado, mesmo que 
-        usem palavras diferentes.
+        1. Conexão com o Índice: Inicializa a conexão da LangChain com o índice do Pinecone já existente e o modelo de embedding.
+        2. Busca por Similaridade: Converte a pergunta em vetor e localiza os K=3 blocos mais próximos no banco que obedeçam ao filtro de estado e município.
+        3. Consolidação: Extrai apenas o texto contido nestes blocos e os junta, separando por linha, gerando um texto pronto para ser lido pelo Agente.
 
         Args:
             pergunta (str): A dúvida do usuário em linguagem natural.
-            estado (str): Sigla do estado (usado como filtro para focar a busca).
-            municipio (str): Nome do município (usado como filtro para focar a busca).
+            estado (str): Sigla do estado para filtrar o edital correto.
+            municipio (str): Nome do município para filtrar o edital correto.
 
         Returns:
-            str: Um grande bloco de texto consolidado contendo apenas os trechos 
-                 mais relevantes do edital que respondem à pergunta.
+            str: O texto extraído contendo o contexto útil.
         """
-        
-        # --- 1. CONEXÃO COM O ÍNDICE ---
-        # Instancia a interface de busca da biblioteca LangChain apontando para
-        # o nosso índice no Pinecone e usando o mesmo modelo de embedding que
-        # foi usado na hora de salvar o texto (HuggingFace).
+        # --- 1. Conexão com o Índice ---
         vector_store = PineconeVectorStore(
             index_name=self.index_name,
             embedding=self.modelo_embedding
         )
 
-        # --- 2. BUSCA POR SIMILARIDADE ---
-        # A função similarity_search faz a mágica acontecer: ela converte a pergunta
-        # e acha os documentos mais próximos no espaço vetorial.
+        # --- 2. Busca por Similaridade ---
+        # Localiza os 3 trechos mais parecidos semanticamente.
+        logger.info("Busca semântica | pergunta=%s | estado=%s | municipio=%s",
+                    pergunta[:80], estado, municipio)
         documentos_encontrados = vector_store.similarity_search(
             query=pergunta,
-            k=3, # Define que queremos apenas os 3 pedaços de texto MAIS relevantes (evita lixo e economiza tokens)
+            k=3,
             filter={
-                # O filtro é extremamente importante no cenário de múltiplos editais!
-                # Garante que, se perguntarmos de um edital de "Campinas-SP", 
-                # a busca não traga trechos de um edital de "Recife-PE" que 
-                # estivesse falando de um assunto parecido.
                 "estado": estado,
                 "municipio": municipio,
             }
         )
+        logger.info("Busca concluída | documentos_encontrados=%d", len(documentos_encontrados))
 
-        # --- 3. CONSOLIDAÇÃO DO CONTEXTO ---
-        # A busca retorna uma lista de objetos 'Document'. O texto real está 
-        # dentro de 'page_content'. Extraímos esses textos e juntamos todos 
-        # separados por duas quebras de linha para ficar fácil para a IA ler depois.
+        # --- 3. Consolidação ---
+        # Se nenhum chunk for encontrado (edital não indexado ou filtros muito restritivos),
+        # retornamos uma mensagem de fallback explícita. Isso evita que o agente receba
+        # a tag <DOCUMENTO_OFICIAL> vazia e tente "adivinhar" o conteúdo do edital.
+        if not documentos_encontrados:
+            return "Nenhum trecho relevante encontrado no edital para a combinação de estado, município e pergunta informados. Verifique se o edital foi indexado corretamente."
+
         contexto_final = "\n\n".join([doc.page_content for doc in documentos_encontrados])
 
         return contexto_final
 
     # ------------------------------------------------------------------
-    # Método orquestrador (ponto de entrada público)
+    # MÉTODOS PÚBLICOS / ORQUESTRADOR
     # ------------------------------------------------------------------
 
-    def executar(self, texto_edital: str, metadados: dict) -> str:
-        """Executa o pipeline completo de indexação vetorial do edital.
+    def executar(self, texto_edital: str, metadados: dict) -> None:
+        """
+        Objetivo: Ponto de entrada público para injetar o edital no banco vetorial.
 
-        Encadeia :meth:`chunkizar_documento` e :meth:`processar_e_salvar` em sequência,
-        expondo um único ponto de entrada para o uso externo (ex: endpoints FastAPI).
-        Falha rapidamente se o texto estiver vazio, evitando chamadas desnecessárias
-        ao Pinecone.
+        COMO FUNCIONA:
+        1. Validação de Entrada: Se o texto do edital for vazio, bloqueia e retorna erro.
+        2. Fragmentação do Texto: Aciona o método interno de chunkizar_documento.
+        3. Salvamento: Manda os blocos gerados para processar_e_salvar.
 
         Args:
-            texto_edital (str): Texto bruto extraído do PDF do edital.
-            metadados (dict): Metadados do edital a serem associados a cada chunk
-                no índice vetorial (ex: município, estado, nome do arquivo).
+            texto_edital (str): O texto bruto do edital extraído pelo pdfplumber.
+            metadados (dict): Metadados complementares para o filtro de busca posterior
+                              (ex: {'estado': 'SP', 'municipio': 'São Paulo', 'arquivo': 'edital.pdf'}).
 
         Returns:
-            str: Mensagem de confirmação ao término do processamento.
+            None: A função opera por efeito colateral (persistência no Pinecone).
+                  A mensagem de confirmação é responsabilidade do chamador (endpoint de upload).
 
         Raises:
-            ValueError: Se ``texto_edital`` for vazio ou ``None``.
+            ValueError: Se o edital não tiver texto ou estiver vazio.
         """
+        # --- 1. Validação de Entrada ---
         if not texto_edital:
             raise ValueError("O texto do edital não pode ser vazio.")
 
+        # --- 2. Fragmentação do Texto ---
         lista_chunks = self.chunkizar_documento(texto_edital)
-        self.processar_e_salvar(lista_chunks, metadados)
 
-        return "Edital analisado com sucesso! Pode fazer perguntas sobre o edital..."
+        # --- 3. Salvamento ---
+        self.processar_e_salvar(lista_chunks, metadados)

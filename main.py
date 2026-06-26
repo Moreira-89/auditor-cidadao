@@ -1,18 +1,13 @@
-"""
-Arquivo de Ponto de Entrada (Entry Point) da Aplicação.
-
-COMO FUNCIONA:
-Este é o arquivo que o servidor `uvicorn` procura para iniciar a API.
-Ele inicializa a aplicação FastAPI e define metadados (título, descrição, versão)
-que vão aparecer automaticamente no Swagger UI (/docs).
-Aqui também importamos e "anexamos" todas as rotas (routers) criadas nos outros arquivos,
-para que a aplicação principal saiba que elas existem.
-"""
-
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.root_perguntar import router as perguntar_router
 from app.api.root_upload import router as upload_router
+from app.services.lifespan import lifespan
+
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 # -----------------------------------------------------------------------------
 # INICIALIZAÇÃO DA APLICAÇÃO
@@ -21,12 +16,15 @@ app = FastAPI(
     title="Auditor Cidadão",
     description="Auditor Cidadão é uma plataforma baseada em Inteligência Artificial (RAG e Agentes) "
                 "que permite analisar editais, extrair CNPJs e responder a perguntas com contexto enriquecido.",
-    version="0.1.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
-# -----------------------------------------------------------------------------
-# REGISTRO DE ROTAS (ENDPOINTS)
-# -----------------------------------------------------------------------------
-# 'include_router' pega todas as rotas definidas no router específico e as integra na aplicação.
 app.include_router(upload_router)
 app.include_router(perguntar_router)
+
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/", include_in_schema=False, response_class=FileResponse)
+async def serve_frontend():
+    return FileResponse("frontend/index.html")

@@ -1,0 +1,1160 @@
+/* ==========================================================================
+   AUDITOR CIDADÃO — PAINEL DE TESTES
+   style.css — Todos os estilos da aplicação
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. DESIGN SYSTEM — VARIÁVEIS E RESET
+   ========================================================================== */
+
+:root {
+    /* Cores de fundo */
+    --bg-app:        #0d1117;
+    --bg-surface:    #161b22;
+    --bg-card:       #21262d;
+    --bg-hover:      #2d333b;
+    --bg-input:      #0d1117;
+
+    /* Bordas */
+    --border:        #30363d;
+    --border-subtle: #21262d;
+
+    /* Acento principal — verde fiscal */
+    --accent:        #3fb950;
+    --accent-dim:    rgba(63, 185, 80, 0.12);
+    --accent-hover:  #4ac95e;
+    --accent-glow:   rgba(63, 185, 80, 0.25);
+
+    /* Texto */
+    --text-primary:    #e6edf3;
+    --text-secondary:  #8b949e;
+    --text-muted:      #6e7681;
+
+    /* Bolhas de chat */
+    --bubble-user-bg:     #1a3558;
+    --bubble-user-border: #1f4a82;
+    --bubble-ai-bg:       #1a2332;
+    --bubble-ai-border:   #253548;
+
+    /* Status */
+    --danger:  #f85149;
+    --warning: #d29922;
+    --success: #3fb950;
+    --info:    #58a6ff;
+
+    /* Tipografia */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+    /* Layout */
+    --sidebar-width:  360px;
+    --header-height:  56px;
+
+    /* Bordas arredondadas */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+
+    /* Sombras */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+    /* Transições */
+    --transition: 0.18s ease;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    overflow: hidden; /* evita scroll da página — o scroll fica no chat */
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background-color: var(--bg-app);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ==========================================================================
+   2. SCROLLBAR CUSTOMIZADA
+   ========================================================================== */
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+
+/* ==========================================================================
+   3. CABEÇALHO
+   ========================================================================== */
+
+.header {
+    height: var(--header-height);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-icon {
+    font-size: 22px;
+}
+
+.header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.header-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(63, 185, 80, 0.3);
+    padding: 2px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.02em;
+}
+
+.header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.session-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.session-id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* ==========================================================================
+   4. LAYOUT PRINCIPAL (SIDEBAR + CHAT)
+   ========================================================================== */
+
+.layout {
+    display: flex;
+    flex: 1;
+    min-height: 0; /* crucial para overflow funcionar nos filhos */
+    overflow: hidden;
+}
+
+
+/* ==========================================================================
+   5. SIDEBAR
+   ========================================================================== */
+
+.sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+
+/* ==========================================================================
+   6. CARD
+   ========================================================================== */
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color var(--transition);
+}
+
+.card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.card-debug {
+    background: rgba(13, 17, 23, 0.6);
+}
+
+
+/* ==========================================================================
+   7. CAMPOS DE FORMULÁRIO
+   ========================================================================== */
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+}
+
+.field-row {
+    display: flex;
+    gap: 10px;
+}
+
+.field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    outline: none;
+    width: 100%;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+.input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.input-sm {
+    max-width: 80px;
+}
+
+
+/* ==========================================================================
+   8. ZONA DE UPLOAD
+   ========================================================================== */
+
+.upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition);
+    text-align: center;
+}
+
+.upload-zone:hover,
+.upload-zone:focus-visible {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    outline: none;
+}
+
+.upload-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+.upload-icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.upload-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.upload-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Informações do arquivo selecionado */
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+/* Mensagem de status do upload */
+.status-msg {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+}
+
+.status-msg.success {
+    color: var(--success);
+    background: rgba(63, 185, 80, 0.1);
+    border-color: rgba(63, 185, 80, 0.3);
+}
+
+.status-msg.error {
+    color: var(--danger);
+    background: rgba(248, 81, 73, 0.1);
+    border-color: rgba(248, 81, 73, 0.3);
+}
+
+.status-msg.loading {
+    color: var(--info);
+    background: rgba(88, 166, 255, 0.1);
+    border-color: rgba(88, 166, 255, 0.3);
+}
+
+
+/* ==========================================================================
+   9. BADGES DE CNPJ
+   ========================================================================== */
+
+.cnpj-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.cnpj-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(63, 185, 80, 0.3);
+    padding: 4px 9px;
+    border-radius: 99px;
+    letter-spacing: 0.02em;
+    transition: background var(--transition);
+}
+
+.cnpj-badge:hover {
+    background: rgba(63, 185, 80, 0.2);
+}
+
+
+/* ==========================================================================
+   10. PAINEL DE DEBUG
+   ========================================================================== */
+
+.debug-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 8px;
+}
+
+.debug-row:last-child {
+    border-bottom: none;
+}
+
+.debug-key {
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.debug-val {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+.debug-truncate {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* ==========================================================================
+   11. BOTÕES
+   ========================================================================== */
+
+/* Botão primário */
+.btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 16px;
+    background: var(--accent);
+    color: #0d1117;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition), opacity var(--transition), transform var(--transition);
+    width: 100%;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Botão ghost (header) */
+.btn-ghost {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.btn-ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+
+/* Botão de remover arquivo */
+.btn-remove {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0 2px;
+    flex-shrink: 0;
+    transition: color var(--transition);
+    line-height: 1;
+}
+
+.btn-remove:hover {
+    color: var(--danger);
+}
+
+/* Botão de enviar mensagem */
+.btn-send {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition), opacity var(--transition);
+    align-self: flex-end;
+}
+
+.btn-send:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+.btn-send:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.btn-send:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+
+/* ==========================================================================
+   12. PAINEL DE CHAT
+   ========================================================================== */
+
+.chat-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--bg-app);
+}
+
+.chat-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+}
+
+.chat-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+
+.chat-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Área de mensagens com scroll */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+}
+
+/* Estado vazio */
+.chat-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    gap: 10px;
+    opacity: 0.6;
+}
+
+.chat-empty-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-8px); }
+}
+
+.chat-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.chat-empty-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    max-width: 360px;
+    line-height: 1.6;
+}
+
+
+/* ==========================================================================
+   13. BOLHAS DE MENSAGEM
+   ========================================================================== */
+
+.message {
+    display: flex;
+    gap: 10px;
+    max-width: 85%;
+    animation: msg-in 0.22s ease-out;
+}
+
+@keyframes msg-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Mensagem do usuário — direita */
+.message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+/* Mensagem do agente — esquerda */
+.message.ai {
+    align-self: flex-start;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.message.user .message-avatar {
+    background: var(--bubble-user-border);
+}
+
+.message.ai .message-avatar {
+    background: var(--bubble-ai-border);
+}
+
+.message-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.message-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.message.user .message-meta {
+    justify-content: flex-end;
+}
+
+.message-bubble {
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    font-size: 14px;
+    line-height: 1.65;
+    word-break: break-word;
+}
+
+.message.user .message-bubble {
+    background: var(--bubble-user-bg);
+    border: 1px solid var(--bubble-user-border);
+    border-top-right-radius: var(--radius-sm);
+    color: var(--text-primary);
+}
+
+.message.ai .message-bubble {
+    background: var(--bubble-ai-bg);
+    border: 1px solid var(--bubble-ai-border);
+    border-top-left-radius: var(--radius-sm);
+    color: var(--text-primary);
+}
+
+/* Markdown dentro das bolhas do agente */
+.message.ai .message-bubble h1,
+.message.ai .message-bubble h2,
+.message.ai .message-bubble h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 12px 0 4px;
+}
+
+.message.ai .message-bubble h1:first-child,
+.message.ai .message-bubble h2:first-child,
+.message.ai .message-bubble h3:first-child {
+    margin-top: 0;
+}
+
+.message.ai .message-bubble p {
+    margin: 6px 0;
+}
+
+.message.ai .message-bubble p:first-child {
+    margin-top: 0;
+}
+
+.message.ai .message-bubble p:last-child {
+    margin-bottom: 0;
+}
+
+.message.ai .message-bubble ul,
+.message.ai .message-bubble ol {
+    padding-left: 20px;
+    margin: 6px 0;
+}
+
+.message.ai .message-bubble li {
+    margin: 3px 0;
+}
+
+.message.ai .message-bubble strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.message.ai .message-bubble em {
+    color: var(--text-secondary);
+}
+
+.message.ai .message-bubble code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: rgba(13, 17, 23, 0.7);
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: var(--accent);
+    border: 1px solid var(--border);
+}
+
+.message.ai .message-bubble pre {
+    background: rgba(13, 17, 23, 0.8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.message.ai .message-bubble pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.message.ai .message-bubble blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+    margin: 6px 0;
+    color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   13b. CHAIN OF THOUGHT — ACCORDION DE PENSAMENTO
+   ========================================================================== */
+
+/* Container do accordion */
+.cot-accordion {
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: rgba(13, 17, 23, 0.5);
+    overflow: hidden;
+    transition: opacity 0.4s ease, border-color 0.4s ease;
+}
+
+/* Quando o agente finaliza, o bloco fica discreto */
+.cot-accordion.collapsed {
+    opacity: 0.55;
+    border-color: var(--border-subtle);
+}
+
+/* Summary (cabeçalho clicável) */
+.cot-accordion summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    transition: color var(--transition), background var(--transition);
+}
+
+.cot-accordion summary::-webkit-details-marker {
+    display: none;
+}
+
+.cot-accordion summary:hover {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Seta animada */
+.cot-arrow {
+    display: inline-flex;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.cot-accordion[open] .cot-arrow {
+    transform: rotate(90deg);
+}
+
+/* Ícone de cérebro/pensamento */
+.cot-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* Spinner pulsante enquanto pensa */
+.cot-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: cot-spin 0.8s linear infinite;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+@keyframes cot-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Checkmark que substitui o spinner ao finalizar */
+.cot-done {
+    font-size: 12px;
+    color: var(--accent);
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* Corpo do accordion — lista de steps */
+.cot-body {
+    padding: 0 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Cada passo/status */
+.cot-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    border-bottom: 1px solid var(--border-subtle);
+    animation: cot-step-in 0.25s ease-out;
+}
+
+.cot-step:last-child {
+    border-bottom: none;
+}
+
+@keyframes cot-step-in {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Ícone do step */
+.cot-step-icon {
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+/* Texto do step */
+.cot-step-text {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+/* Step spinner (quando a ferramenta está em execução) */
+.cot-step-spinner {
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--info);
+    border-radius: 50%;
+    animation: cot-spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+/* Step concluído */
+.cot-step.done .cot-step-spinner {
+    display: none;
+}
+
+.cot-step.done::after {
+    content: '✓';
+    font-size: 11px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.message.ai .message-bubble hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 10px 0;
+}
+
+.message.ai .message-bubble table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+    margin: 8px 0;
+}
+
+.message.ai .message-bubble th,
+.message.ai .message-bubble td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.message.ai .message-bubble th {
+    background: var(--bg-card);
+    font-weight: 600;
+}
+
+
+/* ==========================================================================
+   14. INDICADOR DE DIGITAÇÃO
+   ========================================================================== */
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 24px 12px;
+    flex-shrink: 0;
+}
+
+.typing-avatar {
+    font-size: 18px;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce 1.2s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40%           { transform: translateY(-5px); opacity: 1; }
+}
+
+.typing-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+
+/* ==========================================================================
+   15. ÁREA DE INPUT DO CHAT
+   ========================================================================== */
+
+.chat-input-area {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 12px 24px 8px;
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    background: var(--bg-app);
+}
+
+.chat-input {
+    flex: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    resize: none;
+    outline: none;
+    min-height: 42px;
+    max-height: 200px;
+    overflow-y: auto;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    line-height: 1.5;
+}
+
+.chat-input::placeholder {
+    color: var(--text-muted);
+}
+
+.chat-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.chat-input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.input-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 0 24px 14px;
+    flex-shrink: 0;
+}
+
+.input-hint kbd {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+
+/* ==========================================================================
+   16. TOAST DE NOTIFICAÇÃO
+   ========================================================================== */
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    min-width: 260px;
+    max-width: 400px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    animation: toast-in 0.25s ease-out;
+    cursor: pointer;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toast.success {
+    background: #1a2e1a;
+    border-color: rgba(63, 185, 80, 0.4);
+    color: var(--success);
+}
+
+.toast.error {
+    background: #2e1a1a;
+    border-color: rgba(248, 81, 73, 0.4);
+    color: var(--danger);
+}
+
+.toast.info {
+    background: #1a2136;
+    border-color: rgba(88, 166, 255, 0.4);
+    color: var(--info);
+}
+
+
+/* ==========================================================================
+   17. UTILITÁRIOS
+   ========================================================================== */
+
+.hidden {
+    display: none !important;
+}
+
+/* Força renderização monocromática com Noto Emoji (Google Fonts) */
+.noto-emoji {
+    font-family: 'Noto Emoji', sans-serif;
+    font-variant-emoji: text;
+    line-height: 1;
+}

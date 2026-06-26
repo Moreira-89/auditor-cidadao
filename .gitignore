@@ -4,14 +4,18 @@
 .web
 assets/external/
 *.txt
-data/
+avaliacao_log.json
+limpar_banco.py
+Auditor*
+test_mcp_connection.py
+
+# PDF's reais
+app/editais_teste/edital*.pdf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
-
-# C extensions
-*.so
 
 # Distribution / packaging
 .Python
@@ -143,7 +147,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.env*
 .envrc
 .venv
 env/

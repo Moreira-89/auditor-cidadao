@@ -1,19 +1,16 @@
 import io
+import asyncio
 
 import pdfplumber
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from app.services.gerenciadorvetorial import GerenciadorVetorial
+from app.core.dependencies import gerenciador
+from app.core.logging_config import logger
 from app.utils.func_extrair_cnpj import extrair_cnpj
 
 # -----------------------------------------------------------------------------
 # INICIALIZAÇÃO
 # -----------------------------------------------------------------------------
-# Instanciamos o GerenciadorVetorial de forma global para essa rota.
-# Isso garante que modelos pesados (como o de embeddings) não sejam recarregados
-# a cada nova requisição, economizando memória e tempo de processamento.
-gerenciador = GerenciadorVetorial()
-
 # Criação do roteador FastAPI. O prefixo "/upload" será adicionado automaticamente
 # antes da rota base ("/"). A tag "Upload" agrupa isso na documentação (Swagger UI).
 router = APIRouter(prefix="/upload", tags=["Upload"])
@@ -29,16 +26,17 @@ async def upload_edital(
     municipio: str = Form(...),
     user_name: str = Form(...),
 ):
-    """Endpoint responsável por ingerir novos editais no banco de dados vetorial.
+    """
+    Objetivo: Endpoint responsável por ingerir novos editais no banco de dados vetorial.
 
     COMO FUNCIONA:
-    1. Validação: Checa se o arquivo enviado é realmente um PDF.
-    2. Leitura em Memória: Transforma o arquivo de Upload em bytes brutos.
+    1. Validação de Formato: Checa se o arquivo enviado é realmente um PDF.
+    2. Leitura dos Bytes: Transforma o arquivo de Upload em bytes brutos pausando a execução até a leitura.
     3. Extração de Texto: Usa a biblioteca `pdfplumber` para ler o PDF página
        por página e consolidar tudo em uma grande string.
-    4. Indexação (RAG): Envia o texto e os metadados (estado, município) para
-       o `GerenciadorVetorial`, que vai "fatiar" o texto em partes menores,
-       gerar os vetores (embeddings) e salvá-los no Pinecone.
+    4. Indexação no Banco Vetorial: Envia o texto e os metadados (estado, município) para
+       o `GerenciadorVetorial`, que vai "fatiar" o texto em partes menores e salvar os embeddings.
+    5. Extração de CNPJs: Por fim, extrai e retorna os CNPJs encontrados no texto bruto usando expressão regular.
 
     Args:
         file (UploadFile): O arquivo PDF enviado pelo usuário na requisição.
@@ -53,22 +51,28 @@ async def upload_edital(
         HTTPException (415): Se o formato do arquivo não for 'application/pdf'.
     """
 
-    # --- 1. VALIDAÇÃO DE FORMATO ---
+    logger.info("Upload recebido | arquivo=%s | estado=%s | municipio=%s | user=%s",
+                file.filename, estado, municipio, user_name)
+
+    # --- 1. Validação de Formato ---
     # Rejeita imediatamente arquivos que não sejam PDF.
     # Utilizamos o HTTP Status 415 (Unsupported Media Type) por ser o padrão
     # semântico correto quando o tipo do arquivo não é aceito pelo servidor.
     if file.content_type != "application/pdf":
+        logger.warning("Formato inválido rejeitado | arquivo=%s | content_type=%s",
+                       file.filename, file.content_type)
         raise HTTPException(
             status_code=415,
             detail=f"Formato inválido: '{file.content_type}'. Apenas arquivos PDF são aceitos.",
         )
 
-    # --- 2. LEITURA DOS BYTES ---
+    # --- 2. Leitura dos Bytes ---
     # UploadFile.read() é uma função assíncrona (corrotina). O `await` é obrigatório
     # para pausar a execução da requisição até que os bytes do arquivo sejam lidos.
     conteudo_bytes = await file.read()
+    logger.info("Arquivo lido | arquivo=%s | bytes=%d", file.filename, len(conteudo_bytes))
 
-    # --- 3. EXTRAÇÃO DE TEXTO DO PDF ---
+    # --- 3. Extração de Texto ---
     # PDFs não são texto puro, são binários complexos.
     # io.BytesIO simula um arquivo em disco na memória RAM para não precisarmos
     # salvar arquivos temporários físicos (mais rápido e seguro).
@@ -77,15 +81,19 @@ async def upload_edital(
         # A expressão `or ""` previne erros caso alguma página contenha apenas
         # imagens e o retorno do extract_text() seja None.
         texto = "\n".join(pagina.extract_text() or "" for pagina in pdf.pages)
+    logger.info("Texto extraído | arquivo=%s | chars=%d | paginas=%d",
+                file.filename, len(texto), len(pdf.pages))
 
-    # --- 4. INDEXAÇÃO NO BANCO VETORIAL (PINECONE) ---
+    # --- 4. Indexação no Banco Vetorial ---
     # Acionamos a orquestração do RAG. A função executar:
     # - Chunkiza o texto (divide em partes lógicas de até 2000 caracteres)
     # - Gera os vetores para cada pedaço
     # - Salva tudo no Pinecone amarrado aos metadados abaixo.
     # Esses metadados são cruciais para podermos filtrar depois (ex: "Buscar
     # apenas nos editais de São Paulo").
-    gerenciador.executar(
+    logger.info("Iniciando indexação no Pinecone | arquivo=%s", file.filename)
+    await asyncio.to_thread(
+        gerenciador.executar,
         texto_edital=texto,
         metadados={
             "municipio": municipio,
@@ -93,11 +101,13 @@ async def upload_edital(
             "arquivo": file.filename
         },
     )
+    logger.info("Indexação concluída | arquivo=%s", file.filename)
 
-    # --- 5. EXTRAÇÃO DE CNPJs DO TEXTO DO EDITAL ---
-
+    # --- 5. Extração de CNPJs ---
     # Usa a função auxiliar para encontrar todos os CNPJs no texto extraído.
     cnpjs_encontrados = extrair_cnpj(texto)
+    logger.info("CNPJs extraídos | arquivo=%s | quantidade=%d | cnpjs=%s",
+                file.filename, len(cnpjs_encontrados), cnpjs_encontrados)
 
     # Retorna a confirmação junto com a lista de CNPJs encontrados.
     return {"mensagem": "Edital indexado!", "cnpjs": cnpjs_encontrados}

@@ -1,0 +1,24 @@
+# Ambiente virtual Python — recriado no container via requirements.txt
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Variáveis de ambiente — NÃO vão para o container (ficam no Railway)
+.env
+
+# Controle de versão
+.git/
+.gitignore
+
+# Arquivos de teste e desenvolvimento
+test_mcp_connection.py
+*.ipynb
+
+# Docker em si
+Dockerfile
+.dockerignore
+
+# IDEs
+.vscode/
+.idea/
