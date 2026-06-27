@@ -85,7 +85,7 @@ async def run_agent(
             ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado no documento."
         )
         system_message = SystemMessage(content=SYSTEM_PROMPT.format(user_name=user_name))
-        data_hoje = date.today().strftime("%Y-%m-%d")
+        data_hoje = date.today().strftime("%Y%m%d")
         human_message = HumanMessage(
             content=PROMPT_DINAMICO.format(
                 pergunta_usuario=pergunta_usuario,
