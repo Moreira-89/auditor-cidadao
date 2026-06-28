@@ -7,27 +7,25 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.services.build_graph import initialize_graph
-from app.utils.mcp_utils import patch_mcp_tools_para_groq
 from app.services.tools import TOOLS
+from app.utils.mcp_utils import patch_mcp_tools
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # -------------------------------------------------------------------------
-    # STARTUP
-    # -------------------------------------------------------------------------
+    """Gerencia o ciclo de vida da aplicação: inicializa o MCP e o grafo no startup e libera recursos no shutdown."""
+
     logger.info("Iniciando servidor — carregando ferramentas e grafo...")
 
-    # Resolve o PATH do Node.js no Windows, onde subprocessos não herdam
-    # automaticamente o PATH do shell. No Linux/Docker, o shutil.which
-    # já encontra o npx normalmente sem essa injeção.
+    # No Windows, subprocessos não herdam o PATH do shell automaticamente — injeta o Node.js manualmente
     if sys.platform == "win32":
         os.environ["PATH"] = (
             r"C:\Program Files\nodejs" + os.pathsep + os.environ.get("PATH", "")
         )
 
+    # Localiza o executável npx no PATH; usa npx.cmd no Windows e npx no Linux/Docker
     npx_cmd = shutil.which("npx.cmd") or shutil.which("npx")
     if not npx_cmd:
         raise RuntimeError(
@@ -36,9 +34,11 @@ async def lifespan(app: FastAPI):
 
     logger.info("npx encontrado em: %s", npx_cmd)
 
-    # Importação aqui dentro evita dependência circular no nível do módulo
+    # Importação adiada para evitar dependência circular no nível do módulo
     from langchain_mcp_adapters.client import MultiServerMCPClient
 
+    # O cliente é instanciado diretamente e mantido em escopo até após o yield,
+    # garantindo que o subprocess Node.js permaneça vivo enquanto o servidor estiver rodando.
     mcp_client = MultiServerMCPClient(
         {
             "licinexus": {
@@ -49,8 +49,16 @@ async def lifespan(app: FastAPI):
         }
     )
 
+    mcp_tools_todas = await mcp_client.get_tools()
+
+    # Filtra apenas as tools necessárias para o agente, descartando as demais do MCP
     TOOLS_MCP_SELECIONADAS = {
         "search_licitacoes",
+        "search_contratos",
+        "get_contrato",
+        "list_contrato_termos",
+        "list_licitacao_arquivos",
+        "aggregate_licitacoes_por_periodo",
         "get_licitacao",
         "list_licitacao_itens",
         "list_licitacao_resultados",
@@ -59,13 +67,15 @@ async def lifespan(app: FastAPI):
         "compare_periodos",
     }
 
-    mcp_tools_todas = await mcp_client.get_tools()
     mcp_tools = [t for t in mcp_tools_todas if t.name in TOOLS_MCP_SELECIONADAS]
     logger.info(
         "MCP conectado — %d/%d ferramentas selecionadas para o agente.",
-        len(mcp_tools), len(mcp_tools_todas)
+        len(mcp_tools),
+        len(mcp_tools_todas),
     )
-    mcp_tools = patch_mcp_tools_para_groq(mcp_tools)
+
+    # Aplica o patch de tipos permissivos para compatibilidade entre LLM e MCP server
+    mcp_tools = patch_mcp_tools(mcp_tools)
 
     # Combina as tools nativas do projeto com as tools do MCP
     todas_as_tools = TOOLS + mcp_tools
@@ -78,14 +88,12 @@ async def lifespan(app: FastAPI):
     logger.info("Grafo inicializado com sucesso. Servidor pronto para receber requests.")
 
     # O yield separa startup do shutdown.
-    # O mcp_client permanece vivo aqui — enquanto essa variável existir no escopo,
-    # o subprocess Node.js continua rodando e as tool calls funcionam.
+    # mcp_client permanece em escopo aqui — o subprocess Node.js fica vivo enquanto o servidor roda.
     yield
 
     # -------------------------------------------------------------------------
     # SHUTDOWN
     # -------------------------------------------------------------------------
-    logger.info("Encerrando servidor — liberando recursos do MCP...")
-    # O mcp_client sai de escopo aqui. O garbage collector do Python
-    # encerra o subprocess Node.js automaticamente.
+    # Ao sair do escopo do lifespan, o GC do Python encerra o subprocess Node.js.
+    # Nota: o cleanup explícito via __aexit__ não está disponível nesta versão da lib.
     logger.info("Servidor encerrado com sucesso.")

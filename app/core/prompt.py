@@ -24,6 +24,23 @@ Use essas capacidades de forma combinada para construir um diagnóstico embasado
 Nunca mencione os nomes técnicos das ferramentas ao usuário — descreva o que faz,
 não como faz.
 
+# REGRAS DE USO DAS FERRAMENTAS DE BUSCA
+
+Ao utilizar qualquer ferramenta de busca no PNCP (search_licitacoes, search_contratos,
+search_atas_rp, aggregate_licitacoes_por_periodo, compare_periodos e similares),
+siga obrigatoriamente estas regras de filtragem geográfica:
+
+1. **Nunca preencha o campo `codigoMunicipioIbge`.** Esse campo não está disponível
+   no contexto da sessão e seu uso incorreto retorna resultados vazios ou de municípios errados.
+
+2. **Sempre use `esfera: "municipal"` combinado com `uf`** (sigla do estado) como
+   filtros geográficos. Esses dois campos juntos são suficientes para delimitar
+   as buscas ao escopo municipal correto sem precisar do código IBGE.
+
+Exemplo de filtragem correta:
+- `esfera: "municipal"`, `uf: "SP"` ✅
+- `codigoMunicipioIbge: "3550308"` ❌ — nunca use este campo
+
 # CATÁLOGO DE ANOMALIAS A INVESTIGAR
 
 Verifique sistematicamente as seguintes categorias ao analisar um edital ou contrato:
@@ -202,14 +219,24 @@ Data de hoje: {data_hoje}
 </PERGUNTA>
 """
 
+# Mapeia o nome técnico de cada tool para uma mensagem legível exibida ao usuário durante a execução
 TOOL_STATUS_MAP = {
-    "consultar_receita_federal": "Consultando dados cadastrais na Receita Federal...",
-    "buscar_contexto_edital": "Analisando trechos do edital indexado...",
-    "search_licitacoes": "Buscando licitações no Portal Nacional de Contratações Públicas...",
-    "get_licitacao": "Obtendo detalhes da licitação no PNCP...",
-    "list_licitacao_itens": "Listando itens e lotes da licitação...",
-    "list_licitacao_resultados": "Verificando vencedores e preços praticados...",
-    "get_fornecedor_contratos": "Consultando histórico de contratos do fornecedor...",
-    "search_atas_rp": "Buscando Atas de Registro de Preço vigentes...",
-    "compare_periodos": "Comparando períodos para identificar padrões temporais...",
+    # Ferramentas Nativas
+    "consultar_receita_federal": "🏛️ Consultando dados cadastrais na Receita Federal...",
+    "buscar_contexto_edital": "🖹 Analisando trechos do edital indexado...",
+    # Licitações (Prefixo: Buscando/Obtendo/Listando)
+    "search_licitacoes": "⌕ Buscando licitações no Portal Nacional de Contratações Públicas...",
+    "get_licitacao": "📋 Obtendo detalhes da licitação no PNCP...",
+    "list_licitacao_itens": "🔲 Listando itens e lotes da licitação...",
+    "list_licitacao_resultados": "🗲 Verificando vencedores e preços praticados...",
+    "list_licitacao_arquivos": "🗎 Listando arquivos anexos da licitação...",
+    # Contratos (Prefixo: Buscando/Obtendo/Listando)
+    "search_contratos": "⌕ Buscando contratos no Portal Nacional de Contratações Públicas...",
+    "get_contrato": "📄 Obtendo detalhes do contrato selecionado...",
+    "list_contrato_termos": "🗏 Listando termos aditivos e apostilamentos do contrato...",
+    "get_fornecedor_contratos": "🔎 Consultando histórico de contratos do fornecedor...",
+    # Atas e Análises Temporais
+    "search_atas_rp": "📑 Buscando Atas de Registro de Preço vigentes...",
+    "compare_periodos": "⛬ Comparando períodos para identificar padrões temporais...",
+    "aggregate_licitacoes_por_periodo": "📊 Agrupando volume de licitações por período...",
 }
