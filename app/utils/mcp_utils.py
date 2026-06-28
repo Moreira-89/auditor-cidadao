@@ -228,8 +228,11 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
                 args_convertidos[chave] = valor
 
         # Chama o MCP server com os valores já no tipo correto
-        resultado = await original_coroutine(**args_convertidos)
-
+        try:
+            resultado = await original_coroutine(**args_convertidos)
+        except Exception as e:
+            resultado = f"Erro ao executar a ferramenta: {str(e)}"
+            
         # Limita o tamanho do retorno de cada tool para controlar custo e qualidade.
         # Com múltiplas chamadas MCP por turno, retornos volumosos acumulam tokens
         # rapidamente no contexto — aumentando custo e podendo degradar a atenção do modelo.
