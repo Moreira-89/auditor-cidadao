@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from app.services.build_graph import initialize_graph
 from app.services.tools import TOOLS
+from app.utils.cache_mcp import aplicar_cache
 from app.utils.mcp_utils import patch_mcp_tools
 
 logger = logging.getLogger(__name__)
@@ -75,7 +76,10 @@ async def lifespan(app: FastAPI):
     )
 
     # Aplica o patch de tipos permissivos para compatibilidade entre LLM e MCP server
-    mcp_tools = patch_mcp_tools(mcp_tools)
+    mcp_tools = patch_mcp_tools(tools=mcp_tools)
+
+    # Envolve cada tool MCP com cache em memória (TTL 24h) para evitar chamadas repetidas ao subprocess
+    mcp_tools = aplicar_cache(tools=mcp_tools, ttl_segundos=86400)
 
     # Combina as tools nativas do projeto com as tools do MCP
     todas_as_tools = TOOLS + mcp_tools
@@ -85,15 +89,14 @@ async def lifespan(app: FastAPI):
 
     # Constrói e armazena o grafo com todas as tools combinadas
     initialize_graph(todas_as_tools)
-    logger.info("Grafo inicializado com sucesso. Servidor pronto para receber requests.")
+    logger.info(
+        "Grafo inicializado com sucesso. Servidor pronto para receber requests."
+    )
 
     # O yield separa startup do shutdown.
     # mcp_client permanece em escopo aqui — o subprocess Node.js fica vivo enquanto o servidor roda.
     yield
 
-    # -------------------------------------------------------------------------
-    # SHUTDOWN
-    # -------------------------------------------------------------------------
     # Ao sair do escopo do lifespan, o GC do Python encerra o subprocess Node.js.
     # Nota: o cleanup explícito via __aexit__ não está disponível nesta versão da lib.
     logger.info("Servidor encerrado com sucesso.")
