@@ -14,8 +14,7 @@ async def executar_pergunta(request: PerguntaRequest):
     """Recebe a pergunta do usuário e retorna a resposta do agente de auditoria via streaming."""
 
     logger.info(
-        "Pergunta recebida | user=%s | thread=%s | estado=%s | municipio=%s | cnpjs=%s",
-        request.user_name,
+        "Pergunta recebida | thread=%s | estado=%s | municipio=%s | cnpjs=%s",
         request.thread_id,
         request.estado,
         request.municipio,
@@ -28,8 +27,7 @@ async def executar_pergunta(request: PerguntaRequest):
     )
 
     logger.info(
-        "Iniciando streaming para o usuário | user=%s | thread=%s",
-        request.user_name,
+        "Iniciando streaming para o usuário | thread=%s",
         request.thread_id,
     )
 
@@ -38,7 +36,6 @@ async def executar_pergunta(request: PerguntaRequest):
         run_agent(
             pergunta_usuario=request.pergunta,
             lista_cnpj=request.lista_cnpjs,
-            user_name=request.user_name,
             estado=request.estado,
             municipio=request.municipio,
             thread_id=request.thread_id,

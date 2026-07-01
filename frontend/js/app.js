@@ -18,7 +18,6 @@ const API_BASE = '';
    ============================================================================= */
 
 const state = {
-    userName:   '',
     estado:     '',
     municipio:  '',
     threadId:   generateUUID(),
@@ -42,7 +41,6 @@ const dom = {
     btnNovaSessao:    $('btn-nova-sessao'),
 
     // Config
-    inputUsername:    $('input-username'),
     inputEstado:      $('input-estado'),
     inputMunicipio:   $('input-municipio'),
 
@@ -201,11 +199,6 @@ function removeFile() {
  * @returns {boolean}
  */
 function validarCampos() {
-    if (!state.userName) {
-        showToast('Preencha seu nome antes de indexar.', 'error');
-        dom.inputUsername.focus();
-        return false;
-    }
     if (!state.estado || state.estado.length !== 2) {
         showToast('Informe a sigla do estado (2 letras).', 'error');
         dom.inputEstado.focus();
@@ -234,7 +227,6 @@ async function uploadEdital() {
     formData.append('file', state.selectedFile);
     formData.append('estado', state.estado.toUpperCase());
     formData.append('municipio', state.municipio);
-    formData.append('user_name', state.userName);
 
     try {
         const response = await fetch(`${API_BASE}/upload/`, {
@@ -313,7 +305,7 @@ function addMessage(role, content) {
     }
 
     const avatarEmoji = role === 'user' ? '👤' : '🤖';
-    const labelText   = role === 'user' ? (state.userName || 'Você') : 'Auditor Cidadão';
+    const labelText   = role === 'user' ? 'Você' : 'Auditor Cidadão';
     const timestamp   = agora();
 
     // Renderiza markdown para mensagens do agente; escapa HTML para o usuário
@@ -474,7 +466,6 @@ async function sendMessage() {
                 pergunta:    texto,
                 estado:      state.estado.toUpperCase(),
                 municipio:   state.municipio,
-                user_name:   state.userName || 'Usuário',
                 lista_cnpjs: state.cnpjs,
                 thread_id:   state.threadId,
             }),
@@ -490,10 +481,12 @@ async function sendMessage() {
         const { bubbleEl, cotAccordion, cotBody, cotSpinner } = createStreamingAIMessage();
         const reader   = response.body.getReader();
         const decoder  = new TextDecoder('utf-8');
-        let accumulated = '';
-        let leftover    = '';
-        let hasSteps    = false;
+        let accumulated  = '';
+        let leftover     = '';
+        let hasSteps     = false;
+        let streamError  = null;
 
+        streamLoop:
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
@@ -517,6 +510,13 @@ async function sendMessage() {
                             addCotStep(cotBody, event.content);
                             hasSteps = true;
                             dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
+                        } else if (event.type === 'error') {
+                            // Backend sinalizou uma falha durante o streaming — para de ler e mostra o erro
+                            streamError = event.content || 'Erro desconhecido durante o streaming.';
+                            break streamLoop;
+                        } else if (event.type === 'done') {
+                            // Fim normal do streaming — nada além de sair do loop
+                            break streamLoop;
                         }
                     } catch {
                         accumulated += payload;
@@ -535,6 +535,10 @@ async function sendMessage() {
                 bubbleEl.innerHTML = marked.parse(accumulated);
             }
             dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
+        }
+
+        if (streamError) {
+            throw new Error(streamError);
         }
 
         // --- Finalização ---
@@ -589,10 +593,6 @@ function novaSessao() {
    ============================================================================= */
 
 // --- Inputs de configuração ---
-dom.inputUsername.addEventListener('input', (e) => {
-    state.userName = e.target.value.trim();
-});
-
 dom.inputEstado.addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();
     state.estado   = e.target.value.trim();
@@ -685,7 +685,7 @@ function init() {
     syncSessionDisplay();
 
     // Foca no primeiro campo de configuração
-    dom.inputUsername.focus();
+    dom.inputEstado.focus();
 
     console.info('[Auditor Cidadão] Frontend iniciado. Thread ID:', state.threadId);
 }

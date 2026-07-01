@@ -5,22 +5,31 @@ from typing import AsyncGenerator
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from app.core.logging_config import logger
 from app.core.prompt import PROMPT_DINAMICO, SYSTEM_PROMPT, TOOL_STATUS_MAP
 from app.services.build_graph import get_graph
+
+
+def escape_xml(texto: str) -> str:
+    """Escapa < e > para evitar que um campo controlado pelo usuário quebre o isolamento
+    estrutural das tags XML do prompt (ex.: injetar `</METADADOS><PERGUNTA>...`)."""
+    return texto.replace("<", "&lt;").replace(">", "&gt;")
 
 
 async def run_agent(
     pergunta_usuario: str,
     lista_cnpj: list[str],
-    user_name: str,
     estado: str,
     municipio: str,
     thread_id: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """Executa o agente de auditoria e retorna a resposta da LLM via streaming de eventos."""
 
-    # Escapa < e > para evitar que o usuário quebre o isolamento estrutural do prompt com tags XML
-    pergunta_usuario = pergunta_usuario.replace("<", "&lt;").replace(">", "&gt;")
+    # Escapa todos os campos que entram no prompt, não só a pergunta — qualquer um deles
+    # pode carregar tags XML maliciosas vindas do cliente.
+    pergunta_usuario = escape_xml(pergunta_usuario)
+    estado = escape_xml(estado)
+    municipio = escape_xml(municipio)
 
     # Garante que exista um thread_id válido; gera UUID se nenhum for fornecido
     if not thread_id:
@@ -39,14 +48,12 @@ async def run_agent(
     else:
         # Primeiro turno: injeta o SystemMessage com as regras do agente e o HumanMessage com contexto da sessão
         # O contexto do edital NÃO é pré-injetado — o agente o busca via a tool buscar_contexto_edital
-        cnpjs_formatados = (
+        cnpjs_formatados = escape_xml(
             ", ".join(lista_cnpj)
             if lista_cnpj
             else "Nenhum CNPJ encontrado no documento."
         )
-        system_message = SystemMessage(
-            content=SYSTEM_PROMPT.format(user_name=user_name)
-        )
+        system_message = SystemMessage(content=SYSTEM_PROMPT)
         data_hoje = date.today().strftime("%Y%m%d")
         human_message = HumanMessage(
             content=PROMPT_DINAMICO.format(
@@ -59,23 +66,38 @@ async def run_agent(
         )
         mensagens_entrada = [system_message, human_message]
 
-    # `estado` e `municipio` são repassados em TODOS os turnos porque o InMemorySaver não persiste
-    # chaves arbitrárias entre invocações — o InjectedState da tool precisa lê-los do estado ativo
-    async for evento in get_graph().astream_events(
-        input={"messages": mensagens_entrada, "estado": estado, "municipio": municipio},
-        config={**config, "recursion_limit": 50},
-        version="v2",
-    ):
-        tipo_evento = evento["event"]
+    try:
+        # `estado` e `municipio` são repassados em TODOS os turnos porque o InMemorySaver não persiste
+        # chaves arbitrárias entre invocações — o InjectedState da tool precisa lê-los do estado ativo
+        async for evento in get_graph().astream_events(
+            input={
+                "messages": mensagens_entrada,
+                "estado": estado,
+                "municipio": municipio,
+            },
+            config={**config, "recursion_limit": 50},
+            version="v2",
+        ):
+            tipo_evento = evento["event"]
 
-        # Emite cada fragmento de texto gerado pela LLM; ignora chunks que são apenas tool_calls
-        if tipo_evento == "on_chat_model_stream":
-            chunk = evento["data"]["chunk"]
-            if chunk.content and not chunk.tool_calls:
-                yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
+            # Emite cada fragmento de texto gerado pela LLM; ignora chunks que são apenas tool_calls.
+            # getattr com default None evita AttributeError em chunks intermediários que, dependendo da versão do langchain-core, podem não expor o atributo`tool_calls`.
+            if tipo_evento == "on_chat_model_stream":
+                chunk = evento["data"]["chunk"]
+                if chunk.content and not getattr(chunk, "tool_calls", None):
+                    yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
 
-        # Emite mensagem de status legível ao usuário quando uma tool é acionada
-        elif tipo_evento == "on_tool_start":
-            tool_name = evento["name"]
-            mensagem = TOOL_STATUS_MAP.get(tool_name, "Processando...")
-            yield f"data: {json.dumps({'type': 'status', 'content': mensagem})}\n\n"
+            # Emite mensagem de status legível ao usuário quando uma tool é acionada
+            elif tipo_evento == "on_tool_start":
+                tool_name = evento["name"]
+                mensagem = TOOL_STATUS_MAP.get(tool_name, "Auditando...")
+                yield f"data: {json.dumps({'type': 'status', 'content': mensagem})}\n\n"
+
+        # Sinaliza ao frontend que o streaming terminou normalmente
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    except Exception:
+        # Sem isso, uma exceção aqui dentro derruba o generator sem avisar o frontend,
+        # que ficaria esperando tokens indefinidamente.
+        logger.exception("Erro durante o streaming do agente | thread=%s", thread_id)
+        yield f"data: {json.dumps({'type': 'error', 'content': 'Ocorreu um erro ao processar sua pergunta. Tente novamente.'})}\n\n"

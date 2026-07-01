@@ -8,10 +8,11 @@ from app.services.gerenciadorvetorial import GerenciadorVetorial
 
 load_dotenv()
 
-# Parâmetros do LLM lidos do .env para facilitar troca de modelo sem alterar código
-LLM_MODEL = os.getenv("LLM_MODEL")
-LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE"))
-LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS"))
+# Parâmetros do LLM lidos do .env para facilitar troca de modelo sem alterar código.
+# Defaults abaixo evitam TypeError no boot (ex.: Railway) caso a env var não esteja configurada.
+LLM_MODEL = os.getenv("LLM_MODEL", "openai:gpt-4o-mini")
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
 
 # GerenciadorVetorial instanciado uma única vez no import (Singleton):

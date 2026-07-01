@@ -17,16 +17,14 @@ async def upload_edital(
     file: UploadFile = File(...),
     estado: str = Form(...),
     municipio: str = Form(...),
-    user_name: str = Form(...),
 ):
     """Recebe um edital em PDF, extrai o texto, indexa no banco vetorial e retorna os CNPJs encontrados."""
 
     logger.info(
-        "Upload recebido | arquivo=%s | estado=%s | municipio=%s | user=%s",
+        "Upload recebido | arquivo=%s | estado=%s | municipio=%s",
         file.filename,
         estado,
         municipio,
-        user_name,
     )
 
     # Rejeita qualquer arquivo que não seja PDF antes de processá-lo
