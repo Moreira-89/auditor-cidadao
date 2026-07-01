@@ -2,17 +2,31 @@ import asyncio
 import re
 
 import httpx
+from dotenv import load_dotenv
 from langchain.tools import BaseTool, tool
+from langchain_tavily import TavilySearch
 from langgraph.prebuilt import InjectedState
+from pydantic import Field
 from typing_extensions import Annotated
 from validate_docbr import CNPJ
 
 from app.core.dependencies import gerenciador
-from app.models.consulta_cnpj import ConsultaCNPJ
+from app.utils.filtragem_resultados_web import processar_resultados_busca
+
+load_dotenv()
 
 
-@tool(args_schema=ConsultaCNPJ)
-async def consultar_receita_federal(cnpj: str) -> dict:
+@tool
+async def consultar_receita_federal(
+    cnpj: Annotated[
+        str,
+        Field(
+            description='CNPJ da empresa encontrado no texto. Retorne APENAS os 14 dígitos numéricos, sem pontos, barras ou traços.',
+            min_length=14,
+            max_length=14,
+        ),
+    ],
+) -> dict:
     """
     Consulta os dados cadastrais de uma empresa brasileira na Receita Federal a partir do CNPJ.
 
@@ -98,5 +112,53 @@ async def buscar_contexto_edital(
     )
 
 
+@tool
+async def buscar_informacao_web(
+    assunto_busca: Annotated[
+        str,
+        Field(
+            description="Termo ou frase curta de pesquisa. Seja específico. NÃO inclua cidade, estado ou país.",
+            min_length=5,
+        ),
+    ],
+    # InjectedState puxa o valor direto do AgentState, invisível para o LLM e para o schema da tool
+    estado: Annotated[str, InjectedState("estado")],
+    municipio: Annotated[str, InjectedState("municipio")],
+) -> dict:
+    """
+    Busca informações atualizadas na internet sobre um tema específico.
+
+    Use esta ferramenta sempre que precisar de contexto adicional, notícias recentes,
+    ou informações complementares sobre um assunto relacionado ao edital ou à licitação.
+    A busca é feita em fontes confiáveis e relevantes para garantir a qualidade da informação.
+
+    Args:
+        assunto_busca: Termo ou frase curta de pesquisa. Seja específico. NÃO inclua cidade, estado ou país.
+
+    Returns:
+        Em sucesso: dicionário com a chave "results", contendo os trechos mais relevantes encontrados na web.
+        Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
+    """
+
+    # search_depth="advanced" prioriza qualidade do conteúdo sobre velocidade da busca
+    tavily_tool = TavilySearch(max_results=3, search_depth="advanced")
+
+    # Concatena estado e município para dar contexto geográfico à busca, já que o LLM é instruído a não incluí-los em assunto_busca
+    query = f"{assunto_busca} {municipio} {estado}"
+
+    try:
+        result = await tavily_tool.ainvoke({"query": query})
+    except Exception as e:
+        # A lib da Tavily não expõe uma hierarquia de exceções específica e documentada
+        # (indisponibilidade da API, cota excedida, chave ausente/inválida caem todas aqui)
+        return {"error": f"Falha ao buscar informações na web: {str(e)}"}
+
+    return {"results": processar_resultados_busca(result.get("results", []))}
+
+
 # Lista de tools nativas do projeto — combinada com as MCP tools no startup pelo lifespan
-TOOLS: list[BaseTool] = [consultar_receita_federal, buscar_contexto_edital]
+TOOLS: list[BaseTool] = [
+    consultar_receita_federal,
+    buscar_contexto_edital,
+    buscar_informacao_web,
+]

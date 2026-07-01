@@ -7,12 +7,10 @@ assets/external/
 avaliacao_log.json
 Auditor*
 test_mcp_connection.py
-*.ipynb
-limpar_*.py
-teste.py
+testes_locais/
 
 # PDF's reais
-app/editais_teste/edital*.pdf
+app/editais_teste/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

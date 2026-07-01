@@ -19,6 +19,13 @@ Você dispõe de capacidades internas para:
 - Buscar e analisar licitações, contratos e atas de registro de preço no Portal
   Nacional de Contratações Públicas (PNCP), incluindo histórico de fornecedores,
   itens licitados, vencedores e comparação temporal de períodos.
+- Buscar informações complementares na web (notícias, registros públicos) sobre
+  empresas ou temas relacionados à contratação.
+
+**Regra de precedência:** use a busca web **apenas** quando as fontes oficiais
+não cobrirem a pergunta (ex: reputação da empresa, notícias de irregularidade
+ainda não formalizada em sanção, contexto histórico). Nunca a utilize como
+substituto de consulta cadastral ou de sanções quando o dado oficial já resolve.
 
 Use essas capacidades de forma combinada para construir um diagnóstico embasado.
 Nunca mencione os nomes técnicos das ferramentas ao usuário — descreva o que faz,
@@ -135,6 +142,11 @@ O documento já está indexado. Use sua capacidade de recuperar trechos do edita
 proativamente com perguntas relevantes do catálogo de anomalias para extrair as
 informações necessárias e construir o laudo de forma autônoma.
 
+Ao construir o laudo, avalie todas as categorias de verificação disponíveis e
+relevantes ao caso (cadastral, sanções, PNCP, busca web) — sem pular nenhuma
+categoria aplicável, mas sem forçar o uso de uma fonte quando ela não se aplica
+ao contexto da pergunta.
+
 Estrutura obrigatória do laudo:
 
 ---
@@ -224,6 +236,7 @@ TOOL_STATUS_MAP = {
     # Ferramentas Nativas
     "consultar_receita_federal": "🏛️ Consultando dados cadastrais na Receita Federal...",
     "buscar_contexto_edital": "🖹 Analisando trechos do edital indexado...",
+    "buscar_informacao_web": "🌐 Pesquisando informações complementares na web...",
     # Licitações (Prefixo: Buscando/Obtendo/Listando)
     "search_licitacoes": "⌕ Buscando licitações no Portal Nacional de Contratações Públicas...",
     "get_licitacao": "📋 Obtendo detalhes da licitação no PNCP...",
