@@ -69,6 +69,7 @@ async def run_agent(
     try:
         # `estado` e `municipio` são repassados em TODOS os turnos porque o InMemorySaver não persiste
         # chaves arbitrárias entre invocações — o InjectedState da tool precisa lê-los do estado ativo
+        laudo_completo = ""
         async for evento in get_graph().astream_events(
             input={
                 "messages": mensagens_entrada,
@@ -85,6 +86,7 @@ async def run_agent(
             if tipo_evento == "on_chat_model_stream":
                 chunk = evento["data"]["chunk"]
                 if chunk.content and not getattr(chunk, "tool_calls", None):
+                    laudo_completo += chunk.content
                     yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
 
             # Emite mensagem de status legível ao usuário quando uma tool é acionada
