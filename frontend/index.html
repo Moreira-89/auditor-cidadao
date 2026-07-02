@@ -49,13 +49,25 @@
                 <div class="field-row">
                     <div class="field">
                         <label class="field-label" for="input-estado">Estado</label>
-                        <input class="input input-sm" type="text" id="input-estado"
-                               placeholder="SP" maxlength="2" autocomplete="off">
+                        <div class="combobox" id="combobox-estado">
+                            <input class="input" type="text" id="input-estado"
+                                   placeholder="Digite ou selecione" autocomplete="off"
+                                   role="combobox" aria-autocomplete="list" aria-expanded="false"
+                                   aria-controls="estado-listbox" aria-haspopup="listbox">
+                            <ul class="combobox-list hidden" id="estado-listbox"
+                                role="listbox" aria-label="Lista de estados"></ul>
+                        </div>
                     </div>
                     <div class="field" style="flex:2">
                         <label class="field-label" for="input-municipio">Município</label>
-                        <input class="input" type="text" id="input-municipio"
-                               placeholder="Ex: São Paulo" autocomplete="off">
+                        <div class="combobox" id="combobox-municipio">
+                            <input class="input" type="text" id="input-municipio"
+                                   placeholder="Selecione um estado primeiro" autocomplete="off" disabled
+                                   role="combobox" aria-autocomplete="list" aria-expanded="false"
+                                   aria-controls="municipio-listbox" aria-haspopup="listbox">
+                            <ul class="combobox-list hidden" id="municipio-listbox"
+                                role="listbox" aria-label="Lista de municípios"></ul>
+                        </div>
                     </div>
                 </div>
             </section>

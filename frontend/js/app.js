@@ -42,7 +42,9 @@ const dom = {
 
     // Config
     inputEstado:      $('input-estado'),
+    estadoListbox:    $('estado-listbox'),
     inputMunicipio:   $('input-municipio'),
+    municipioListbox: $('municipio-listbox'),
 
     // Upload
     uploadZone:       $('upload-zone'),
@@ -164,6 +166,244 @@ function setLoading(loading) {
 
 
 /* =============================================================================
+   4b. COMBOBOX DE ESTADO E MUNICÍPIO (seleção obrigatória a partir de lista)
+   ============================================================================= */
+
+/** Lista fixa de UFs — não precisa de API, o Brasil só tem 27. */
+const ESTADOS = [
+    { sigla: 'AC', nome: 'Acre' },
+    { sigla: 'AL', nome: 'Alagoas' },
+    { sigla: 'AP', nome: 'Amapá' },
+    { sigla: 'AM', nome: 'Amazonas' },
+    { sigla: 'BA', nome: 'Bahia' },
+    { sigla: 'CE', nome: 'Ceará' },
+    { sigla: 'DF', nome: 'Distrito Federal' },
+    { sigla: 'ES', nome: 'Espírito Santo' },
+    { sigla: 'GO', nome: 'Goiás' },
+    { sigla: 'MA', nome: 'Maranhão' },
+    { sigla: 'MT', nome: 'Mato Grosso' },
+    { sigla: 'MS', nome: 'Mato Grosso do Sul' },
+    { sigla: 'MG', nome: 'Minas Gerais' },
+    { sigla: 'PA', nome: 'Pará' },
+    { sigla: 'PB', nome: 'Paraíba' },
+    { sigla: 'PR', nome: 'Paraná' },
+    { sigla: 'PE', nome: 'Pernambuco' },
+    { sigla: 'PI', nome: 'Piauí' },
+    { sigla: 'RJ', nome: 'Rio de Janeiro' },
+    { sigla: 'RN', nome: 'Rio Grande do Norte' },
+    { sigla: 'RS', nome: 'Rio Grande do Sul' },
+    { sigla: 'RO', nome: 'Rondônia' },
+    { sigla: 'RR', nome: 'Roraima' },
+    { sigla: 'SC', nome: 'Santa Catarina' },
+    { sigla: 'SP', nome: 'São Paulo' },
+    { sigla: 'SE', nome: 'Sergipe' },
+    { sigla: 'TO', nome: 'Tocantins' },
+];
+
+/** Cache de municípios por UF, para não rebater na API do IBGE a cada tecla digitada. */
+const municipiosCache = {};
+
+/**
+ * Remove acentos e normaliza para minúsculas, para permitir busca sem
+ * exigir que o usuário digite acentuação correta (ex: "sao paulo" encontra "São Paulo").
+ */
+function normalizarBusca(texto) {
+    return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+/**
+ * Busca os municípios de uma UF na API pública do IBGE, com cache em memória.
+ * Nota: para o DF, a API do IBGE retorna só "Brasília" — Regiões Administrativas
+ * (Taguatinga, Ceilândia etc.) são uma divisão do GDF, não do IBGE.
+ * @param {string} uf - Sigla do estado
+ * @returns {Promise<string[]>} Nomes dos municípios, ordenados alfabeticamente
+ */
+async function fetchMunicipios(uf) {
+    if (municipiosCache[uf]) return municipiosCache[uf];
+
+    const response = await fetch(
+        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`
+    );
+    if (!response.ok) {
+        throw new Error(`A API do IBGE retornou status ${response.status}.`);
+    }
+
+    const data = await response.json();
+    const nomes = data.map((m) => m.nome).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    municipiosCache[uf] = nomes;
+    return nomes;
+}
+
+/**
+ * Cria um combobox pesquisável que só aceita seleção a partir de uma lista de
+ * opções — nunca um valor livre digitado. Se o usuário sair do campo sem
+ * confirmar uma opção da lista, o valor reverte para a última seleção válida.
+ * @param {Object} config
+ * @param {HTMLInputElement} config.inputEl - Campo de texto do combobox
+ * @param {HTMLElement} config.listboxEl - Elemento <ul role="listbox"> associado
+ * @param {(option: any) => string} config.getLabel - Extrai o texto exibido de uma opção
+ * @param {(query: string) => (any[] | Promise<any[]>)} config.onQuery - Retorna as opções filtradas para a query digitada
+ * @param {(option: any) => void} config.onSelect - Chamado quando o usuário confirma uma opção
+ * @returns {{ reset: (label?: string) => void }}
+ */
+function createCombobox({ inputEl, listboxEl, getLabel, onQuery, onSelect }) {
+    let options = [];
+    let activeIndex = -1;
+    let confirmedLabel = '';
+
+    function renderOptions(opts) {
+        options = opts;
+        activeIndex = -1;
+        listboxEl.innerHTML = '';
+
+        if (!opts.length) {
+            listboxEl.innerHTML = '<li class="combobox-empty">Nenhum resultado encontrado.</li>';
+            return;
+        }
+
+        opts.forEach((opt, i) => {
+            const li = document.createElement('li');
+            li.className   = 'combobox-option';
+            li.id          = `${listboxEl.id}-option-${i}`;
+            li.setAttribute('role', 'option');
+            li.textContent = getLabel(opt);
+
+            // mousedown (não click) dispara antes do blur do input — evita que o
+            // fechamento da lista no blur cancele a seleção por clique
+            li.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                selectOption(opt);
+            });
+
+            listboxEl.appendChild(li);
+        });
+    }
+
+    function openList() {
+        listboxEl.classList.remove('hidden');
+        inputEl.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeList() {
+        listboxEl.classList.add('hidden');
+        inputEl.setAttribute('aria-expanded', 'false');
+        inputEl.removeAttribute('aria-activedescendant');
+        activeIndex = -1;
+    }
+
+    function selectOption(opt) {
+        confirmedLabel  = getLabel(opt);
+        inputEl.value   = confirmedLabel;
+        closeList();
+        onSelect(opt);
+    }
+
+    function highlight(index) {
+        const items = listboxEl.querySelectorAll('.combobox-option');
+        items.forEach((el) => el.classList.remove('active'));
+
+        if (index >= 0 && items[index]) {
+            items[index].classList.add('active');
+            items[index].scrollIntoView({ block: 'nearest' });
+            inputEl.setAttribute('aria-activedescendant', items[index].id);
+        } else {
+            inputEl.removeAttribute('aria-activedescendant');
+        }
+        activeIndex = index;
+    }
+
+    inputEl.addEventListener('input', async () => {
+        renderOptions(await onQuery(inputEl.value));
+        openList();
+    });
+
+    inputEl.addEventListener('focus', async () => {
+        if (inputEl.disabled) return;
+        renderOptions(await onQuery(inputEl.value));
+        openList();
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+        if (listboxEl.classList.contains('hidden')) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            highlight(Math.min(activeIndex + 1, options.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            highlight(Math.max(activeIndex - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeIndex >= 0 && options[activeIndex]) {
+                selectOption(options[activeIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            closeList();
+        }
+    });
+
+    inputEl.addEventListener('blur', () => {
+        closeList();
+        // Só um valor confirmado por seleção é aceito — qualquer texto livre reverte
+        if (inputEl.value !== confirmedLabel) {
+            inputEl.value = confirmedLabel;
+        }
+    });
+
+    return {
+        reset(label = '') {
+            confirmedLabel = label;
+            inputEl.value  = label;
+        },
+    };
+}
+
+const municipioCombobox = createCombobox({
+    inputEl:   dom.inputMunicipio,
+    listboxEl: dom.municipioListbox,
+    getLabel:  (nome) => nome,
+    onQuery: async (query) => {
+        if (!state.estado) return [];
+        const municipios = await fetchMunicipios(state.estado);
+        const q = normalizarBusca(query);
+        return municipios.filter((nome) => normalizarBusca(nome).includes(q));
+    },
+    onSelect: (nome) => {
+        state.municipio = nome;
+    },
+});
+
+const estadoCombobox = createCombobox({
+    inputEl:   dom.inputEstado,
+    listboxEl: dom.estadoListbox,
+    getLabel:  (uf) => `${uf.nome} (${uf.sigla})`,
+    onQuery: (query) => {
+        const q = normalizarBusca(query);
+        return ESTADOS.filter(
+            (uf) => normalizarBusca(uf.nome).includes(q) || normalizarBusca(uf.sigla).includes(q)
+        );
+    },
+    onSelect: async (uf) => {
+        state.estado    = uf.sigla;
+        state.municipio = '';
+        municipioCombobox.reset('');
+
+        dom.inputMunicipio.disabled     = true;
+        dom.inputMunicipio.placeholder  = 'Carregando municípios...';
+
+        try {
+            await fetchMunicipios(uf.sigla);
+            dom.inputMunicipio.disabled    = false;
+            dom.inputMunicipio.placeholder = 'Selecione um município';
+        } catch (error) {
+            dom.inputMunicipio.placeholder = 'Erro ao carregar municípios';
+            showToast(`Falha ao carregar municípios do IBGE: ${error.message}`, 'error');
+        }
+    },
+});
+
+
+/* =============================================================================
    5. LÓGICA DE UPLOAD
    ============================================================================= */
 
@@ -200,12 +440,12 @@ function removeFile() {
  */
 function validarCampos() {
     if (!state.estado || state.estado.length !== 2) {
-        showToast('Informe a sigla do estado (2 letras).', 'error');
+        showToast('Selecione um estado da lista.', 'error');
         dom.inputEstado.focus();
         return false;
     }
     if (!state.municipio) {
-        showToast('Informe o município.', 'error');
+        showToast('Selecione um município da lista.', 'error');
         dom.inputMunicipio.focus();
         return false;
     }
@@ -592,15 +832,9 @@ function novaSessao() {
    8. EVENT LISTENERS
    ============================================================================= */
 
-// --- Inputs de configuração ---
-dom.inputEstado.addEventListener('input', (e) => {
-    e.target.value = e.target.value.toUpperCase();
-    state.estado   = e.target.value.trim();
-});
-
-dom.inputMunicipio.addEventListener('input', (e) => {
-    state.municipio = e.target.value.trim();
-});
+// --- Inputs de configuração: estado e município são geridos pelos comboboxes
+//     (createCombobox), que só atualizam state.estado/state.municipio via seleção
+//     confirmada da lista — ver seção 4b.
 
 // --- Upload: clique na zona ---
 dom.uploadZone.addEventListener('click', () => dom.fileInput.click());
