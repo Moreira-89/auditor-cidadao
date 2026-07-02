@@ -369,7 +369,7 @@ function createStreamingAIMessage() {
                     <summary>
                         <span class="cot-arrow">▶</span>
                         <span class="cot-icon noto-emoji">🧠</span>
-                        <span>Pensando...</span>
+                        <span>Auditando...</span>
                         <span class="cot-spinner"></span>
                     </summary>
                     <div class="cot-body"></div>

@@ -90,7 +90,7 @@ async def run_agent(
             # Emite mensagem de status legível ao usuário quando uma tool é acionada
             elif tipo_evento == "on_tool_start":
                 tool_name = evento["name"]
-                mensagem = TOOL_STATUS_MAP.get(tool_name, "Auditando...")
+                mensagem = TOOL_STATUS_MAP.get(tool_name, "Analisando...")
                 yield f"data: {json.dumps({'type': 'status', 'content': mensagem})}\n\n"
 
         # Sinaliza ao frontend que o streaming terminou normalmente

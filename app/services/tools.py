@@ -1,4 +1,5 @@
 import asyncio
+import os
 import re
 
 import httpx
@@ -12,6 +13,12 @@ from validate_docbr import CNPJ
 
 from app.core.dependencies import gerenciador
 from app.utils.filtragem_resultados_web import processar_resultados_busca
+from app.utils.filtragem_sancoes import (
+    URL_CEIS,
+    URL_CNEP,
+    consultar_sancao_async,
+    processar_sancoes,
+)
 
 load_dotenv()
 
@@ -156,9 +163,85 @@ async def buscar_informacao_web(
     return {"results": processar_resultados_busca(result.get("results", []))}
 
 
+@tool
+async def consultar_sancoes_empresa(
+    cnpj: Annotated[
+        str,
+        Field(
+            description='CNPJ da empresa encontrado no texto. Retorne APENAS os 14 dígitos numéricos, sem pontos, barras ou traços.',
+            min_length=14,
+            max_length=14,
+        ),
+    ],
+) -> list:
+    """
+    Consulta se uma empresa brasileira possui sanções ativas nos cadastros CEIS
+    e CNEP do Portal da Transparência a partir do CNPJ.
+
+    Use esta ferramenta sempre que precisar verificar se uma empresa mencionada
+    no edital ou nos resultados de licitação está impedida ou suspensa de
+    contratar com a administração pública. Aceita o CNPJ formatado
+    ("12.345.678/0001-99") ou apenas numérico ("12345678000199").
+
+    Args:
+        cnpj: O CNPJ da empresa a ser consultada.
+
+    Returns:
+        Lista de dicionários, um por sanção encontrada (pode ser vazia se a empresa
+        não tiver sanções). Cada item tem "tipo_registro": "sancao" (dado real) ou
+        "aviso" (CNPJ inválido ou CEIS/CNEP indisponível na consulta) — trate "aviso"
+        como "não verificado", nunca como "empresa sem sanções".
+    """
+    # Remove pontuação e hífens para padronizar o CNPJ antes de validar e consultar
+    cnpj_limpo = re.sub(r"[./-]", "", cnpj)
+
+    # Valida matematicamente os dígitos verificadores antes de fazer a requisição HTTP
+    if not CNPJ().validate(cnpj_limpo):
+        return [
+            {
+                "tipo_registro": "aviso",
+                "error": f"CNPJ inválido: '{cnpj}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal.",
+            }
+        ]
+    # Chave da API do Portal da Transparência (CGU), exigida no header em vez de query param
+    CGU_API_KEY = os.getenv("CGU_API_KEY")
+    headers = {"chave-api-dados": CGU_API_KEY, "Accept": "application/json"}
+
+    # Consulta CEIS e CNEP em paralelo, já que são endpoints independentes;
+    # falha em uma fonte não derruba a outra (tratado dentro de consultar_sancao_async)
+    resultados_ceis, resultados_cnep = await asyncio.gather(
+        consultar_sancao_async(URL_CEIS, cnpj_limpo, headers),
+        consultar_sancao_async(URL_CNEP, cnpj_limpo, headers),
+    )
+
+    # None sinaliza falha na fonte (distinto de [] = fonte consultada, sem sanções).
+    # Sinaliza explicitamente qual fonte não pôde ser verificada, em vez de
+    # mascarar como "sem sanções" — o LLM depende dessa distinção (Anomalia H).
+    avisos = []
+    if resultados_ceis is None:
+        avisos.append(
+            {
+                "tipo_registro": "aviso",
+                "error": f"CEIS indisponível: não foi possível verificar sanções do CNPJ {cnpj_limpo} nesta base.",
+            }
+        )
+        resultados_ceis = []
+    if resultados_cnep is None:
+        avisos.append(
+            {
+                "tipo_registro": "aviso",
+                "error": f"CNEP indisponível: não foi possível verificar sanções do CNPJ {cnpj_limpo} nesta base.",
+            }
+        )
+        resultados_cnep = []
+
+    return avisos + processar_sancoes(resultados_ceis, resultados_cnep)
+
+
 # Lista de tools nativas do projeto — combinada com as MCP tools no startup pelo lifespan
 TOOLS: list[BaseTool] = [
     consultar_receita_federal,
     buscar_contexto_edital,
     buscar_informacao_web,
+    consultar_sancoes_empresa,
 ]
