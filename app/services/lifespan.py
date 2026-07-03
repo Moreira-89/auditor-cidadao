@@ -84,7 +84,6 @@ async def lifespan(app: FastAPI):
         "get_licitacao",
         "list_licitacao_itens",
         "list_licitacao_resultados",
-        "get_fornecedor_contratos",
         "search_atas_rp",
         "compare_periodos",
     }
