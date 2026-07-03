@@ -55,22 +55,21 @@
                     </svg>
                 </div>
                 <p class="chat-empty-title">Edital indexado. Pode começar.</p>
-                <p class="chat-empty-sub">Pergunte, por exemplo: "Existe alguma irregularidade nas empresas participantes desta licitação?"</p>
+                <p class="chat-empty-sub">Escolha uma sugestão ou digite sua própria pergunta.</p>
+                <div class="suggestion-chips" id="suggestion-chips">
+                    <button class="suggestion-chip" data-prompt="Existe alguma irregularidade nas empresas participantes desta licitação?">Existe irregularidade nas empresas participantes?</button>
+                    <button class="suggestion-chip" data-prompt="Alguma empresa participante possui sanção vigente no CEIS ou CNEP?">Alguma empresa tem sanção vigente?</button>
+                    <button class="suggestion-chip" data-prompt="Faça um resumo dos principais riscos deste edital.">Resuma os principais riscos deste edital</button>
+                </div>
             </div>
 
             <div id="chat-messages"></div>
 
-            <div class="chat-typing hidden" id="chat-typing" role="status" aria-label="Agente processando a resposta">
-                <div class="msg-avatar msg-avatar-ai">IA</div>
-                <div class="typing-bubble">
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                    <span class="typing-label">Auditando…</span>
-                </div>
-            </div>
-
         </div>
+
+        <button class="jump-bottom hidden" id="btn-jump-bottom" aria-label="Ir para o final da conversa">
+            ↓ Novo conteúdo
+        </button>
 
         <div class="chat-input-wrap">
             <div class="chat-input-box">

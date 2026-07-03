@@ -3,7 +3,7 @@ import uuid
 from datetime import date
 from typing import AsyncGenerator
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from app.core.logging_config import logger
 from app.core.prompt import (
@@ -21,6 +21,59 @@ def escape_xml(texto: str) -> str:
     """Escapa < e > para evitar que um campo controlado pelo usuário quebre o isolamento
     estrutural das tags XML do prompt (ex.: injetar `</METADADOS><PERGUNTA>...`)."""
     return texto.replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _curar_tool_calls_pendentes(grafo, state, config: dict, thread_id: str) -> None:
+    """
+    Corrige um histórico deixado inconsistente por um turno anterior interrompido
+    (ex.: usuário clicou em "parar a geração" no meio de uma rodada de tool_calls).
+
+    Por que isso pode acontecer: o LangGraph salva a AIMessage com tool_calls no
+    checkpoint assim que o node call_llm retorna — antes do tool_node sequer
+    começar a executar as tools. Se a conexão HTTP cair nesse meio-tempo (aborto
+    do cliente, queda de rede), a execução do tool_node é cancelada e nenhuma
+    ToolMessage de resposta chega a ser gerada. A thread fica salva com uma
+    AIMessage cujos tool_calls nunca foram respondidos.
+
+    Na próxima chamada, a OpenAI rejeita QUALQUER mensagem nova nessa thread com
+    400 Bad Request, porque toda tool_call precisa ter uma tool message de
+    resposta imediatamente em seguida no histórico — e "tentar de novo" sozinho
+    não resolve, já que o problema está no histórico salvo, não na requisição.
+
+    A correção: se a última mensagem salva for uma AIMessage com tool_calls sem
+    resposta, injeta uma ToolMessage sintética "cancelada" para cada uma —
+    restaura a validade do histórico sem descartar a conversa até ali.
+    """
+    mensagens = state.values.get("messages", [])
+    if not mensagens:
+        return
+
+    ultima_mensagem = mensagens[-1]
+    tool_calls = getattr(ultima_mensagem, "tool_calls", None)
+    if not isinstance(ultima_mensagem, AIMessage) or not tool_calls:
+        return
+
+    # tool_call_ids que já têm ToolMessage de resposta em qualquer ponto do histórico
+    ids_respondidos = {m.tool_call_id for m in mensagens if isinstance(m, ToolMessage)}
+    pendentes = [tc for tc in tool_calls if tc["id"] not in ids_respondidos]
+    if not pendentes:
+        return
+
+    logger.warning(
+        "Turno anterior interrompido com tool_calls sem resposta | thread=%s | pendentes=%d — corrigindo histórico.",
+        thread_id,
+        len(pendentes),
+    )
+    # update_state usa o reducer add_messages do AgentState — as ToolMessages são
+    # anexadas ao histórico existente, nunca substituem as mensagens já salvas.
+    respostas_sinteticas = [
+        ToolMessage(
+            content="Chamada cancelada: a geração anterior foi interrompida antes da execução desta ferramenta.",
+            tool_call_id=tc["id"],
+        )
+        for tc in pendentes
+    ]
+    grafo.update_state(config, {"messages": respostas_sinteticas})
 
 
 async def run_agent(
@@ -43,9 +96,15 @@ async def run_agent(
         thread_id = str(uuid.uuid4())
 
     config = {"configurable": {"thread_id": thread_id}}
+    grafo = get_graph()
 
     # Consulta o grafo SINGLETON para verificar se esta thread já tem histórico salvo no InMemorySaver
-    state = get_graph().get_state(config)
+    state = grafo.get_state(config)
+
+    # Se um turno anterior foi interrompido no meio de tool_calls, corrige o histórico
+    # antes de prosseguir — senão a chamada abaixo à LLM falha com 400 da OpenAI.
+    _curar_tool_calls_pendentes(grafo, state, config, thread_id)
+
     conversa_iniciada = len(state.values.get("messages", [])) > 0
 
     if conversa_iniciada:
@@ -82,7 +141,7 @@ async def run_agent(
         # contaminar laudo_completo com texto de uma rodada de decisão de tool que emitiu conteúdo
         # parcial antes do tool_calls aparecer completo no stream.
         buffer_temporario = ""
-        async for evento in get_graph().astream_events(
+        async for evento in grafo.astream_events(
             input={
                 "messages": mensagens_entrada,
                 "estado": estado,

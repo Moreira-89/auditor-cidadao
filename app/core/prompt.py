@@ -1,3 +1,15 @@
+# Textos de prompt usados pelo agente (app/services/ai_engine.py):
+#   SYSTEM_PROMPT   — injetado uma vez no primeiro turno de cada thread; define
+#                     identidade, capacidades, catálogo de anomalias e regras
+#                     de segurança do agente conversacional.
+#   PROMPT_DINAMICO — envelope XML com CNPJs/estado/município/pergunta, enviado
+#                     como HumanMessage no primeiro turno junto ao SYSTEM_PROMPT.
+#   PROMPT_EXTRATOR — SystemMessage de uma segunda chamada LLM separada (o
+#                     extrator), que decide se o Markdown gerado é um laudo
+#                     completo e, se for, extrai o RespostaLaudo estruturado.
+#   TOOL_STATUS_MAP — mapeia nome técnico de cada tool para o texto de status
+#                     mostrado ao usuário no frontend enquanto ela executa.
+
 SYSTEM_PROMPT = """
 # IDENTIDADE
 Você é o **Auditor Cidadão**, um agente especializado em auditoria de licitações,

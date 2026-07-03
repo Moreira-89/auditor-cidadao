@@ -1,4 +1,10 @@
-import logging
+"""
+Lifespan do FastAPI: roda uma única vez no startup do servidor, antes do primeiro
+request. Conecta ao MCP LiciNexus (subprocess Node.js), monta a lista final de
+tools (nativas + MCP, corrigidas e cacheadas) e inicializa os singletons usados
+em toda a aplicação — o grafo do agente (build_graph) e o modelo extrator.
+"""
+
 import os
 import shutil
 import sys
@@ -7,12 +13,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.dependencies import EXTRATOR_MODEL, EXTRATOR_TEMPERATURE, retornar_cliente_llm
+from app.core.logging_config import logger
 from app.services.build_graph import initialize_graph
 from app.services.tools import TOOLS
 from app.utils.cache_mcp import aplicar_cache
 from app.utils.mcp_utils import patch_mcp_tools
-
-logger = logging.getLogger(__name__)
 
 # Instância singleton do modelo usado no processo de extração de informações (temperatura 0
 # para respostas determinísticas). Criada no startup do lifespan e recuperada via get_extrator().

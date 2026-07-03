@@ -1,3 +1,10 @@
+"""
+Pipeline de RAG do edital: chunking do texto extraído do PDF, geração de embeddings
+e indexação/busca no Pinecone. Instanciado uma única vez como singleton em
+app/core/dependencies.py — abrir a conexão com o Pinecone é caro demais para
+repetir a cada requisição.
+"""
+
 import os
 
 from langchain_openai import OpenAIEmbeddings

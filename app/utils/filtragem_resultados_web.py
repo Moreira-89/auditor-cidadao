@@ -1,4 +1,12 @@
+"""
+Filtra e normaliza os resultados brutos da busca web (Tavily) antes de repassá-los
+ao LLM: descarta páginas com pouco conteúdo útil, trunca conteúdos muito longos e
+mantém só os campos que importam para a análise (url, title, content).
+"""
+
+# Páginas com menos texto que isso normalmente são erro de acesso, paywall ou lixo
 TAMANHO_MINIMO_CONTEUDO = 200
+# Limite por resultado para não estourar o contexto do LLM com várias buscas por turno
 TAMANHO_MAXIMO_CONTEUDO = 2000
 
 

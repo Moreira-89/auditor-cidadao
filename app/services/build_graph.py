@@ -1,3 +1,10 @@
+"""
+Monta o grafo LangGraph do agente: um ciclo ReAct simples (call_llm ↔ tool_node)
+com checkpointer InMemorySaver para manter histórico por thread_id. Exposto como
+singleton (initialize_graph/get_graph) porque é caro de construir e é o mesmo
+grafo, com as mesmas tools, para todas as requisições do processo.
+"""
+
 from typing import Literal
 
 from langgraph.checkpoint.memory import InMemorySaver

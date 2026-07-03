@@ -537,6 +537,7 @@ a {
 }
 
 .chat-shell {
+    position: relative;
     flex: 1;
     min-height: 0;
     width: 100%;
@@ -609,6 +610,61 @@ a {
     max-width: 380px;
 }
 
+.suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+    max-width: 480px;
+}
+
+.suggestion-chip {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--canvas-soft);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-pill);
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: border-color var(--transition), color var(--transition);
+}
+
+.suggestion-chip:hover {
+    border-color: var(--primary);
+    color: var(--primary-soft);
+}
+
+/* Botão flutuante que aparece quando o usuário rola pra cima durante uma
+   resposta em andamento — evita brigar com o scroll manual do usuário. */
+.jump-bottom {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--canvas-soft);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: border-color var(--transition), transform var(--transition);
+}
+
+.jump-bottom:hover {
+    border-color: var(--primary);
+    transform: translateX(-50%) translateY(-2px);
+}
+
 
 /* ==========================================================================
    9. CHAT — MENSAGENS
@@ -662,6 +718,7 @@ a {
 
 .msg-meta {
     display: flex;
+    align-items: center;
     gap: 8px;
     font-size: 12px;
     color: var(--mute);
@@ -670,6 +727,30 @@ a {
 
 .chat-msg-user .msg-meta {
     justify-content: flex-end;
+}
+
+.msg-copy-btn {
+    background: transparent;
+    border: 0;
+    color: var(--mute);
+    font-size: 12px;
+    line-height: 1;
+    padding: 2px;
+    cursor: pointer;
+    transition: color var(--transition);
+}
+
+.msg-copy-btn:hover:not(:disabled) {
+    color: var(--primary);
+}
+
+.msg-copy-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.retry-btn {
+    margin-top: 10px;
 }
 
 .msg-bubble-user {
@@ -871,11 +952,6 @@ a {
     to { transform: rotate(360deg); }
 }
 
-@keyframes ac-blink {
-    0%, 80%, 100% { opacity: 0.2; }
-    40%           { opacity: 1; }
-}
-
 @keyframes ac-fade {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -884,40 +960,6 @@ a {
 @keyframes ac-modalin {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: none; }
-}
-
-.chat-typing {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 4px 0 8px;
-}
-
-.typing-bubble {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--canvas);
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
-    padding: 12px 16px;
-}
-
-.typing-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: var(--radius-pill);
-    background: var(--primary);
-    animation: ac-blink 1.2s infinite;
-}
-
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-.typing-label {
-    font-size: 13px;
-    color: var(--mute);
-    margin-left: 4px;
 }
 
 .toast {
@@ -1063,6 +1105,26 @@ a {
     margin-bottom: 2px;
 }
 
+/* Evidência identificada como citação de fonte (ex.: "Fonte: CEIS") vira um
+   chip destacado em vez de um item de lista comum — reforça rastreabilidade. */
+.evidencia-fonte {
+    list-style: none;
+    margin: 4px 0 0 -18px;
+}
+
+.fonte-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--mute);
+    background: var(--canvas-soft);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-pill);
+    padding: 2px 9px;
+}
+
 .laudo-recomendacoes {
     margin-top: 12px;
     padding-left: 18px;
@@ -1135,6 +1197,14 @@ a {
 .send-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* Estado "parar geração" — o mesmo botão, mas com tom neutro em vez do verde
+   de ação, pra não parecer um convite a continuar enviando. */
+.send-btn.is-stop {
+    background: var(--canvas-soft);
+    color: var(--ink);
+    border: 1px solid var(--hairline);
 }
 
 .input-hint {

@@ -1,3 +1,10 @@
+"""
+As 4 tools nativas do projeto, passadas ao agente junto com as tools MCP do PNCP
+(ver app/services/lifespan.py): consulta cadastral (Receita Federal), busca
+semântica no edital indexado (Pinecone), busca web (Tavily) e verificação de
+sanções (CEIS/CNEP do Portal da Transparência).
+"""
+
 import asyncio
 import os
 import re

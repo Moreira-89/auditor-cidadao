@@ -1,3 +1,9 @@
+"""
+Ponto de entrada da aplicação FastAPI. Registra os routers de upload e chat,
+serve o frontend estático (Home + página de chat) e delega a inicialização
+pesada (MCP, grafo, modelo extrator) ao lifespan em app/services/lifespan.py.
+"""
+
 import logging
 
 from fastapi import FastAPI
@@ -23,6 +29,8 @@ app = FastAPI(
 app.include_router(upload_router)
 app.include_router(perguntar_router)
 
+# Serve o front-end (index.html, chat.html, css/, js/) como arquivos estáticos —
+# não há build step nem framework, é HTML/CSS/JS puro na mesma origem da API.
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 

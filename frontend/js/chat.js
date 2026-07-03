@@ -53,13 +53,24 @@ const dom = {
     chatScroll:    $('chat-scroll'),
     chatEmpty:     $('chat-empty'),
     chatMessages:  $('chat-messages'),
-    chatTyping:    $('chat-typing'),
     chatInput:     $('chat-input'),
     btnSend:       $('btn-send'),
+    btnJumpBottom: $('btn-jump-bottom'),
+    suggestionChips: $('suggestion-chips'),
 
     // Toast
     toast: $('toast'),
 };
+
+/** true quando o usuário rolou pra cima manualmente durante uma resposta —
+ * o auto-scroll para de forçar o fundo até ele voltar ou clicar em "Novo conteúdo". */
+let userScrolledUp = false;
+
+/** Controller da requisição de streaming em andamento, usado pelo botão de parar. */
+let currentAbortController = null;
+
+const SEND_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`;
+const STOP_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>`;
 
 
 /* =============================================================================
@@ -103,8 +114,16 @@ function riskClass(nivel) {
     return removerAcentos(nivel).toLowerCase();
 }
 
-function scrollChatToBottom() {
+/** Rola o histórico pro fundo, a menos que o usuário tenha rolado pra cima
+ * manualmente — nesse caso só o clique em "Novo conteúdo" (force=true) ou o
+ * início de um novo turno força o scroll de volta. */
+function scrollChatToBottom(force = false) {
+    if (userScrolledUp && !force) return;
     dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+}
+
+function syncJumpButton() {
+    dom.btnJumpBottom.classList.toggle('hidden', !userScrolledUp);
 }
 
 /** Renderiza Markdown do agente sanitizando o HTML gerado pelo `marked` com
@@ -432,6 +451,12 @@ async function confirmarUpload() {
 }
 
 function abrirModalNovaSessao() {
+    // Aborta qualquer streaming em andamento — sem isso, a resposta da sessão
+    // anterior continuaria rodando em segundo plano e escrevendo em elementos
+    // já removidos do DOM.
+    stopGeneration();
+    setLoading(false);
+
     state.threadId     = generateUUID();
     state.cnpjs        = [];
     state.ready        = false;
@@ -479,7 +504,11 @@ function addUserMessage(texto) {
         <div class="msg-avatar">VC</div>
     `;
     dom.chatMessages.appendChild(el);
-    scrollChatToBottom();
+
+    // Novo turno sempre pula pro fundo, mesmo que o usuário tivesse rolado pra cima antes.
+    userScrolledUp = false;
+    syncJumpButton();
+    scrollChatToBottom(true);
 }
 
 /**
@@ -494,7 +523,10 @@ function addAiMessage() {
     el.innerHTML = `
         <div class="msg-avatar msg-avatar-ai">IA</div>
         <div class="msg-col">
-            <div class="msg-meta"><span>Auditor Cidadão</span><span>${agora()}</span></div>
+            <div class="msg-meta">
+                <span>Auditor Cidadão</span><span>${agora()}</span>
+                <button class="msg-copy-btn" title="Copiar resposta" aria-label="Copiar resposta" disabled>📋</button>
+            </div>
             <details class="reasoning" open>
                 <summary class="reasoning-summary">
                     <span class="reasoning-arrow">▶</span>
@@ -511,13 +543,38 @@ function addAiMessage() {
     scrollChatToBottom();
 
     return {
+        msgEl:          el,
         reasoningEl:    el.querySelector('.reasoning'),
         reasoningBody:  el.querySelector('.reasoning-body'),
         reasoningLabel: el.querySelector('.reasoning-label'),
         reasoningSpinner: el.querySelector('.reasoning-spinner'),
         markdownEl:     el.querySelector('.msg-markdown'),
         laudoEl:        el.querySelector('.laudo-card'),
+        copyBtn:        el.querySelector('.msg-copy-btn'),
     };
+}
+
+/** Habilita o botão de copiar da mensagem com o texto final (Markdown cru). */
+function enableCopyButton(refs, texto) {
+    refs.copyBtn.disabled = false;
+    refs.copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(texto)
+            .then(() => showToast('Resposta copiada!', 'success'))
+            .catch(() => showToast('Não foi possível copiar.', 'error'));
+    });
+}
+
+/** Anexa um botão de nova tentativa após uma falha real (não usado em abort manual):
+ * remove a bolha com erro e reenvia a mesma pergunta como um novo turno do agente. */
+function addRetryButton(refs, texto) {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-outline btn-sm retry-btn';
+    btn.textContent = '🔄 Tentar novamente';
+    btn.addEventListener('click', () => {
+        refs.msgEl.remove();
+        streamAgentResponse(texto);
+    }, { once: true });
+    refs.markdownEl.after(btn);
 }
 
 function addReasoningStep(reasoningBody, texto) {
@@ -546,6 +603,16 @@ function finalizeReasoning(refs) {
     refs.reasoningEl.removeAttribute('open');
 }
 
+/** Evidências que citam a fonte (ex.: "Fonte: CEIS") viram um chip destacado
+ * em vez de um item de lista comum, reforçando a rastreabilidade do laudo. */
+function formatEvidencia(ev) {
+    const fonteMatch = ev.match(/^fonte:\s*(.+)$/i);
+    if (fonteMatch) {
+        return `<li class="evidencia-fonte"><span class="fonte-chip">📎 ${escapeHtml(fonteMatch[1])}</span></li>`;
+    }
+    return `<li>${escapeHtml(ev)}</li>`;
+}
+
 function renderLaudoEstruturado(container, laudo) {
     const anomaliasHtml = (laudo.anomalias || []).map((a) => `
         <div class="anomalia-card">
@@ -555,7 +622,7 @@ function renderLaudoEstruturado(container, laudo) {
             </div>
             <div class="anomalia-descricao">${escapeHtml(a.descricao)}</div>
             ${a.evidencias && a.evidencias.length
-                ? `<ul class="anomalia-evidencias">${a.evidencias.map((ev) => `<li>${escapeHtml(ev)}</li>`).join('')}</ul>`
+                ? `<ul class="anomalia-evidencias">${a.evidencias.map(formatEvidencia).join('')}</ul>`
                 : ''}
         </div>
     `).join('');
@@ -581,17 +648,30 @@ function renderLaudoEstruturado(container, laudo) {
    CHAT — ENVIO E STREAMING SSE
    ============================================================================= */
 
-function setLoading(loading) {
-    state.isLoading = loading;
-    dom.chatTyping.classList.toggle('hidden', !loading);
-    syncSendButton();
-    if (loading) {
-        scrollChatToBottom();
+/** Alterna o botão de enviar entre os estados "enviar" (ocioso) e "parar"
+ * (streaming em andamento) — o botão nunca fica desabilitado durante o
+ * streaming, já que nesse estado ele serve pra abortar a geração. */
+function syncSendButton() {
+    if (state.isLoading) {
+        dom.btnSend.disabled = false;
+        dom.btnSend.classList.add('is-stop');
+        dom.btnSend.setAttribute('aria-label', 'Parar geração');
+        dom.btnSend.innerHTML = STOP_ICON;
+    } else {
+        dom.btnSend.classList.remove('is-stop');
+        dom.btnSend.setAttribute('aria-label', 'Enviar pergunta');
+        dom.btnSend.innerHTML = SEND_ICON;
+        dom.btnSend.disabled = !state.ready || !dom.chatInput.value.trim();
     }
 }
 
-function syncSendButton() {
-    dom.btnSend.disabled = state.isLoading || !state.ready || !dom.chatInput.value.trim();
+function setLoading(loading) {
+    state.isLoading = loading;
+    syncSendButton();
+}
+
+function stopGeneration() {
+    if (currentAbortController) currentAbortController.abort();
 }
 
 async function sendMessage() {
@@ -603,6 +683,13 @@ async function sendMessage() {
     syncSendButton();
 
     addUserMessage(texto);
+    await streamAgentResponse(texto);
+}
+
+/** Executa um turno completo do agente para `texto`: cria a bolha de resposta,
+ * consome o streaming SSE e trata os três desfechos possíveis — sucesso,
+ * interrupção manual (botão de parar) e erro real (com opção de tentar de novo). */
+async function streamAgentResponse(texto) {
     setLoading(true);
 
     const refs = addAiMessage();
@@ -610,6 +697,9 @@ async function sendMessage() {
     let leftover    = '';
     let hasSteps    = false;
     let streamError = null;
+
+    const abortController = new AbortController();
+    currentAbortController = abortController;
 
     try {
         const response = await fetch(`${API_BASE}/conversar-com-auditor/`, {
@@ -622,14 +712,13 @@ async function sendMessage() {
                 lista_cnpjs: state.cnpjs,
                 thread_id:   state.threadId,
             }),
+            signal: abortController.signal,
         });
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
             throw new Error(err.detail || `Erro HTTP ${response.status}`);
         }
-
-        setLoading(false);
 
         const reader  = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
@@ -698,10 +787,31 @@ async function sendMessage() {
             finalizeReasoning(refs);
         }
 
+        enableCopyButton(refs, accumulated);
+
     } catch (error) {
-        renderMarkdown(refs.markdownEl, `❌ **Erro ao consultar o agente:** ${escapeHtml(error.message)}`);
-        showToast(`Erro: ${error.message}`, 'error');
+        if (error.name === 'AbortError') {
+            // Interrupção manual via botão de parar — não é uma falha real, então
+            // finaliza normalmente com o que já tinha sido gerado até então.
+            const textoFinal = accumulated.trim()
+                ? `${accumulated}\n\n*(interrompido pelo usuário)*`
+                : '*(interrompido pelo usuário)*';
+            renderMarkdown(refs.markdownEl, textoFinal);
+
+            if (!hasSteps) {
+                refs.reasoningEl.classList.add('hidden');
+            } else {
+                finalizeReasoning(refs);
+            }
+            if (accumulated.trim()) enableCopyButton(refs, accumulated);
+            showToast('Geração interrompida.', 'info');
+        } else {
+            renderMarkdown(refs.markdownEl, `❌ **Erro ao consultar o agente:** ${escapeHtml(error.message)}`);
+            showToast(`Erro: ${error.message}`, 'error');
+            addRetryButton(refs, texto);
+        }
     } finally {
+        currentAbortController = null;
         setLoading(false);
     }
 }
@@ -746,8 +856,14 @@ dom.btnConfirm.addEventListener('click', confirmarUpload);
 // --- Reiniciar sessão ---
 dom.btnReset.addEventListener('click', abrirModalNovaSessao);
 
-// --- Enviar mensagem ---
-dom.btnSend.addEventListener('click', sendMessage);
+// --- Enviar mensagem / parar geração (o mesmo botão alterna de função) ---
+dom.btnSend.addEventListener('click', () => {
+    if (state.isLoading) {
+        stopGeneration();
+    } else {
+        sendMessage();
+    }
+});
 dom.chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -758,6 +874,26 @@ dom.chatInput.addEventListener('input', () => {
     dom.chatInput.style.height = 'auto';
     dom.chatInput.style.height = Math.min(dom.chatInput.scrollHeight, 180) + 'px';
     syncSendButton();
+});
+
+// --- Auto-scroll que respeita o usuário: detecta scroll manual pra cima ---
+dom.chatScroll.addEventListener('scroll', () => {
+    const distanceFromBottom = dom.chatScroll.scrollHeight - dom.chatScroll.scrollTop - dom.chatScroll.clientHeight;
+    userScrolledUp = distanceFromBottom > 80;
+    syncJumpButton();
+});
+dom.btnJumpBottom.addEventListener('click', () => {
+    userScrolledUp = false;
+    syncJumpButton();
+    scrollChatToBottom(true);
+});
+
+// --- Prompts de exemplo clicáveis no estado vazio ---
+dom.suggestionChips.addEventListener('click', (e) => {
+    const chip = e.target.closest('.suggestion-chip');
+    if (!chip || !state.ready || state.isLoading) return;
+    dom.chatInput.value = chip.dataset.prompt;
+    sendMessage();
 });
 
 // --- Fechar toast ao clicar ---

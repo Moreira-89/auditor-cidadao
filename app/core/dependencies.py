@@ -1,3 +1,9 @@
+"""
+Configuração e dependências compartilhadas lidas uma única vez no import: parâmetros
+do LLM (agente principal e extrator) vindos do .env, e o singleton do GerenciadorVetorial
+(Pinecone + embeddings), caro demais para recriar a cada requisição.
+"""
+
 import os
 
 from dotenv import load_dotenv

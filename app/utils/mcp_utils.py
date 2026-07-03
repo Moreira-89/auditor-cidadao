@@ -1,3 +1,4 @@
+import json
 from typing import Any, Optional, Union, get_args, get_origin
 
 from langchain_core.tools import StructuredTool
@@ -95,7 +96,8 @@ def _model_de_json_schema(schema_dict: dict, nome_base: str) -> type:
             )
 
     # Cria dinamicamente uma classe Pydantic com os campos construídos acima.
-    # O sufixo "MCPCompat" sinaliza que este modelo foi modificado para o Groq.
+    # O sufixo "MCPCompat" sinaliza que este modelo foi tornado permissivo para
+    # passar na validação do provedor LLM, e não é o schema original do MCP server.
     return create_model(f"{nome_base}MCPCompat", **campos)
 
 
@@ -103,11 +105,17 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
     """
     Envolve a coroutine original da tool MCP com uma camada de coerção de tipos.
 
-    Por que isso é necessário:
-    O Groq valida o schema Python (resolvido pelos tipos permissivos).
-    Mas o MCP server (Node.js/Zod) valida os *valores reais* e rejeita "42" onde
-    espera 42. Esta função converte os valores para os tipos corretos antes de
-    passar ao MCP, fechando essa segunda camada de validação.
+    Por que isso é necessário — a validação acontece em duas camadas diferentes,
+    e este arquivo cobre as duas:
+    1. O LLM (via LangChain/Pydantic) valida o schema Python já tornado permissivo
+       por `_tornar_tipo_permissivo`/`_model_de_json_schema` — por isso "42" passa
+       como string sem erro nessa etapa.
+    2. O MCP server (Node.js, validado via Zod) valida os *valores reais* recebidos
+       e rejeita "42" (string) onde espera 42 (número). É aqui que essa segunda
+       camada de validação seria quebrada se não convertêssemos antes de enviar.
+
+    Esta função resolve a camada 2: converte cada valor para o tipo Python nativo
+    esperado pelo schema original (não o permissivo) logo antes de chamar o MCP.
 
     Conversões aplicadas:
     - "1" (str) → 1 (int) para campos integer
@@ -121,8 +129,6 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
     properties = schema_dict.get("properties", {})
 
     async def coroutine_com_coercao(**kwargs):
-        import json as _json
-
         args_convertidos = {}
 
         for chave, valor in kwargs.items():
@@ -157,8 +163,8 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
             elif tipo_esperado == "object" and isinstance(valor, str):
                 # LLM mandou o objeto inteiro como string JSON — desserializa para dict
                 try:
-                    args_convertidos[chave] = _json.loads(valor)
-                except (_json.JSONDecodeError, ValueError):
+                    args_convertidos[chave] = json.loads(valor)
+                except (json.JSONDecodeError, ValueError):
                     # Não era JSON válido — mantém como string
                     args_convertidos[chave] = valor
 
@@ -166,8 +172,8 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
                 # LLM pode mandar o array inteiro como string JSON: '[6, 8, 9]'
                 # Precisamos parsear antes de embrulhar
                 try:
-                    parsed = _json.loads(valor)
-                except (_json.JSONDecodeError, ValueError):
+                    parsed = json.loads(valor)
+                except (json.JSONDecodeError, ValueError):
                     parsed = valor  # não é JSON, trata como elemento único
 
                 if isinstance(parsed, list):
