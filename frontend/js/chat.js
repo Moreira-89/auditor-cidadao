@@ -525,11 +525,11 @@ function addAiMessage() {
         <div class="msg-col">
             <div class="msg-meta">
                 <span>Auditor Cidadão</span><span>${agora()}</span>
-                <button class="msg-copy-btn" title="Copiar resposta" aria-label="Copiar resposta" disabled>📋</button>
+                <button class="msg-copy-btn material-symbols-outlined" title="Copiar resposta" aria-label="Copiar resposta" disabled>content_copy</button>
             </div>
             <details class="reasoning" open>
                 <summary class="reasoning-summary">
-                    <span class="reasoning-arrow">▶</span>
+                    <span class="reasoning-arrow material-symbols-outlined" aria-hidden="true">chevron_right</span>
                     <span class="reasoning-label">Auditando…</span>
                     <span class="spinner reasoning-spinner"></span>
                 </summary>
@@ -569,7 +569,7 @@ function enableCopyButton(refs, texto) {
 function addRetryButton(refs, texto) {
     const btn = document.createElement('button');
     btn.className = 'btn btn-outline btn-sm retry-btn';
-    btn.textContent = '🔄 Tentar novamente';
+    btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">refresh</span><span>Tentar novamente</span>';
     btn.addEventListener('click', () => {
         refs.msgEl.remove();
         streamAgentResponse(texto);
@@ -592,8 +592,9 @@ function finalizeReasoning(refs) {
     if (lastStep) lastStep.classList.add('done');
 
     const checkEl = document.createElement('span');
-    checkEl.className = 'reasoning-check';
-    checkEl.textContent = '✓';
+    checkEl.className = 'reasoning-check material-symbols-outlined';
+    checkEl.setAttribute('aria-hidden', 'true');
+    checkEl.textContent = 'check';
     refs.reasoningSpinner.replaceWith(checkEl);
     const stepCount = refs.reasoningBody.querySelectorAll('.reasoning-step').length;
     refs.reasoningLabel.textContent = stepCount > 0
@@ -608,7 +609,7 @@ function finalizeReasoning(refs) {
 function formatEvidencia(ev) {
     const fonteMatch = ev.match(/^fonte:\s*(.+)$/i);
     if (fonteMatch) {
-        return `<li class="evidencia-fonte"><span class="fonte-chip">📎 ${escapeHtml(fonteMatch[1])}</span></li>`;
+        return `<li class="evidencia-fonte"><span class="fonte-chip"><span class="material-symbols-outlined" aria-hidden="true">link</span> ${escapeHtml(fonteMatch[1])}</span></li>`;
     }
     return `<li>${escapeHtml(ev)}</li>`;
 }
@@ -633,7 +634,7 @@ function renderLaudoEstruturado(container, laudo) {
 
     container.innerHTML = `
         <div class="laudo-header">
-            <span class="laudo-title">📋 Laudo Estruturado</span>
+            <span class="laudo-title"><span class="material-symbols-outlined" aria-hidden="true">fact_check</span> Laudo Estruturado</span>
             <span class="risk-badge risk-${riskClass(laudo.nivel_risco_geral)}">${escapeHtml(laudo.nivel_risco_geral)}</span>
         </div>
         <p class="laudo-resumo">${escapeHtml(laudo.resumo_executivo)}</p>
@@ -806,7 +807,7 @@ async function streamAgentResponse(texto) {
             if (accumulated.trim()) enableCopyButton(refs, accumulated);
             showToast('Geração interrompida.', 'info');
         } else {
-            renderMarkdown(refs.markdownEl, `❌ **Erro ao consultar o agente:** ${escapeHtml(error.message)}`);
+            renderMarkdown(refs.markdownEl, `<span class="material-symbols-outlined" aria-hidden="true">error</span> **Erro ao consultar o agente:** ${escapeHtml(error.message)}`);
             showToast(`Erro: ${error.message}`, 'error');
             addRetryButton(refs, texto);
         }
