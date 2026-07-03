@@ -16,7 +16,7 @@ app = FastAPI(
     title="Auditor Cidadão",
     description="Auditor Cidadão é uma plataforma baseada em Inteligência Artificial (RAG e Agentes) "
     "que permite analisar editais, extrair CNPJs e responder a perguntas com contexto enriquecido.",
-    version="1.0.3",
+    version="1.1.3",
     lifespan=lifespan,
 )
 

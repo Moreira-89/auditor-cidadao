@@ -1397,11 +1397,26 @@ a {
 
 @media (max-width: 767px) {
     .nav {
-        padding: 14px 20px;
+        padding: 14px 16px;
     }
 
     .nav-links {
         gap: 12px;
+    }
+
+    /* "Como funciona" já está a um scroll de distância — em telas estreitas
+       some para sobrar espaço e o CTA não empurrar o nome da marca pra 2 linhas. */
+    .nav-links .nav-link {
+        display: none;
+    }
+
+    .brand-badge {
+        display: none;
+    }
+
+    .brand-name {
+        font-size: 15px;
+        white-space: nowrap;
     }
 
     .hero {

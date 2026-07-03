@@ -171,8 +171,15 @@
     <!-- Toast de notificação -->
     <div class="toast hidden" id="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
-    <!-- Dependências externas -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+    <!-- Dependências externas — versão travada + SRI (Subresource Integrity):
+         garante reprodutibilidade (não muda sozinho com um novo release do pacote)
+         e protege contra um CDN comprometido servir um arquivo adulterado. -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"
+            integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi"
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.11/dist/purify.min.js"
+            integrity="sha384-o44XUELLEnv/iSlA1NWxBweqbD4TSR0qgq2VzVsxtkHS989JJjGKSE9vkfo5MN4K"
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Lógica da aplicação -->
     <script src="/static/js/chat.js"></script>

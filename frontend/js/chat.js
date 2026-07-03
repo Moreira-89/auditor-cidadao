@@ -4,8 +4,15 @@
  * chat.js — Modal de upload, seleção de estado/município e streaming SSE
  * =============================================================================
  */
+(function () {
+'use strict';
 
 const API_BASE = '';
+
+/** Deve ficar em sincronia com MAX_BYTES em app/api/root_upload.py — checagem
+ * client-side é só uma otimização de UX (feedback instantâneo), o backend
+ * continua sendo a validação real. */
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 const state = {
     estado:       '',
@@ -76,8 +83,36 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/** Remove acentos via decomposição NFD + filtro das marcas diacríticas combinantes
+ * (código Unicode 0x0300–0x036F) que sobram depois da decomposição — usado tanto
+ * na busca do combobox quanto para gerar as classes CSS .risk-baixo/.risk-medio/
+ * .risk-alto/.risk-critico. Filtra por código numérico em vez de um character
+ * class de regex para não depender de colar marcas combinantes literais no fonte. */
+function removerAcentos(texto) {
+    const DIACRITICO_INICIO = 0x0300;
+    const DIACRITICO_FIM    = 0x036f;
+    return Array.from((texto || '').normalize('NFD'))
+        .filter((ch) => {
+            const codigo = ch.codePointAt(0);
+            return codigo < DIACRITICO_INICIO || codigo > DIACRITICO_FIM;
+        })
+        .join('');
+}
+
 function riskClass(nivel) {
-    return (nivel || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    return removerAcentos(nivel).toLowerCase();
+}
+
+function scrollChatToBottom() {
+    dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+}
+
+/** Renderiza Markdown do agente sanitizando o HTML gerado pelo `marked` com
+ * DOMPurify antes de injetar via innerHTML — o texto passa por conteúdo de
+ * fontes menos confiáveis que o próprio raciocínio do LLM (busca web, PDF do
+ * edital), então tratamos como HTML potencialmente hostil. */
+function renderMarkdown(el, texto) {
+    el.innerHTML = DOMPurify.sanitize(marked.parse(texto));
 }
 
 function showToast(mensagem, tipo = 'info') {
@@ -121,7 +156,7 @@ const ESTADOS = [
 const municipiosCache = {};
 
 function normalizarBusca(texto) {
-    return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    return removerAcentos(texto).toLowerCase();
 }
 
 /**
@@ -332,6 +367,10 @@ function setFile(file) {
         showModalError('Apenas arquivos PDF são aceitos.');
         return;
     }
+    if (file.size > MAX_UPLOAD_BYTES) {
+        showModalError(`Arquivo muito grande (${(file.size / (1024 * 1024)).toFixed(1)} MB). O limite é de 20 MB.`);
+        return;
+    }
 
     state.selectedFile = file;
     dom.fileNameDisplay.textContent = file.name;
@@ -440,7 +479,7 @@ function addUserMessage(texto) {
         <div class="msg-avatar">VC</div>
     `;
     dom.chatMessages.appendChild(el);
-    dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+    scrollChatToBottom();
 }
 
 /**
@@ -456,10 +495,10 @@ function addAiMessage() {
         <div class="msg-avatar msg-avatar-ai">IA</div>
         <div class="msg-col">
             <div class="msg-meta"><span>Auditor Cidadão</span><span>${agora()}</span></div>
-            <details class="reasoning hidden" open>
+            <details class="reasoning" open>
                 <summary class="reasoning-summary">
                     <span class="reasoning-arrow">▶</span>
-                    <span class="reasoning-label">Raciocínio do agente</span>
+                    <span class="reasoning-label">Auditando…</span>
                     <span class="spinner reasoning-spinner"></span>
                 </summary>
                 <div class="reasoning-body"></div>
@@ -469,7 +508,7 @@ function addAiMessage() {
         </div>
     `;
     dom.chatMessages.appendChild(el);
-    dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+    scrollChatToBottom();
 
     return {
         reasoningEl:    el.querySelector('.reasoning'),
@@ -495,7 +534,10 @@ function finalizeReasoning(refs) {
     const lastStep = refs.reasoningBody.querySelector('.reasoning-step:last-child:not(.done)');
     if (lastStep) lastStep.classList.add('done');
 
-    refs.reasoningSpinner.outerHTML = '<span class="reasoning-check">✓</span>';
+    const checkEl = document.createElement('span');
+    checkEl.className = 'reasoning-check';
+    checkEl.textContent = '✓';
+    refs.reasoningSpinner.replaceWith(checkEl);
     const stepCount = refs.reasoningBody.querySelectorAll('.reasoning-step').length;
     refs.reasoningLabel.textContent = stepCount > 0
         ? `Raciocínio do agente (${stepCount} etapa${stepCount > 1 ? 's' : ''})`
@@ -544,7 +586,7 @@ function setLoading(loading) {
     dom.chatTyping.classList.toggle('hidden', !loading);
     syncSendButton();
     if (loading) {
-        dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+        scrollChatToBottom();
     }
 }
 
@@ -612,13 +654,12 @@ async function sendMessage() {
                         if (event.type === 'token' && event.content) {
                             accumulated += event.content;
                         } else if (event.type === 'status' && event.content) {
-                            refs.reasoningEl.classList.remove('hidden');
                             addReasoningStep(refs.reasoningBody, event.content);
                             hasSteps = true;
-                            dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+                            scrollChatToBottom();
                         } else if (event.type === 'laudo_estruturado' && event.content) {
                             renderLaudoEstruturado(refs.laudoEl, event.content);
-                            dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+                            scrollChatToBottom();
                         } else if (event.type === 'laudo_estruturado_erro') {
                             // Extração estruturada falhou no backend, mas o texto do laudo já
                             // chegou com sucesso — apenas avisa, sem interromper o streaming.
@@ -640,16 +681,16 @@ async function sendMessage() {
             }
 
             if (accumulated) {
-                refs.markdownEl.innerHTML = marked.parse(accumulated);
+                renderMarkdown(refs.markdownEl, accumulated);
             }
-            dom.chatScroll.scrollTo({ top: dom.chatScroll.scrollHeight, behavior: 'smooth' });
+            scrollChatToBottom();
         }
 
         if (streamError) {
             throw new Error(streamError);
         }
 
-        refs.markdownEl.innerHTML = marked.parse(accumulated.trim() ? accumulated : '*(resposta vazia)*');
+        renderMarkdown(refs.markdownEl, accumulated.trim() ? accumulated : '*(resposta vazia)*');
 
         if (!hasSteps) {
             refs.reasoningEl.classList.add('hidden');
@@ -658,7 +699,7 @@ async function sendMessage() {
         }
 
     } catch (error) {
-        refs.markdownEl.innerHTML = marked.parse(`❌ **Erro ao consultar o agente:** ${error.message}`);
+        renderMarkdown(refs.markdownEl, `❌ **Erro ao consultar o agente:** ${escapeHtml(error.message)}`);
         showToast(`Erro: ${error.message}`, 'error');
     } finally {
         setLoading(false);
@@ -735,3 +776,5 @@ function init() {
 }
 
 init();
+
+})();
