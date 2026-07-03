@@ -6,12 +6,26 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.core.dependencies import EXTRATOR_MODEL, EXTRATOR_TEMPERATURE, retornar_cliente_llm
 from app.services.build_graph import initialize_graph
 from app.services.tools import TOOLS
 from app.utils.cache_mcp import aplicar_cache
 from app.utils.mcp_utils import patch_mcp_tools
 
 logger = logging.getLogger(__name__)
+
+# Instância singleton do modelo usado no processo de extração de informações (temperatura 0
+# para respostas determinísticas). Criada no startup do lifespan e recuperada via get_extrator().
+_extrator_instance = None
+
+
+def get_extrator():
+    """Retorna a instância do modelo extrator. Lança RuntimeError se o lifespan ainda não inicializou."""
+    if _extrator_instance is None:
+        raise RuntimeError(
+            "Modelo extrator não inicializado. O lifespan do FastAPI foi executado?"
+        )
+    return _extrator_instance
 
 
 @asynccontextmanager
@@ -98,6 +112,15 @@ async def lifespan(app: FastAPI):
     logger.info(
         "Grafo inicializado com sucesso. Servidor pronto para receber requests."
     )
+
+    # Instancia o modelo extrator (temperatura 0 para saída determinística),
+    # usado no processo de extração de informações.
+    global _extrator_instance
+    _extrator_instance = retornar_cliente_llm(
+        model_name=EXTRATOR_MODEL,
+        config_params={"temperature": EXTRATOR_TEMPERATURE},
+    )
+    logger.info("Modelo extrator inicializado com sucesso.")
 
     # O yield separa startup do shutdown.
     yield

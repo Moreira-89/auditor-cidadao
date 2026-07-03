@@ -14,6 +14,12 @@ LLM_MODEL = os.getenv("LLM_MODEL", "openai:gpt-4o-mini")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
+# Modelo usado no processo de extração de informações — separado do LLM_MODEL do agente
+# principal para permitir trocar um sem afetar o outro.
+EXTRATOR_MODEL = os.getenv("EXTRATOR_MODEL", "openai:gpt-4o-mini")
+# Temperatura 0 por padrão: saída determinística é o comportamento esperado para extração.
+EXTRATOR_TEMPERATURE = float(os.getenv("EXTRATOR_TEMPERATURE", "0.0"))
+
 
 # GerenciadorVetorial instanciado uma única vez no import (Singleton):
 # carrega o modelo de embedding e conecta ao Pinecone — custoso demais para recriar por requisição.

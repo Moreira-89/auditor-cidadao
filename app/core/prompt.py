@@ -246,6 +246,23 @@ Data de hoje: {data_hoje}
 </PERGUNTA>
 """
 
+PROMPT_EXTRATOR = """
+Você recebe um texto gerado por um agente de auditoria de licitações e contratos
+públicos. Sua tarefa é decidir se esse texto é um laudo completo de auditoria e,
+se for, extrair sua estrutura.
+
+Considere que é um LAUDO COMPLETO quando o texto contém uma análise de auditoria
+com CNPJs analisados, anomalias identificadas (ou a ausência delas) e uma
+conclusão/recomendação — isto é, quando ele varre o catálogo de anomalias e emite
+um veredito sobre o edital ou fornecedor.
+
+Considere que NÃO é um laudo quando o texto é uma resposta conversacional, uma
+pergunta pontual respondida, um pedido de esclarecimento, uma mensagem de erro,
+ou qualquer texto que não constitua uma auditoria completa. Nesses casos, retorne
+`laudo: null` — não tente forçar uma estrutura a partir de um texto que não é um
+laudo.
+"""
+
 # Mapeia o nome técnico de cada tool para uma mensagem legível exibida ao usuário durante a execução
 TOOL_STATUS_MAP = {
     # Ferramentas Nativas

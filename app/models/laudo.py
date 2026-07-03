@@ -22,5 +22,5 @@ class LaudoEstruturado(BaseModel):
     resumo_executivo: str = Field(description="Resumo executivo do laudo, destacando os principais pontos e conclusões.")
     recomendacoes: list[str] = Field(description="Lista de recomendações para mitigação dos riscos identificados.")
 
-class LaudoEstruturado(BaseModel):
+class RespostaLaudo (BaseModel):
     laudo: LaudoEstruturado | None = Field(description="Null se o texto não for um laudo de auditoria completo, ex: resposta conversacional.")

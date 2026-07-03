@@ -615,6 +615,7 @@ function createStreamingAIMessage() {
                     <div class="cot-body"></div>
                 </details>
                 <div class="cot-response"></div>
+                <div class="structured-laudo hidden"></div>
             </div>
         </div>
     `;
@@ -623,11 +624,61 @@ function createStreamingAIMessage() {
     dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
 
     return {
-        bubbleEl:     messageEl.querySelector('.cot-response'),
-        cotAccordion: messageEl.querySelector('.cot-accordion'),
-        cotBody:      messageEl.querySelector('.cot-body'),
-        cotSpinner:   messageEl.querySelector('.cot-spinner'),
+        bubbleEl:      messageEl.querySelector('.cot-response'),
+        cotAccordion:  messageEl.querySelector('.cot-accordion'),
+        cotBody:       messageEl.querySelector('.cot-body'),
+        cotSpinner:    messageEl.querySelector('.cot-spinner'),
+        structuredEl:  messageEl.querySelector('.structured-laudo'),
     };
+}
+
+/**
+ * Normaliza um nível de risco (BAIXO/MÉDIO/ALTO/CRÍTICO) para uma classe CSS
+ * sem acentuação (ex: "MÉDIO" -> "medio"), usada em .risk-badge.risk-*.
+ * @param {string} nivel
+ * @returns {string}
+ */
+function riskClass(nivel) {
+    return (nivel || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase();
+}
+
+/**
+ * Renderiza o laudo estruturado (JSON extraído via with_structured_output)
+ * dentro do container .structured-laudo da mensagem AI corrente.
+ * @param {HTMLElement} container - Elemento .structured-laudo
+ * @param {Object} laudo - LaudoEstruturado (ver app/models/laudo.py)
+ */
+function renderLaudoEstruturado(container, laudo) {
+    const anomaliasHtml = (laudo.anomalias || []).map((a) => `
+        <div class="anomalia-card">
+            <div class="anomalia-card-header">
+                <span class="anomalia-codigo">${escapeHtml(a.codigo)}</span>
+                <span class="risk-badge risk-${riskClass(a.nivel_risco)}">${escapeHtml(a.nivel_risco)}</span>
+            </div>
+            <div class="anomalia-descricao">${escapeHtml(a.descricao)}</div>
+            ${a.evidencias && a.evidencias.length
+                ? `<ul class="anomalia-evidencias">${a.evidencias.map((ev) => `<li>${escapeHtml(ev)}</li>`).join('')}</ul>`
+                : ''}
+        </div>
+    `).join('');
+
+    const recomendacoesHtml = (laudo.recomendacoes || []).length
+        ? `<ul class="structured-laudo-recomendacoes">${laudo.recomendacoes.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
+        : '';
+
+    container.innerHTML = `
+        <div class="structured-laudo-header">
+            <span class="structured-laudo-title">📋 Laudo Estruturado</span>
+            <span class="risk-badge risk-${riskClass(laudo.nivel_risco_geral)}">${escapeHtml(laudo.nivel_risco_geral)}</span>
+        </div>
+        <p class="structured-laudo-resumo">${escapeHtml(laudo.resumo_executivo)}</p>
+        ${anomaliasHtml}
+        ${recomendacoesHtml}
+    `;
+    container.classList.remove('hidden');
 }
 
 /**
@@ -718,7 +769,7 @@ async function sendMessage() {
 
         // --- Leitura do stream SSE com Chain of Thought ---
         dom.typingIndicator.classList.add('hidden');
-        const { bubbleEl, cotAccordion, cotBody, cotSpinner } = createStreamingAIMessage();
+        const { bubbleEl, cotAccordion, cotBody, cotSpinner, structuredEl } = createStreamingAIMessage();
         const reader   = response.body.getReader();
         const decoder  = new TextDecoder('utf-8');
         let accumulated  = '';
@@ -750,6 +801,13 @@ async function sendMessage() {
                             addCotStep(cotBody, event.content);
                             hasSteps = true;
                             dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
+                        } else if (event.type === 'laudo_estruturado' && event.content) {
+                            renderLaudoEstruturado(structuredEl, event.content);
+                            dom.chatMessages.scrollTo({ top: dom.chatMessages.scrollHeight, behavior: 'smooth' });
+                        } else if (event.type === 'laudo_estruturado_erro') {
+                            // Extração estruturada falhou no backend, mas o texto do laudo já chegou
+                            // com sucesso — apenas avisa, sem interromper o streaming.
+                            showToast(event.content || 'Não foi possível gerar a versão estruturada do laudo.', 'error');
                         } else if (event.type === 'error') {
                             // Backend sinalizou uma falha durante o streaming — para de ler e mostra o erro
                             streamError = event.content || 'Erro desconhecido durante o streaming.';

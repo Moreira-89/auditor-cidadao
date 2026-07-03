@@ -6,8 +6,15 @@ from typing import AsyncGenerator
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.logging_config import logger
-from app.core.prompt import PROMPT_DINAMICO, SYSTEM_PROMPT, TOOL_STATUS_MAP
+from app.core.prompt import (
+    PROMPT_DINAMICO,
+    PROMPT_EXTRATOR,
+    SYSTEM_PROMPT,
+    TOOL_STATUS_MAP,
+)
+from app.models.laudo import RespostaLaudo
 from app.services.build_graph import get_graph
+from app.services.lifespan import get_extrator
 
 
 def escape_xml(texto: str) -> str:
@@ -70,6 +77,11 @@ async def run_agent(
         # `estado` e `municipio` são repassados em TODOS os turnos porque o InMemorySaver não persiste
         # chaves arbitrárias entre invocações — o InjectedState da tool precisa lê-los do estado ativo
         laudo_completo = ""
+        # Acumula os chunks da mensagem do LLM em andamento; só é somado a laudo_completo em
+        # on_chat_model_end, quando dá pra confirmar que a mensagem não tinha tool_calls. Isso evita
+        # contaminar laudo_completo com texto de uma rodada de decisão de tool que emitiu conteúdo
+        # parcial antes do tool_calls aparecer completo no stream.
+        buffer_temporario = ""
         async for evento in get_graph().astream_events(
             input={
                 "messages": mensagens_entrada,
@@ -81,19 +93,48 @@ async def run_agent(
         ):
             tipo_evento = evento["event"]
 
+            if tipo_evento == "on_chat_model_start":
+                # Nova mensagem do LLM começando — reseta o buffer da rodada anterior
+                buffer_temporario = ""
+
             # Emite cada fragmento de texto gerado pela LLM; ignora chunks que são apenas tool_calls.
             # getattr com default None evita AttributeError em chunks intermediários que, dependendo da versão do langchain-core, podem não expor o atributo`tool_calls`.
-            if tipo_evento == "on_chat_model_stream":
+            elif tipo_evento == "on_chat_model_stream":
                 chunk = evento["data"]["chunk"]
                 if chunk.content and not getattr(chunk, "tool_calls", None):
-                    laudo_completo += chunk.content
+                    buffer_temporario += chunk.content
                     yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
+
+            elif tipo_evento == "on_chat_model_end":
+                # Mensagem completa — agora sabemos com certeza se ela tinha tool_calls
+                mensagem_final = evento["data"]["output"]
+                if not getattr(mensagem_final, "tool_calls", None):
+                    # Não tinha tool_calls → era resposta final de verdade, confirma no acumulador real
+                    laudo_completo += buffer_temporario
+                # Se tinha tool_calls, o buffer é descartado (não soma em laudo_completo)
 
             # Emite mensagem de status legível ao usuário quando uma tool é acionada
             elif tipo_evento == "on_tool_start":
                 tool_name = evento["name"]
                 mensagem = TOOL_STATUS_MAP.get(tool_name, "Analisando...")
                 yield f"data: {json.dumps({'type': 'status', 'content': mensagem})}\n\n"
+
+        # Após o streaming de texto terminar, extrai a versão estruturada do laudo (JSON)
+        # a partir do Markdown completo já enviado ao frontend. Isolado em try/except próprio:
+        # uma falha aqui não deve derrubar o "done" nem reaproveitar a mensagem de erro genérica
+        # do streaming, já que o texto do laudo já foi entregue com sucesso.
+        try:
+            extrator_estruturado = get_extrator().with_structured_output(RespostaLaudo)
+            resultado = await extrator_estruturado.ainvoke(
+                [SystemMessage(content=PROMPT_EXTRATOR), HumanMessage(content=laudo_completo)]
+            )
+            if resultado.laudo is not None:
+                yield f"data: {json.dumps({'type': 'laudo_estruturado', 'content': resultado.laudo.model_dump()})}\n\n"
+        except Exception:
+            logger.exception(
+                "Erro ao extrair laudo estruturado | thread=%s", thread_id
+            )
+            yield f"data: {json.dumps({'type': 'laudo_estruturado_erro', 'content': 'Não foi possível gerar a versão estruturada do laudo.'})}\n\n"
 
         # Sinaliza ao frontend que o streaming terminou normalmente
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
