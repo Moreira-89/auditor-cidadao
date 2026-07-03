@@ -27,6 +27,12 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 
 @app.get("/", include_in_schema=False, response_class=FileResponse)
-async def serve_frontend():
-    """Serve o arquivo HTML principal da interface do usuário."""
+async def serve_home():
+    """Serve a landing page (apresentação do produto)."""
     return FileResponse("frontend/index.html")
+
+
+@app.get("/chat", include_in_schema=False, response_class=FileResponse)
+async def serve_chat():
+    """Serve a página de chat (upload de edital + conversa com o agente)."""
+    return FileResponse("frontend/chat.html")
