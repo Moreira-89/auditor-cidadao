@@ -1,8 +1,11 @@
 """
-Consulta e normaliza sanções de empresas nos cadastros do Portal da Transparência:
-CEIS (Cadastro de Empresas Inidôneas e Suspensas) e CNEP (Cadastro Nacional de
-Empresas Punidas).
+Consulta e combina sanções de uma empresa nos cadastros CEIS (Cadastro de
+Empresas Inidôneas e Suspensas) e CNEP (Cadastro Nacional de Empresas
+Punidas) do Portal da Transparência (CGU), a partir do CNPJ.
 """
+
+import asyncio
+import os
 
 import httpx
 
@@ -10,7 +13,7 @@ URL_CEIS = "https://api.portaldatransparencia.gov.br/api-de-dados/ceis"
 URL_CNEP = "https://api.portaldatransparencia.gov.br/api-de-dados/cnep"
 
 
-async def consultar_sancao_async(url_base: str, cnpj: str, headers: dict) -> list | None:
+async def _consultar_sancao_async(url_base: str, cnpj: str, headers: dict) -> list | None:
     """
     Consulta um cadastro de sanções (CEIS ou CNEP) do Portal da Transparência
     para um CNPJ específico. `codigoSancionado` é o parâmetro correto da API
@@ -59,7 +62,7 @@ def _achatar_sancao(registro: dict, fonte_cadastro: str) -> dict:
     }
 
 
-def processar_sancoes(resultados_ceis: list, resultados_cnep: list) -> list[dict]:
+def _processar_sancoes(resultados_ceis: list, resultados_cnep: list) -> list[dict]:
     """
     Orquestra o achatamento dos registros de sanção vindos do CEIS e do CNEP,
     marcando a origem de cada um, e retorna uma única lista combinada.
@@ -67,3 +70,48 @@ def processar_sancoes(resultados_ceis: list, resultados_cnep: list) -> list[dict
     sancoes_ceis = [_achatar_sancao(r, "CEIS") for r in resultados_ceis]
     sancoes_cnep = [_achatar_sancao(r, "CNEP") for r in resultados_cnep]
     return sancoes_ceis + sancoes_cnep
+
+
+async def consultar_sancoes(cnpj_limpo: str) -> list[dict]:
+    """
+    Consulta CEIS e CNEP em paralelo para o CNPJ informado (já limpo e validado
+    pelo chamador) e retorna a lista combinada de sanções.
+
+    Nunca lança exceção: cada fonte é isolada dentro de _consultar_sancao_async,
+    que retorna None em caso de falha. Quando isso acontece, um item
+    `{"tipo_registro": "aviso", ...}` é incluído no resultado para sinalizar
+    explicitamente ao LLM que aquela base específica não pôde ser verificada —
+    distinção importante da Anomalia H do SYSTEM_PROMPT (nunca tratar "não
+    verificado" como "sem sanções").
+    """
+    # Chave da API do Portal da Transparência (CGU), exigida no header em vez de query param
+    CGU_API_KEY = os.getenv("CGU_API_KEY")
+    headers = {"chave-api-dados": CGU_API_KEY, "Accept": "application/json"}
+
+    # Consulta CEIS e CNEP em paralelo, já que são endpoints independentes;
+    # falha em uma fonte não derruba a outra (tratado dentro de _consultar_sancao_async)
+    resultados_ceis, resultados_cnep = await asyncio.gather(
+        _consultar_sancao_async(URL_CEIS, cnpj_limpo, headers),
+        _consultar_sancao_async(URL_CNEP, cnpj_limpo, headers),
+    )
+
+    # None sinaliza falha na fonte (distinto de [] = fonte consultada, sem sanções)
+    avisos = []
+    if resultados_ceis is None:
+        avisos.append(
+            {
+                "tipo_registro": "aviso",
+                "error": f"CEIS indisponível: não foi possível verificar sanções do CNPJ {cnpj_limpo} nesta base.",
+            }
+        )
+        resultados_ceis = []
+    if resultados_cnep is None:
+        avisos.append(
+            {
+                "tipo_registro": "aviso",
+                "error": f"CNEP indisponível: não foi possível verificar sanções do CNPJ {cnpj_limpo} nesta base.",
+            }
+        )
+        resultados_cnep = []
+
+    return avisos + _processar_sancoes(resultados_ceis, resultados_cnep)

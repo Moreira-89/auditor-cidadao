@@ -4,8 +4,9 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Variáveis de ambiente — NÃO vão para o container (ficam no Railway)
+# Variáveis de ambiente — NÃO vão para o container (ficam no Railway/Render).
 .env
+.env.docker
 
 # Controle de versão
 .git/
