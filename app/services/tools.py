@@ -1,31 +1,43 @@
 """
-As 4 tools nativas do projeto, passadas ao agente junto com as tools MCP do PNCP
-(ver app/services/lifespan.py): consulta cadastral (Receita Federal), busca
-semântica no edital indexado (Pinecone), busca web (Tavily) e verificação de
-sanções (CEIS/CNEP do Portal da Transparência).
+As 4 tools nativas ATIVAS do projeto, passadas ao agente junto com as tools MCP
+do PNCP (ver app/services/lifespan.py): consulta cadastral (Receita Federal),
+busca semântica no edital indexado (Pinecone), busca web (Tavily) e verificação
+de sanções (CEIS/CNEP do Portal da Transparência).
+
+Cada tool aqui é intencionalmente um wrapper fino: valida e normaliza os
+argumentos vindos do LLM, delega a chamada externa de verdade para um módulo
+de serviço dedicado (app/services/consulta_*.py, busca_web.py) e traduz o
+resultado (ou a exceção) em algo que o LLM consegue interpretar. Isso mantém
+este arquivo legível conforme o número de tools cresce, e permite reusar a
+lógica de integração fora do contexto de agente (scripts, testes, endpoints).
+
+NOTA — buscar_contratos_fornecedor_pncp (histórico de contratos entre um
+fornecedor e um órgão no PNCP) está definida abaixo mas DESATIVADA de propósito:
+removida de TOOLS e do SYSTEM_PROMPT porque a varredura de todas as modalidades
+de um órgão pode levar vários minutos sob o rate limit do PNCP (ver
+app/services/consulta_pncp.py), o que arrisca derrubar o streaming SSE em
+produção antes de terminar. O código fica pronto para ser reativado depois que
+esse ponto for resolvido (ex.: heartbeats periódicos no SSE, ou escopo mais
+restrito de varredura) — só voltar a incluí-la na lista TOOLS e na seção
+CAPACIDADES DISPONÍVEIS do SYSTEM_PROMPT.
 """
 
 import asyncio
-import os
 import re
 
 import httpx
 from dotenv import load_dotenv
 from langchain.tools import BaseTool, tool
-from langchain_tavily import TavilySearch
 from langgraph.prebuilt import InjectedState
 from pydantic import Field
 from typing_extensions import Annotated
 from validate_docbr import CNPJ
 
 from app.core.dependencies import gerenciador
-from app.utils.filtragem_resultados_web import processar_resultados_busca
-from app.utils.filtragem_sancoes import (
-    URL_CEIS,
-    URL_CNEP,
-    consultar_sancao_async,
-    processar_sancoes,
-)
+from app.services.busca_web import buscar_na_web
+from app.services.consulta_pncp import buscar_contratos_por_fornecedor
+from app.services.consulta_receita_federal import consultar_cnpj
+from app.services.consulta_sancoes import consultar_sancoes
 
 load_dotenv()
 
@@ -35,9 +47,9 @@ async def consultar_receita_federal(
     cnpj: Annotated[
         str,
         Field(
-            description='CNPJ da empresa encontrado no texto. Retorne APENAS os 14 dígitos numéricos, sem pontos, barras ou traços.',
+            description='CNPJ da empresa encontrado no texto. Aceita formatado ("12.345.678/0001-99") ou apenas numérico ("12345678000199").',
             min_length=14,
-            max_length=14,
+            max_length=18,
         ),
     ],
 ) -> dict:
@@ -64,33 +76,16 @@ async def consultar_receita_federal(
             "error": f"CNPJ inválido: '{cnpj}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal."
         }
 
-    url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}"
-
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(url)
-
-        if response.status_code == 200:
-            data = response.json()
-            # Retorna apenas os campos relevantes para auditoria, descartando dados de endereço e telefone
-            return {
-                "razao_social": data.get("razao_social"),
-                "nome_fantasia": data.get("nome_fantasia"),
-                "descricao_situacao_cadastral": data.get(
-                    "descricao_situacao_cadastral"
-                ),
-                "cnae_fiscal_descricao": data.get("cnae_fiscal_descricao"),
-                "data_inicio_atividade": data.get("data_inicio_atividade"),
-            }
-        return {
-            "error": f"Receita Federal retornou status {response.status_code} para o CNPJ {cnpj_limpo}"
-        }
-
+        return await consultar_cnpj(cnpj_limpo)
     except httpx.TimeoutException:
         return {
             "error": f"Timeout ao consultar o CNPJ {cnpj_limpo}: o servidor da BrasilAPI não respondeu a tempo."
         }
-
+    except httpx.HTTPStatusError as e:
+        return {
+            "error": f"Receita Federal retornou status {e.response.status_code} para o CNPJ {cnpj_limpo}"
+        }
     except httpx.RequestError as e:
         # Captura erros de conexão, DNS, SSL, redirect loop, etc.
         return {"error": f"Falha de conexão ao consultar o CNPJ {cnpj_limpo}: {str(e)}"}
@@ -153,21 +148,14 @@ async def buscar_informacao_web(
         Em sucesso: dicionário com a chave "results", contendo os trechos mais relevantes encontrados na web.
         Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
     """
-
-    # search_depth="advanced" prioriza qualidade do conteúdo sobre velocidade da busca
-    tavily_tool = TavilySearch(max_results=3, search_depth="advanced")
-
-    # Concatena estado e município para dar contexto geográfico à busca, já que o LLM é instruído a não incluí-los em assunto_busca
-    query = f"{assunto_busca} {municipio} {estado}"
-
     try:
-        result = await tavily_tool.ainvoke({"query": query})
+        resultados = await buscar_na_web(assunto_busca, estado, municipio)
     except Exception as e:
         # A lib da Tavily não expõe uma hierarquia de exceções específica e documentada
         # (indisponibilidade da API, cota excedida, chave ausente/inválida caem todas aqui)
         return {"error": f"Falha ao buscar informações na web: {str(e)}"}
 
-    return {"results": processar_resultados_busca(result.get("results", []))}
+    return {"results": resultados}
 
 
 @tool
@@ -175,9 +163,9 @@ async def consultar_sancoes_empresa(
     cnpj: Annotated[
         str,
         Field(
-            description='CNPJ da empresa encontrado no texto. Retorne APENAS os 14 dígitos numéricos, sem pontos, barras ou traços.',
+            description='CNPJ da empresa encontrado no texto. Aceita formatado ("12.345.678/0001-99") ou apenas numérico ("12345678000199").',
             min_length=14,
-            max_length=14,
+            max_length=18,
         ),
     ],
 ) -> list:
@@ -210,39 +198,89 @@ async def consultar_sancoes_empresa(
                 "error": f"CNPJ inválido: '{cnpj}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal.",
             }
         ]
-    # Chave da API do Portal da Transparência (CGU), exigida no header em vez de query param
-    CGU_API_KEY = os.getenv("CGU_API_KEY")
-    headers = {"chave-api-dados": CGU_API_KEY, "Accept": "application/json"}
 
-    # Consulta CEIS e CNEP em paralelo, já que são endpoints independentes;
-    # falha em uma fonte não derruba a outra (tratado dentro de consultar_sancao_async)
-    resultados_ceis, resultados_cnep = await asyncio.gather(
-        consultar_sancao_async(URL_CEIS, cnpj_limpo, headers),
-        consultar_sancao_async(URL_CNEP, cnpj_limpo, headers),
-    )
+    return await consultar_sancoes(cnpj_limpo)
 
-    # None sinaliza falha na fonte (distinto de [] = fonte consultada, sem sanções).
-    # Sinaliza explicitamente qual fonte não pôde ser verificada, em vez de
-    # mascarar como "sem sanções" — o LLM depende dessa distinção (Anomalia H).
-    avisos = []
-    if resultados_ceis is None:
-        avisos.append(
-            {
-                "tipo_registro": "aviso",
-                "error": f"CEIS indisponível: não foi possível verificar sanções do CNPJ {cnpj_limpo} nesta base.",
-            }
-        )
-        resultados_ceis = []
-    if resultados_cnep is None:
-        avisos.append(
-            {
-                "tipo_registro": "aviso",
-                "error": f"CNEP indisponível: não foi possível verificar sanções do CNPJ {cnpj_limpo} nesta base.",
-            }
-        )
-        resultados_cnep = []
 
-    return avisos + processar_sancoes(resultados_ceis, resultados_cnep)
+@tool
+async def buscar_contratos_fornecedor_pncp(
+    cnpj_orgao: Annotated[
+        str,
+        Field(
+            description='CNPJ do órgão contratante (prefeitura/município), normalmente encontrado no cabeçalho do edital. Aceita formatado ("12.345.678/0001-99") ou apenas numérico ("12345678000199").',
+            min_length=14,
+            max_length=18,
+        ),
+    ],
+    cnpj_fornecedor: Annotated[
+        str,
+        Field(
+            description='CNPJ da empresa a verificar, encontrado no texto do edital. Aceita formatado ("12.345.678/0001-99") ou apenas numérico ("12345678000199").',
+            min_length=14,
+            max_length=18,
+        ),
+    ],
+    ano: Annotated[
+        int,
+        Field(
+            description="Ano de referência das compras a considerar — normalmente o ano de publicação do edital em análise."
+        ),
+    ],
+) -> dict:
+    """
+    Verifica, no Portal Nacional de Contratações Públicas (PNCP), se um fornecedor
+    específico já venceu (foi homologado) em contratações anteriores junto ao mesmo
+    órgão contratante, dentro de um ano de referência.
+
+    Use esta ferramenta sempre que precisar checar o histórico de relacionamento entre
+    uma empresa mencionada no edital e o órgão contratante (prefeitura) — por exemplo,
+    para investigar Reincidência Suspeita (Anomalia G) ou Fracionamento Irregular
+    (Anomalia C) ao longo do tempo. Diferente de `consultar_receita_federal`, que traz
+    dados cadastrais gerais da empresa, esta ferramenta cruza especificamente o par
+    órgão + fornecedor no PNCP.
+
+    Args:
+        cnpj_orgao: CNPJ do órgão contratante (prefeitura), apenas dígitos.
+        cnpj_fornecedor: CNPJ da empresa a verificar, apenas dígitos.
+        ano: Ano de referência das compras a considerar.
+
+    Returns:
+        Em sucesso: dicionário com a chave "resultados", lista de contratos em que o
+        fornecedor venceu junto a esse órgão naquele ano — cada item com
+        "numeroControlePNCP", "objeto", "valor", "situacao" e "dataResultado". Lista
+        vazia significa que a consulta funcionou, mas não encontrou nenhum contrato
+        do fornecedor com esse órgão naquele ano.
+        Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
+
+    Nota: por causa de limites de requisição impostos pelo PNCP, esta consulta varre
+    todas as modalidades de contratação do órgão no ano e pode levar alguns minutos
+    em órgãos com muitas compras — isso é esperado, não um erro.
+    """
+    # Remove pontuação e hífens para padronizar os CNPJs antes de validar e consultar
+    cnpj_orgao_limpo = re.sub(r"[./-]", "", cnpj_orgao)
+    cnpj_fornecedor_limpo = re.sub(r"[./-]", "", cnpj_fornecedor)
+
+    if not CNPJ().validate(cnpj_orgao_limpo):
+        return {
+            "error": f"CNPJ do órgão inválido: '{cnpj_orgao}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal."
+        }
+    if not CNPJ().validate(cnpj_fornecedor_limpo):
+        return {
+            "error": f"CNPJ do fornecedor inválido: '{cnpj_fornecedor}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal."
+        }
+
+    try:
+        resultados = await buscar_contratos_por_fornecedor(cnpj_orgao_limpo, cnpj_fornecedor_limpo, ano)
+    except httpx.TimeoutException:
+        return {"error": f"Timeout ao consultar o PNCP para o órgão {cnpj_orgao_limpo}."}
+    except httpx.HTTPStatusError as e:
+        return {
+            "error": f"PNCP retornou status {e.response.status_code} para o órgão {cnpj_orgao_limpo}."
+        }
+    except httpx.RequestError as e:
+        return {"error": f"Falha de conexão ao consultar o PNCP: {str(e)}"}
+
+    return {"resultados": resultados}
 
 
 # Lista de tools nativas do projeto — combinada com as MCP tools no startup pelo lifespan
