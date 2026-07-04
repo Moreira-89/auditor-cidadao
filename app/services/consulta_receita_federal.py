@@ -31,11 +31,17 @@ async def consultar_cnpj(cnpj_limpo: str) -> dict:
     response.raise_for_status()
 
     data = response.json()
-    # Retorna apenas os campos relevantes para auditoria, descartando dados de endereço e telefone
+    # Retorna apenas os campos relevantes para auditoria, descartando dados de telefone
     return {
         "razao_social": data.get("razao_social"),
         "nome_fantasia": data.get("nome_fantasia"),
         "descricao_situacao_cadastral": data.get("descricao_situacao_cadastral"),
         "cnae_fiscal_descricao": data.get("cnae_fiscal_descricao"),
         "data_inicio_atividade": data.get("data_inicio_atividade"),
+        "logradouro": data.get("logradouro"),
+        "numero": data.get("numero"),
+        "bairro": data.get("bairro"),
+        "municipio": data.get("municipio"),
+        "uf": data.get("uf"),
+        "cep": data.get("cep"),
     }

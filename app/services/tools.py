@@ -64,7 +64,8 @@ async def consultar_receita_federal(
         cnpj: O CNPJ da empresa a ser consultada.
 
     Returns:
-        Em sucesso: dicionário com razão social, nome fantasia, situação cadastral, CNAE e data de início.
+        Em sucesso: dicionário com razão social, nome fantasia, situação cadastral, CNAE,
+        data de início de atividade e endereço (logradouro, número, bairro, município, UF, CEP).
         Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
     """
     # Remove pontuação e hífens para padronizar o CNPJ antes de validar e consultar
