@@ -61,35 +61,46 @@ class GerenciadorVetorial:
 
         return lista_chunks
 
-    def processar_e_salvar(self, lista_chunks: list[str], metadados: dict) -> None:
+    def processar_e_salvar(
+        self, lista_chunks: list[str], metadados: dict, namespace: str = "production"
+    ) -> None:
         """
         Gera embeddings para cada chunk e realiza o upsert no Pinecone em lote.
         Os metadados são replicados em todos os chunks para permitir filtragem posterior por estado e município.
         """
         logger.info(
-            "Enviando chunks ao Pinecone | chunks=%d | index=%s | metadados=%s",
+            "Enviando chunks ao Pinecone | chunks=%d | index=%s | namespace=%s | metadados=%s",
             len(lista_chunks),
             self.index_name,
+            namespace,
             metadados,
         )
 
         self.vector_store.add_texts(
             texts=lista_chunks,
             metadatas=[metadados] * len(lista_chunks),
+            namespace=namespace,
         )
-        logger.info("Upsert concluído | index=%s", self.index_name)
+        logger.info("Upsert concluído | index=%s | namespace=%s", self.index_name, namespace)
 
-    def buscar_contexto(self, pergunta: str, estado: str, municipio: str) -> str:
+    def buscar_contexto(
+        self,
+        pergunta: str,
+        estado: str,
+        municipio: str,
+        namespace: str = "production",
+    ) -> str:
         """
         Busca semanticamente os 3 trechos do edital mais relevantes para a pergunta.
         Filtra por estado e município para garantir que o contexto retornado
         pertence ao edital correto e não a outro município indexado.
         """
         logger.info(
-            "Busca semântica | pergunta=%s | estado=%s | municipio=%s",
+            "Busca semântica | pergunta=%s | estado=%s | municipio=%s | namespace=%s",
             pergunta[:80],
             estado,
             municipio,
+            namespace,
         )
 
         # Converte a pergunta em vetor e localiza os K=3 chunks mais próximos semanticamente
@@ -100,6 +111,7 @@ class GerenciadorVetorial:
                 "estado": estado,
                 "municipio": municipio,
             },
+            namespace=namespace,
         )
         logger.info(
             "Busca concluída | documentos_encontrados=%d", len(documentos_encontrados)
@@ -115,7 +127,9 @@ class GerenciadorVetorial:
 
         return contexto_final
 
-    def executar(self, texto_edital: str, metadados: dict) -> None:
+    def executar(
+        self, texto_edital: str, metadados: dict, namespace: str = "production"
+    ) -> None:
         """
         Ponto de entrada público para indexar um edital no banco vetorial.
         Valida o texto, chunkiza e persiste no Pinecone em sequência.
@@ -124,4 +138,4 @@ class GerenciadorVetorial:
             raise ValueError("O texto do edital não pode ser vazio.")
 
         lista_chunks = self.chunkizar_documento(texto_edital)
-        self.processar_e_salvar(lista_chunks, metadados)
+        self.processar_e_salvar(lista_chunks, metadados, namespace=namespace)
