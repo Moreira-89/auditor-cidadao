@@ -5,8 +5,6 @@
 assets/external/
 *.txt
 avaliacao_log.json
-Auditor*
-test_mcp_connection.py
 testes_locais/
 .claude/*
 
