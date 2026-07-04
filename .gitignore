@@ -10,9 +10,6 @@ test_mcp_connection.py
 testes_locais/
 .claude/*
 
-# PDF's reais
-app/editais_teste/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
