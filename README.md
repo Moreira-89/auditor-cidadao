@@ -1,14 +1,12 @@
 <div align="center">
 
-# <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/gavel/default/24px.svg" width="28" align="absmiddle"> Auditor Cidadão 
+# 🏛️ Auditor Cidadão
 
-[![Python](https://img.shields.io/badge/python-3.12%2B-555555?style=flat-square)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.137-555555?style=flat-square)](https://fastapi.tiangolo.com/) [![Status](https://img.shields.io/badge/status-MVP-555555?style=flat-square)](#limitações-conhecidas-e-próximos-passos)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.137-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![LangGraph](https://img.shields.io/badge/LangGraph-agentic-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
 </div>
 
----
-
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/description/default/24px.svg" width="20" align="absmiddle"> O caso
+## 📋 O caso
 
 Fiscalizar licitações municipais no Brasil exige cruzar um edital em PDF com meia dúzia de bases
 públicas diferentes (PNCP, Receita Federal, CEIS/CNEP) — um trabalho manual, lento e que a maioria
@@ -23,25 +21,25 @@ O sistema **sinaliza padrões para investigação humana — não acusa nem subs
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/task_alt/default/24px.svg" width="20" align="absmiddle"> Funcionalidades
+## ✨ Funcionalidades
 
 | | Funcionalidade | Descrição |
 |---|---|---|
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/upload_file/default/24px.svg" width="18"> | **Upload de editais em PDF** | Extração de texto, chunking semântico e indexação automática no Pinecone |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/search/default/24px.svg" width="18"> | **Busca semântica (RAG)** | Recupera os trechos mais relevantes do edital, filtrados por estado e município |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/smart_toy/default/24px.svg" width="18"> | **Agente de auditoria** | Loop agêntico (LangGraph) que decide quais fontes consultar em cada análise |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/domain/default/24px.svg" width="18"> | **Consulta à Receita Federal** | Situação cadastral, CNAE e data de fundação de qualquer CNPJ, via BrasilAPI |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/gavel/default/24px.svg" width="18"> | **Sanções (CEIS/CNEP)** | Verifica se uma empresa está impedida de contratar com a administração pública |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/account_tree/default/24px.svg" width="18"> | **Dados de licitação (PNCP)** | 11 ferramentas MCP para histórico de contratos, fornecedores e atas de preço |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/travel_explore/default/24px.svg" width="18"> | **Busca web complementar** | Contexto adicional (notícias, registros públicos) quando as fontes oficiais não bastam |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/bolt/default/24px.svg" width="18"> | **Streaming em tempo real** | Resposta exibida token a token via Server-Sent Events (SSE) |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/sync/default/24px.svg" width="18"> | **Memória conversacional** | O agente mantém contexto entre turnos via `thread_id` |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/shield/default/24px.svg" width="18"> | **Proteção contra Prompt Injection** | Detecta e neutraliza tentativas de manipulação embutidas nos documentos |
-| <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/summarize/default/24px.svg" width="18"> | **Laudo estruturado** | Markdown + JSON com Resumo Executivo, anomalias classificadas e Score de Risco |
+| 📄 | **Upload de editais em PDF** | Extração de texto, chunking semântico e indexação automática no Pinecone |
+| 🔍 | **Busca semântica (RAG)** | Recupera os trechos mais relevantes do edital, filtrados por estado e município |
+| 🤖 | **Agente de auditoria** | Loop agêntico (LangGraph) que decide quais fontes consultar em cada análise |
+| 🏢 | **Consulta à Receita Federal** | Situação cadastral, CNAE e data de fundação de qualquer CNPJ, via BrasilAPI |
+| ⚖️ | **Sanções (CEIS/CNEP)** | Verifica se uma empresa está impedida de contratar com a administração pública |
+| 📋 | **Dados de licitação (PNCP)** | 11 ferramentas MCP para histórico de contratos, fornecedores e atas de preço |
+| 🌐 | **Busca web complementar** | Contexto adicional (notícias, registros públicos) quando as fontes oficiais não bastam |
+| ⚡ | **Streaming em tempo real** | Resposta exibida token a token via Server-Sent Events (SSE) |
+| 🔄 | **Memória conversacional** | O agente mantém contexto entre turnos via `thread_id` |
+| 🛡️ | **Proteção contra Prompt Injection** | Detecta e neutraliza tentativas de manipulação embutidas nos documentos |
+| 📊 | **Laudo estruturado** | Markdown + JSON com Resumo Executivo, anomalias classificadas e Score de Risco |
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/account_tree/default/24px.svg" width="20" align="absmiddle"> Arquitetura resumida
+## 🏗️ Arquitetura resumida
 
 ```mermaid
 flowchart TD
@@ -84,7 +82,7 @@ ao final, o laudo estruturado em JSON.
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/smart_toy/default/24px.svg" width="20" align="absmiddle"> Loop agêntico e ferramentas
+## 🤖 Loop agêntico e ferramentas
 
 O núcleo do sistema é um `StateGraph` do LangGraph com dois nós — `call_llm` e `ToolNode` — que se
 alternam até o modelo parar de solicitar ferramentas. `InMemorySaver` persiste o histórico por
@@ -104,7 +102,7 @@ camada de compatibilidade de tipos para o provider de LLM em uso.
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/warning/default/24px.svg" width="20" align="absmiddle"> Catálogo de anomalias detectáveis
+## 🚨 Catálogo de anomalias detectáveis
 
 O agente investiga sistematicamente 9 categorias em cada análise:
 
@@ -127,7 +125,7 @@ Concluídas" do laudo.
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/shield/default/24px.svg" width="20" align="absmiddle"> Segurança e proteção contra prompt injection
+## 🛡️ Segurança e proteção contra prompt injection
 
 Editais públicos são documentos de terceiros e podem conter texto malicioso tentando manipular o
 agente. Camadas de defesa aplicadas:
@@ -146,7 +144,7 @@ agente. Camadas de defesa aplicadas:
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/construction/default/24px.svg" width="20" align="absmiddle"> Stack tecnológica
+## 🛠️ Stack tecnológica
 
 | Categoria | Tecnologia |
 |---|---|
@@ -168,7 +166,7 @@ Versões exatas em [`requirements.txt`](./requirements.txt).
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/folder_open/default/24px.svg" width="20" align="absmiddle"> Estrutura do projeto
+## 📂 Estrutura do projeto
 
 ```text
 auditor-cidadao/
@@ -218,7 +216,7 @@ auditor-cidadao/
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/settings/default/24px.svg" width="20" align="absmiddle"> Configuração e instalação local
+## ⚙️ Configuração e instalação local
 
 ### Pré-requisitos
 
@@ -260,7 +258,7 @@ A aplicação sobe em `http://127.0.0.1:8000`:
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/key/default/24px.svg" width="20" align="absmiddle"> Variáveis de ambiente
+## 🔐 Variáveis de ambiente
 
 Template completo em [`.env.example`](./.env.example) — copie para `.env` e preencha:
 
@@ -289,7 +287,7 @@ CGU_API_KEY=...        # Obrigatória — tool consultar_sancoes_empresa (CEIS/C
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/api/default/24px.svg" width="20" align="absmiddle"> Referência da API e exemplos de uso
+## 🔌 Referência da API e exemplos de uso
 
 ### `POST /upload/` — indexa um edital
 
@@ -354,7 +352,7 @@ de deixar a conexão pendurada. Consulte o schema completo do laudo estruturado 
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/deployed_code/default/24px.svg" width="20" align="absmiddle"> Docker
+## 🐳 Docker
 
 ```bash
 docker build -t auditor-cidadao .
@@ -369,7 +367,8 @@ docker run -p 8000:8000 --env-file .env auditor-cidadao
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/flag/default/24px.svg" width="20" align="absmiddle"> Limitações conhecidas e próximos passos
+<a id="limitações-conhecidas"></a>
+## 🗺️ Limitações conhecidas e próximos passos
 
 - **Histórico de contratos entre fornecedor e órgão específico:** implementado
   (`app/services/consulta_pncp.py`) e validado com dados reais, porém **temporariamente desativado**
@@ -388,6 +387,6 @@ docker run -p 8000:8000 --env-file .env auditor-cidadao
 
 ---
 
-## <img src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/description/default/24px.svg" width="20" align="absmiddle"> Licença
+## 📄 Licença
 
 Distribuído sob a **Apache License 2.0**. Consulte [`LICENSE`](./LICENSE) para o texto completo.
