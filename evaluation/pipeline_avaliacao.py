@@ -2,7 +2,8 @@
 Pipeline de avaliação automatizada do agente de auditoria contra o golden dataset
 (evaluation/golden_dataset.json). Para cada caso: indexa o edital de teste no Pinecone,
 roda o agente de ponta a ponta (mesmo grafo/tools/prompt usados em produção) e mede o
-resultado em duas camadas independentes, escrevendo tudo em evaluation/relatorio.json.
+resultado em três métricas independentes (aderencia_tools, RAGAS, recall_anomalias),
+escrevendo tudo em evaluation/relatorio.json.
 """
 
 import asyncio
@@ -24,52 +25,19 @@ from ragas.metrics import context_recall, faithfulness
 from app.core.dependencies import (
     AVALIADOR_MODEL,
     AVALIADOR_TEMPERATURE,
+    EXTRATOR_MODEL,
+    EXTRATOR_TEMPERATURE,
     gerenciador,
     retornar_cliente_llm,
 )
 from app.core.logging_config import logger
-from app.core.prompt import PROMPT_DINAMICO, SYSTEM_PROMPT
+from app.core.prompt import PROMPT_DINAMICO, PROMPT_EXTRATOR, SYSTEM_PROMPT
+from app.models.laudo import RespostaLaudo
 from app.services.ai_engine import escape_xml
 from app.services.build_graph import build_graph
 from app.services.tools import TOOLS
 from app.utils.func_extrair_texto_pdf import extrair_texto_pdf
 from evaluation.metricas import calcular_aderencia_tools
-
-# =============================================================================
-# CONTEXTO GERAL DO MÓDULO
-#
-# Este script roda o mesmo agente de produção (build_graph + TOOLS + SYSTEM_PROMPT)
-# contra casos de teste fixos, em vez de reimplementar uma versão simplificada dele —
-# isso garante que o resultado da avaliação reflita o comportamento real, não uma
-# aproximação. Duas decisões de isolamento tornam isso seguro de rodar repetidamente:
-#
-#   1. Namespace dedicado no Pinecone ("avaliacao", separado de "production"): a env var
-#      PINECONE_NAMESPACE é lida em tempo de chamada por buscar_contexto_edital
-#      (app/services/tools.py), então o agente busca no mesmo lugar onde este script
-#      acabou de indexar, sem tocar nos dados reais de produção.
-#   2. Falha isolada por caso: cada iteração do golden dataset roda dentro do próprio
-#      try/except — um PDF corrompido ou uma falha pontual do agente não derruba a
-#      avaliação inteira, só marca aquele caso como erro e segue para o próximo.
-#
-# A avaliação em si tem DUAS métricas independentes, cada uma com seu próprio critério
-# de "se aplica ou não":
-#   - aderencia_tools (calcular_aderencia_tools, em evaluation/metricas.py): compara as
-#     tools chamadas pelo agente com as esperadas no golden dataset. Calculada para
-#     TODO caso que não falhou, não depende de LLM nenhum.
-#   - RAGAS (faithfulness/context_recall): mede se o laudo do agente é fiel ao contexto
-#     recuperado e se esse contexto recuperado cobre o que era esperado. Só se aplica
-#     aos casos cujas tools_esperadas incluem buscar_contexto_edital — para os demais
-#     (ex.: casos que só consultam sanções), a métrica não faz sentido e o caso é
-#     simplesmente pulado dessa camada. Usa um LLM avaliador PRÓPRIO (AVALIADOR_MODEL),
-#     desacoplado do LLM do agente principal, para não ter o mesmo modelo jugando a si
-#     mesmo com os parâmetros de geração.
-#
-# Por cima dessas duas métricas, há uma camada de APROVAÇÃO (CRITERIOS_APROVACAO):
-# cada métrica agregada é comparada a um limiar mínimo, e "geral" só é True se nenhuma
-# métrica aplicável ficou abaixo do seu limiar. Uma métrica que não pôde ser calculada
-# (None — ex.: nenhum caso elegível pro RAGAS) não reprova a avaliação por falta de
-# dado; só reprova quem realmente rodou e ficou abaixo do esperado.
-# =============================================================================
 
 # Este script é um ponto de entrada (rodado via `python -m evaluation.pipeline_avaliacao`),
 # então é responsabilidade dele configurar o handler do logger "auditor_cidadao" — que por
@@ -81,6 +49,40 @@ logger.setLevel(logging.INFO)
 
 # Carrega as variáveis de ambiente (como PINECONE_API_KEY) do arquivo .env
 load_dotenv()
+
+
+def _formatar_relatorio_aprovacao(aprovacao: dict, criterios: dict) -> str:
+    """
+    Monta a versão legível de `aprovacao` para log no terminal — o dict cru (nested,
+    com None/True/False misturados) fica ilegível numa linha só de %s no logger.
+    """
+    LARGURA = 60
+    linhas = ["=" * LARGURA, " RESULTADO DA AVALIAÇÃO".center(LARGURA), "=" * LARGURA]
+
+    for nome, resultado in aprovacao.items():
+        if nome == "geral":
+            continue
+
+        valor = resultado["valor"]
+        if valor is None:
+            # Métrica não computada (ex.: nenhum caso elegível pro RAGAS ou pra
+            # recall_anomalias) — não é reprovação, é "não se aplica".
+            linhas.append(f"  {nome:<18}: não computado (métrica não se aplicou)")
+            continue
+
+        limiar = criterios[nome]
+        # Marcadores em texto puro (não emoji): logging.StreamHandler herda a codepage
+        # do console, e no cmd.exe/PowerShell com codepage padrão (cp1252) um emoji aqui
+        # derruba o log inteiro com UnicodeEncodeError.
+        status = "[OK]     APROVADO" if resultado["aprovado"] else "[FALHOU] REPROVADO"
+        linhas.append(f"  {nome:<18}: {valor:.3f}  (mínimo {limiar:.2f})  {status}")
+
+    linhas.append("-" * LARGURA)
+    veredito = "[OK]     APROVADO" if aprovacao["geral"] else "[FALHOU] REPROVADO"
+    linhas.append(f"  VEREDITO GERAL: {veredito}")
+    linhas.append("=" * LARGURA)
+
+    return "\n".join(linhas)
 
 
 def limpar_namespace_avaliacao(namespace: str = "avaliacao"):
@@ -125,13 +127,19 @@ async def main(salvar_json: bool = True):
     2. Para cada caso do golden dataset: indexa o edital de teste, invoca o agente
        numa thread nova (thread_id isolado por caso) e captura tudo que sai do
        streaming de eventos — laudo final, tools chamadas e contexto recuperado.
-    3. Calcula aderencia_tools por caso e agrega a média entre os que não falharam.
-    4. Limpa o namespace "avaliacao" de novo (não deixa lixo de teste para trás).
-    5. Roda o RAGAS só nos casos elegíveis (ver CONTEXTO GERAL DO MÓDULO acima) e
+    3. Ainda dentro do loop, calcula por caso: aderencia_tools (comparação de tools,
+       sem LLM); e, num try/except próprio (ver comentário no loop), roda o extrator
+       estruturado sobre o laudo_completo para obter codigos_detectados e o
+       recall_anomalias correspondente.
+    4. Fora do loop, agrega a média de aderencia_tools e de recall_anomalias entre os
+       casos que não falharam (e, no caso de recall_anomalias, que tinham
+       anomalias_esperadas de fato).
+    5. Limpa o namespace "avaliacao" de novo (não deixa lixo de teste para trás).
+    6. Roda o RAGAS só nos casos elegíveis (ver CONTEXTO GERAL DO MÓDULO acima) e
        agrega faithfulness/context_recall.
-    6. Compara as métricas agregadas com CRITERIOS_APROVACAO e monta o veredito
+    7. Compara as três métricas agregadas com CRITERIOS_APROVACAO e monta o veredito
        final (aprovacao["geral"]).
-    7. Junta tudo (casos individuais + as duas agregações + o veredito de aprovação)
+    8. Junta tudo (casos individuais + as três agregações + o veredito de aprovação)
        em evaluation/relatorio.json — só grava o arquivo se salvar_json for True.
 
     Args:
@@ -158,6 +166,17 @@ async def main(salvar_json: bool = True):
     golden_dataset_por_id = {caso["id"]: caso for caso in golden_dataset}
 
     grafo = build_graph(TOOLS)
+
+    # Réplica do extrator de app/services/ai_engine.py (RespostaLaudo via
+    # with_structured_output): não depende de estado entre chamadas, só da configuração
+    # do modelo — por isso é criado uma única vez aqui fora, igual ao grafo acima, em vez
+    # de recriar um cliente novo a cada caso. Usa EXTRATOR_MODEL/EXTRATOR_TEMPERATURE (o
+    # extrator de produção), não AVALIADOR_MODEL — este último é do LLM-juiz do RAGAS,
+    # um papel diferente do de extrair a versão estruturada do laudo.
+    extrator_estruturado = retornar_cliente_llm(
+        model_name=EXTRATOR_MODEL,
+        config_params={"temperature": EXTRATOR_TEMPERATURE},
+    ).with_structured_output(RespostaLaudo)
 
     for caso in golden_dataset:
         try:
@@ -261,6 +280,47 @@ async def main(salvar_json: bool = True):
 
             aderencia = calcular_aderencia_tools(caso, tools_chamadas)
 
+            # Try/except PRÓPRIO, separado do try do caso: o agente já rodou com sucesso
+            # até aqui (laudo_completo, tools_chamadas e aderencia_tools já estão prontos e
+            # corretos), então uma falha só na extração estruturada não pode jogar tudo isso
+            # fora — mesmo raciocínio de ai_engine.py, que isola a extração num try/except
+            # próprio para não derrubar o "done" do streaming se só ela falhar. Aqui, o
+            # efeito equivalente de uma falha é: codigos_detectados vira conjunto vazio, e
+            # o resto do resultado do caso sobrevive normalmente.
+            try:
+                resultado_extrator = await extrator_estruturado.ainvoke(
+                    [
+                        SystemMessage(content=PROMPT_EXTRATOR),
+                        HumanMessage(content=laudo_completo),
+                    ]
+                )
+                if resultado_extrator.laudo is not None:
+                    codigos_detectados = {
+                        anomalia.codigo
+                        for anomalia in resultado_extrator.laudo.anomalias
+                    }
+                else:
+                    # laudo=None é esperado para respostas conversacionais (sem anomalia
+                    # nenhuma a extrair) — não é uma falha, só não há nada pra detectar.
+                    codigos_detectados = set()
+            except Exception as e:
+                logger.exception(
+                    "Erro ao extrair laudo estruturado do caso '%s': %s",
+                    caso.get("id", "desconhecido"),
+                    str(e),
+                )
+                codigos_detectados = set()
+
+            # Ambos os branches do try/except acima já deixam codigos_detectados definido
+            # (com o conjunto real ou vazio), então o recall pode ser calculado aqui fora,
+            # sem duplicar essa conta nos dois lugares.
+            codigos_esperados = set(caso.get("anomalias_esperadas", []))
+            recall_anomalias = (
+                len(codigos_esperados & codigos_detectados) / len(codigos_esperados)
+                if codigos_esperados
+                else None
+            )
+
             resultados.append(
                 {
                     "id": caso.get("id", "desconhecido"),
@@ -268,6 +328,8 @@ async def main(salvar_json: bool = True):
                     "tools_chamadas": tools_chamadas,
                     "contexto_recuperado": contexto_recuperado,
                     "aderencia_tools": aderencia,
+                    "codigos_detectados": sorted(codigos_detectados),
+                    "recall_anomalias": recall_anomalias,
                 }
             )
         except Exception as e:
@@ -295,6 +357,20 @@ async def main(salvar_json: bool = True):
     # falharem (raro, mas possível — ex.: Pinecone fora do ar durante toda a execução).
     media_aderencia_tools = (
         sum(valores_aderencia) / len(valores_aderencia) if valores_aderencia else None
+    )
+
+    # Mesmo raciocínio de agregação de aderencia_tools, só que aqui também precisa excluir
+    # os casos com recall_anomalias None — não são "erro", são casos sem anomalias_esperadas
+    # (ex.: caso controle conversacional), onde o recall simplesmente não se aplica.
+    valores_recall_anomalias = [
+        r["recall_anomalias"]
+        for r in resultados
+        if "erro" not in r and r["recall_anomalias"] is not None
+    ]
+    media_recall_anomalias = (
+        sum(valores_recall_anomalias) / len(valores_recall_anomalias)
+        if valores_recall_anomalias
+        else None
     )
 
     limpar_namespace_avaliacao()
@@ -357,7 +433,12 @@ async def main(salvar_json: bool = True):
 
     # Limiares mínimos para cada métrica ser considerada aprovada — ajuste aqui conforme
     # o padrão de qualidade esperado for calibrado com mais execuções do golden dataset.
-    CRITERIOS_APROVACAO = {"aderencia_tools": 0.70, "faithfulness": 0.85, "context_recall": 0.75}
+    CRITERIOS_APROVACAO = {
+        "aderencia_tools": 0.70,
+        "faithfulness": 0.85,
+        "context_recall": 0.75,
+        "recall_anomalias": 0.80,
+    }
 
     def _avaliar_metrica(nome, valor):
         # valor None significa "não computado" (ex.: nenhum caso elegível pro RAGAS),
@@ -369,8 +450,16 @@ async def main(salvar_json: bool = True):
 
     aprovacao = {
         "aderencia_tools": _avaliar_metrica("aderencia_tools", media_aderencia_tools),
-        "faithfulness": _avaliar_metrica("faithfulness", ragas_agregado["faithfulness"] if ragas_agregado else None),
-        "context_recall": _avaliar_metrica("context_recall", ragas_agregado["context_recall"] if ragas_agregado else None),
+        "faithfulness": _avaliar_metrica(
+            "faithfulness", ragas_agregado["faithfulness"] if ragas_agregado else None
+        ),
+        "context_recall": _avaliar_metrica(
+            "context_recall",
+            ragas_agregado["context_recall"] if ragas_agregado else None,
+        ),
+        "recall_anomalias": _avaliar_metrica(
+            "recall_anomalias", media_recall_anomalias
+        ),
     }
 
     # `is not False` (em vez de checar o valor truthy de "aprovado") é o que garante que uma
@@ -382,14 +471,18 @@ async def main(salvar_json: bool = True):
         "casos": resultados,
         "ragas_agregado": ragas_agregado,
         "media_aderencia_tools": media_aderencia_tools,
+        "media_recall_anomalias": media_recall_anomalias,
         "aprovacao": aprovacao,
     }
 
-    logger.info("\nResultado da avaliação: %s", aprovacao)
+    logger.info("\n%s", _formatar_relatorio_aprovacao(aprovacao, CRITERIOS_APROVACAO))
 
     if salvar_json:
         with open("evaluation/relatorio.json", "w", encoding="utf-8") as f:
             json.dump(relatorio_final, f, ensure_ascii=False, indent=2)
 
+
 if __name__ == "__main__":
     asyncio.run(main(salvar_json=False))
+
+# Rodar: clear; python -m evaluation.pipeline_avaliacao
