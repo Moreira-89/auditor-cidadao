@@ -1,12 +1,11 @@
 import asyncio
-import io
 
-import pdfplumber
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.core.dependencies import gerenciador
 from app.core.logging_config import logger
 from app.utils.func_extrair_cnpj import extrair_cnpj
+from app.utils.func_extrair_texto_pdf import ErroExtracaoPDF, extrair_texto_pdf
 
 # Roteador com prefixo "/upload" — agrupa os endpoints de ingestão de editais
 router = APIRouter(prefix="/upload", tags=["Upload"])
@@ -60,14 +59,8 @@ async def upload_edital(
 
     # Abre o PDF em memória (sem salvar em disco) e extrai o texto de cada página
     try:
-        with pdfplumber.open(io.BytesIO(conteudo_bytes)) as pdf:
-            num_paginas = len(pdf.pages)
-            # Concatena o texto de todas as páginas; usa "" se uma página não tiver texto legível
-            texto = "\n".join(pagina.extract_text() or "" for pagina in pdf.pages)
-    except Exception as e:
-        logger.error(
-            "Falha na extração de texto | arquivo=%s | erro=%s", file.filename, str(e)
-        )
+        texto, num_paginas = extrair_texto_pdf(conteudo_bytes, file.filename)
+    except ErroExtracaoPDF:
         raise HTTPException(
             status_code=422,
             detail="Não foi possível ler o PDF. O arquivo pode estar corrompido ou protegido por senha.",

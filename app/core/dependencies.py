@@ -26,6 +26,12 @@ EXTRATOR_MODEL = os.getenv("EXTRATOR_MODEL", "openai:gpt-4o-mini")
 # Temperatura 0 por padrão: saída determinística é o comportamento esperado para extração.
 EXTRATOR_TEMPERATURE = float(os.getenv("EXTRATOR_TEMPERATURE", "0.0"))
 
+# Modelo usado pelo RAGAS (evaluation/pipeline_avaliacao.py) para julgar as métricas —
+# separado do LLM_MODEL do agente principal para permitir trocar um sem afetar o outro.
+AVALIADOR_MODEL = os.getenv("AVALIADOR_MODEL", "openai:gpt-4o-mini")
+# Temperatura 0 por padrão: saída determinística é o comportamento esperado para avaliação.
+AVALIADOR_TEMPERATURE = float(os.getenv("AVALIADOR_TEMPERATURE", "0.0"))
+
 
 # GerenciadorVetorial instanciado uma única vez no import (Singleton):
 # carrega o modelo de embedding e conecta ao Pinecone — custoso demais para recriar por requisição.

@@ -23,6 +23,7 @@ CAPACIDADES DISPONÍVEIS do SYSTEM_PROMPT.
 """
 
 import asyncio
+import os
 import re
 
 import httpx
@@ -113,12 +114,18 @@ async def buscar_contexto_edital(
         Trechos do edital mais relevantes para a pergunta, prontos para análise.
         Se nenhum trecho for encontrado, retorna uma mensagem informando que o edital pode não estar indexado.
     """
+    # Lido em tempo de chamada (não de import) para que evaluation/pipeline_avaliacao.py
+    # possa apontar para o namespace "avaliacao" via env var sem afetar o agente em produção,
+    # que continua usando o default "production" do GerenciadorVetorial.
+    namespace_busca = os.getenv("PINECONE_NAMESPACE", "production")
+
     # asyncio.to_thread garante que a query síncrona ao Pinecone não bloqueie o event loop
     return await asyncio.to_thread(
         gerenciador.buscar_contexto,
         pergunta=pergunta,
         estado=estado,
         municipio=municipio,
+        namespace=namespace_busca,
     )
 
 
