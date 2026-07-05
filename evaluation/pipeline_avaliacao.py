@@ -51,7 +51,7 @@ from evaluation.metricas import calcular_aderencia_tools
 #      try/except — um PDF corrompido ou uma falha pontual do agente não derruba a
 #      avaliação inteira, só marca aquele caso como erro e segue para o próximo.
 #
-# A avaliação em si tem DUAS camadas independentes, cada uma com seu próprio critério
+# A avaliação em si tem DUAS métricas independentes, cada uma com seu próprio critério
 # de "se aplica ou não":
 #   - aderencia_tools (calcular_aderencia_tools, em evaluation/metricas.py): compara as
 #     tools chamadas pelo agente com as esperadas no golden dataset. Calculada para
@@ -63,6 +63,12 @@ from evaluation.metricas import calcular_aderencia_tools
 #     simplesmente pulado dessa camada. Usa um LLM avaliador PRÓPRIO (AVALIADOR_MODEL),
 #     desacoplado do LLM do agente principal, para não ter o mesmo modelo jugando a si
 #     mesmo com os parâmetros de geração.
+#
+# Por cima dessas duas métricas, há uma camada de APROVAÇÃO (CRITERIOS_APROVACAO):
+# cada métrica agregada é comparada a um limiar mínimo, e "geral" só é True se nenhuma
+# métrica aplicável ficou abaixo do seu limiar. Uma métrica que não pôde ser calculada
+# (None — ex.: nenhum caso elegível pro RAGAS) não reprova a avaliação por falta de
+# dado; só reprova quem realmente rodou e ficou abaixo do esperado.
 # =============================================================================
 
 # Este script é um ponto de entrada (rodado via `python -m evaluation.pipeline_avaliacao`),
@@ -95,7 +101,6 @@ def limpar_namespace_avaliacao(namespace: str = "avaliacao"):
     logger.info("Conectando ao Pinecone...")
     pc = Pinecone(api_key=api_key)
     index_name = "auditor-cidadao"
-    namespace = namespace
 
     try:
         index = pc.Index(index_name)
@@ -124,13 +129,15 @@ async def main(salvar_json: bool = True):
     4. Limpa o namespace "avaliacao" de novo (não deixa lixo de teste para trás).
     5. Roda o RAGAS só nos casos elegíveis (ver CONTEXTO GERAL DO MÓDULO acima) e
        agrega faithfulness/context_recall.
-    6. Junta tudo (casos individuais + as duas agregações) em evaluation/relatorio.json.
+    6. Compara as métricas agregadas com CRITERIOS_APROVACAO e monta o veredito
+       final (aprovacao["geral"]).
+    7. Junta tudo (casos individuais + as duas agregações + o veredito de aprovação)
+       em evaluation/relatorio.json — só grava o arquivo se salvar_json for True.
 
     Args:
-        salvar_json: aceito para permitir, no futuro, rodar a avaliação sem persistir
-            em disco (ex.: a partir de um teste automatizado). Hoje o relatório é
-            sempre escrito, independente do valor passado — ainda não há um branch
-            condicional usando este parâmetro.
+        salvar_json: quando False, roda a avaliação inteira (inclusive logando o
+            veredito) mas não escreve evaluation/relatorio.json — útil para rodar a
+            partir de um teste automatizado sem sujar o disco.
     """
     # Direciona buscar_contexto_edital (app/services/tools.py) para o namespace de teste —
     # lido em tempo de chamada pela tool, então precisa estar setado antes do primeiro
@@ -348,15 +355,41 @@ async def main(salvar_json: bool = True):
             for metrica in [faithfulness, context_recall]
         }
 
+    # Limiares mínimos para cada métrica ser considerada aprovada — ajuste aqui conforme
+    # o padrão de qualidade esperado for calibrado com mais execuções do golden dataset.
+    CRITERIOS_APROVACAO = {"aderencia_tools": 0.70, "faithfulness": 0.85, "context_recall": 0.75}
+
+    def _avaliar_metrica(nome, valor):
+        # valor None significa "não computado" (ex.: nenhum caso elegível pro RAGAS),
+        # não "computado e ruim" — por isso aprovado também fica None aqui, e não False.
+        # É essa distinção que o `is not False` em aprovacao["geral"] mais abaixo respeita.
+        if valor is None:
+            return {"valor": None, "aprovado": None}
+        return {"valor": valor, "aprovado": valor >= CRITERIOS_APROVACAO[nome]}
+
+    aprovacao = {
+        "aderencia_tools": _avaliar_metrica("aderencia_tools", media_aderencia_tools),
+        "faithfulness": _avaliar_metrica("faithfulness", ragas_agregado["faithfulness"] if ragas_agregado else None),
+        "context_recall": _avaliar_metrica("context_recall", ragas_agregado["context_recall"] if ragas_agregado else None),
+    }
+
+    # `is not False` (em vez de checar o valor truthy de "aprovado") é o que garante que uma
+    # métrica None (não computada) não reprove a avaliação geral — só uma métrica que
+    # rodou e ficou abaixo do limiar (aprovado == False) derruba aprovacao["geral"].
+    aprovacao["geral"] = all(m["aprovado"] is not False for m in aprovacao.values())
+
     relatorio_final = {
         "casos": resultados,
         "ragas_agregado": ragas_agregado,
         "media_aderencia_tools": media_aderencia_tools,
+        "aprovacao": aprovacao,
     }
 
-    with open("evaluation/relatorio.json", "w", encoding="utf-8") as f:
-        json.dump(relatorio_final, f, ensure_ascii=False, indent=2)
+    logger.info("\nResultado da avaliação: %s", aprovacao)
 
+    if salvar_json:
+        with open("evaluation/relatorio.json", "w", encoding="utf-8") as f:
+            json.dump(relatorio_final, f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
-    asyncio.run(main(salvar_json=True))
+    asyncio.run(main(salvar_json=False))
