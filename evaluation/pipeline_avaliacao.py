@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 import uuid
 from datetime import date
 
@@ -118,6 +119,55 @@ def limpar_namespace_avaliacao(namespace: str = "avaliacao"):
         logger.error("Erro ao limpar o namespace '%s': %s", namespace, str(e))
 
 
+def _aguardar_contagem_namespace(
+    contagem_esperada: int,
+    namespace: str = "avaliacao",
+    timeout: float = 60.0,
+    intervalo: float = 1.0,
+):
+    """
+    Bloqueia até o namespace ter EXATAMENTE `contagem_esperada` vetores consultáveis,
+    contornando a consistência eventual do Pinecone: um upsert (ou delete) não fica
+    visível para o similarity_search no mesmo instante em que a chamada HTTP retorna.
+
+    Sem essa barreira, o agente podia chamar buscar_contexto_edital antes de os chunks
+    do caso terem propagado — recuperando 0/parte dos trechos — o que derrubava
+    context_recall e faithfulness de forma não-determinística entre execuções (a origem
+    da variância observada no RAGAS). describe_index_stats é o canal recomendado pelo
+    Pinecone para checar a freshness da indexação.
+    """
+    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+    index = pc.Index("auditor-cidadao")
+
+    inicio = time.monotonic()
+    while True:
+        try:
+            namespaces = (
+                index.describe_index_stats().to_dict().get("namespaces", {}) or {}
+            )
+            contagem = namespaces.get(namespace, {}).get("vector_count", 0)
+        except NotFoundException:
+            # Namespace ainda não existe (ex.: logo após um delete_all que já propagou)
+            contagem = 0
+
+        if contagem == contagem_esperada:
+            return
+
+        if time.monotonic() - inicio > timeout:
+            logger.warning(
+                "Timeout (%.0fs) aguardando namespace '%s' atingir %d vetores "
+                "(atual=%d) — seguindo mesmo assim; o retrieval deste caso pode "
+                "ficar incompleto.",
+                timeout,
+                namespace,
+                contagem_esperada,
+                contagem,
+            )
+            return
+
+        time.sleep(intervalo)
+
+
 async def main(salvar_json: bool = True):
     """
     Roda o golden dataset inteiro contra o agente e escreve evaluation/relatorio.json.
@@ -147,12 +197,13 @@ async def main(salvar_json: bool = True):
             veredito) mas não escreve evaluation/relatorio.json — útil para rodar a
             partir de um teste automatizado sem sujar o disco.
     """
-    # Direciona buscar_contexto_edital (app/services/tools.py) para o namespace de teste —
-    # lido em tempo de chamada pela tool, então precisa estar setado antes do primeiro
-    # turno do agente, não só antes da indexação.
-    os.environ["PINECONE_NAMESPACE"] = "avaliacao"
-
-    limpar_namespace_avaliacao()
+    # Cada caso recebe um namespace EXCLUSIVO ("avaliacao_<id>"), setado em
+    # os.environ["PINECONE_NAMESPACE"] dentro do loop — buscar_contexto_edital
+    # (app/services/tools.py) lê essa env em tempo de chamada. O motivo de ser um
+    # namespace por caso (em vez de um "avaliacao" único reaproveitado) está no
+    # comentário do loop abaixo: elimina a corrida de consistência do delete/re-add.
+    # namespaces_usados guarda o que foi criado para uma limpeza final única.
+    namespaces_usados: set[str] = set()
 
     # Lista para guardar o resultado de cada avaliação do golden dataset.
     resultados = []
@@ -195,9 +246,31 @@ async def main(salvar_json: bool = True):
 
             metadados = {"estado": caso["estado"], "municipio": caso["municipio"]}
 
-            gerenciador.executar(
-                texto_edital=texto_extraido, metadados=metadados, namespace="avaliacao"
+            # Namespace EXCLUSIVO por caso + barreira de consistência.
+            #
+            # Por que um namespace por caso (e não um "avaliacao" único reaproveitado):
+            # com um namespace compartilhado, casos consecutivos do mesmo município
+            # (ex.: caso_05 e caso_06, ambos Melgaço) faziam limpar-e-reindexar o MESMO
+            # namespace em sequência. Mesmo esperando o vector_count, o filtro por
+            # metadados do Pinecone tem um lag de freshness próprio nesse padrão de
+            # delete/re-add adjacente, e a busca do caso_06 voltava VAZIA de forma
+            # intermitente (flicker VAZIO<->cheio entre execuções) — variância residual
+            # do RAGAS. Com um namespace só para este caso, não há adjacência de
+            # delete/re-add: limpamos só resíduo de execuções ANTERIORES (já propagado
+            # há minutos), esperamos zerar, indexamos e esperamos propagar.
+            namespace_caso = f"avaliacao_{caso['id']}"
+            # Setado ANTES do turno do agente — a tool lê PINECONE_NAMESPACE em tempo de chamada.
+            os.environ["PINECONE_NAMESPACE"] = namespace_caso
+            namespaces_usados.add(namespace_caso)
+
+            limpar_namespace_avaliacao(namespace_caso)
+            _aguardar_contagem_namespace(0, namespace=namespace_caso)
+
+            lista_chunks = gerenciador.chunkizar_documento(texto_extraido)
+            gerenciador.processar_e_salvar(
+                lista_chunks, metadados, namespace=namespace_caso
             )
+            _aguardar_contagem_namespace(len(lista_chunks), namespace=namespace_caso)
 
             thread_id = str(uuid.uuid4())
             config = {"configurable": {"thread_id": thread_id}}
@@ -373,7 +446,10 @@ async def main(salvar_json: bool = True):
         else None
     )
 
-    limpar_namespace_avaliacao()
+    # Limpa todos os namespaces por caso criados nesta execução — não deixa lixo de
+    # teste acumulado no Pinecone entre execuções (um namespace "avaliacao_<id>" por caso).
+    for namespace_caso in namespaces_usados:
+        limpar_namespace_avaliacao(namespace_caso)
 
     llm_ragas = LangchainLLMWrapper(
         retornar_cliente_llm(
