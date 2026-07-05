@@ -86,7 +86,6 @@ limpar_namespace_avaliacao()
 # Lista para guardar o resultado de cada avaliação do golden dataset.
 resultados = []
 
-
 async def main():
     grafo = build_graph(TOOLS)
 
@@ -105,19 +104,11 @@ async def main():
                 )
                 texto_extraido += caso.get("trecho_injetado", "")
 
-            # Disambigua se uma falha de recuperação (ex.: caso_02, cláusula Dell Inspiron)
-            # vem do RAG/chunking ou já do próprio pdfplumber não ter extraído o trecho
-            if "Dell Inspiron" not in texto_extraido:
-                logger.warning("Cláusula da marca NÃO está no texto extraído do PDF!")
-
             metadados = {"estado": caso["estado"], "municipio": caso["municipio"]}
 
             gerenciador.executar(
                 texto_edital=texto_extraido, metadados=metadados, namespace="avaliacao"
             )
-
-            chunks_debug = gerenciador.chunkizar_documento(texto_extraido)
-            logger.info("Caso %s: %d chunks gerados", caso["id"], len(chunks_debug))
 
             thread_id = str(uuid.uuid4())
             config = {"configurable": {"thread_id": thread_id}}

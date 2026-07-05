@@ -77,15 +77,15 @@
     "observacoes": "CNPJ real com 5 registros de impedimento ativos no CEIS aplicados pelo Instituto Federal da Paraíba (IFPB), o mais recente vigente até 20/03/2030 — verificado em 2026-07-04. CNAE principal 'limpeza em prédios e em domicílios', compatível com o objeto. Vinculação ao edital de Belém é fictícia; sanção real, sujeita a mudança (consultar pelo CNPJ, não pelo nome)."
   },
   {
-    "id": "caso_04",
-    "descricao": "Belém/PA — pergunta objetiva sobre valor e vigência do registro de preços (sem anomalia)",
+    "id": "caso_04a",
+    "descricao": "Belém/PA — prazo de vigência do contrato de limpeza e conservação (sem anomalia)",
     "categoria": "real",
     "estado": "Pará (PA)",
     "municipio": "Belém",
     "cnpjs": [],
     "caminho_pdf": "evaluation/editais_teste/edital_belem.pdf",
-    "contexto_edital_esperado": "1.1. [...] para atender a demanda da Secretaria Municipal de Coordenação do Planejamento e Gestão - SEGEP, e dos demais órgãos e entidades da Prefeitura Municipal de Belém, pelo período de 12 (doze) meses [...]. VALOR TOTAL MENSAL DO LOTE R$ 11.517.667,69 / VALOR TOTAL ANUAL DO LOTE R$ 138.212.012,28.",
-    "pergunta": "Qual o valor total estimado dessa contratação e por quanto tempo ela vigora?",
+    "contexto_edital_esperado": "1.1. O objeto da presente licitação, na modalidade Pregão Eletrônico, pelo Sistema de Registro de Preços, para futura e eventual \"CONTRATAÇÃO DE EMPRESA ESPECIALIZADA NA PRESTAÇÃO DE SERVIÇO DE LIMPEZA E CONSERVAÇÃO, COM REGIME DE DEDICAÇÃO EXCLUSIVA DE MÃO-DE-OBRA E FORNECIMENTO DE MATERIAIS E EQUIPAMENTOS DE EPI\", para atender a demanda da Secretaria Municipal de Coordenação do Planejamento e Gestão - SEGEP, e dos demais órgãos e entidades da Prefeitura Municipal de Belém, pelo período de 12 (doze) meses, de acordo com as condições estabelecidas neste Edital e seus Anexos.",
+    "pergunta": "Por quanto tempo vigora essa contratação?",
     "tools_esperadas": [
       {
         "tool": "buscar_contexto_edital",
@@ -95,7 +95,28 @@
     "anomalias_esperadas": [],
     "resposta_esperada": "conversacional",
     "score_minimo_esperado": null,
-    "observacoes": "Caso controle de recuperação factual pura (pergunta pontual, resposta conversacional esperada): R$ 138.212.012,28/ano por 12 meses. Não deve disparar avaliação de anomalia nem inventar dado ausente do edital."
+    "observacoes": "Split em 2026-07-04 do caso_04 original, que combinava vigência + valor num único contexto_edital_esperado costurado a partir de dois trechos distantes do PDF real (cláusula do objeto no chunk ~1-2 vs. tabela de valores no chunk ~57, perto do ANEXO III, de um total de 112 chunks) — inviável para uma busca top-k=3 recuperar os dois juntos. Este caso cobre só a vigência (12 meses, cláusula 1.1); ver caso_04b para o valor. Resposta esperada: 12 meses."
+  },
+  {
+    "id": "caso_04b",
+    "descricao": "Belém/PA — valor total mensal/anual do lote de limpeza e conservação (sem anomalia)",
+    "categoria": "real",
+    "estado": "Pará (PA)",
+    "municipio": "Belém",
+    "cnpjs": [],
+    "caminho_pdf": "evaluation/editais_teste/edital_belem.pdf",
+    "contexto_edital_esperado": "VALOR TOTAL MENSAL DO LOTE R$ 11.517.667,69 VALOR TOTAL ANUAL DO LOTE R$ 138.212.012,28 OBS: O valor TOTAL/ANUAL (considerando todos os itens que compõem o LOTE ÚNICO) como 1 (um) único serviço na quantidade de 1 (um), em algarismo, expresso em moeda corrente nacional (R$), considerando a(s) quantidades, constante(s) nos Anexos I e II do presente Edital.",
+    "pergunta": "Qual o valor total estimado (mensal e anual) dessa contratação?",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [],
+    "resposta_esperada": "conversacional",
+    "score_minimo_esperado": null,
+    "observacoes": "Split do caso_04 original — ver observações de caso_04a. Este cobre só o valor: R$ 11.517.667,69/mês, R$ 138.212.012,28/ano. O trecho fica perto do ANEXO III, ~55 chunks depois da cláusula do objeto; isolar a pergunta em só-valor aumenta a chance real de o RAG (top-k=3) recuperar o chunk certo."
   },
   {
     "id": "caso_05",
@@ -182,7 +203,7 @@
     "municipio": "Marajá do Sena",
     "cnpjs": [],
     "caminho_pdf": "evaluation/editais_teste/edital_marajadosena.pdf",
-    "contexto_edital_esperado": "1.1. O objeto da presente licitação é a contratação de pessoa jurídica para prestação dos serviços de engenharia para a construção de unidades habitacionais no munícipio de Marajá do Sena – MA, conforme termo de compromisso nº 987493/2025/MCIDADES/CAIXA [...]. 5.1. O valor total da contratação é de R$.......... (.....).",
+    "contexto_edital_esperado": "5. CLÁUSULA QUINTA – PREÇO (art. 92, V) 5.1. O valor total da contratação é de R$.......... (.....) 5.2. No valor acima estão incluídas todas as despesas ordinárias diretas e indiretas decorrentes da execução do objeto, inclusive tributos e/ou impostos, encargos sociais, trabalhistas, previdenciários, fiscais e comerciais incidentes, taxa de administração, frete, seguro e outros necessários ao cumprimento integral do objeto da contratação.",
     "pergunta": "Qual é o valor total estimado desta contratação?",
     "tools_esperadas": [
       {
@@ -193,7 +214,7 @@
     "anomalias_esperadas": [],
     "resposta_esperada": "conversacional",
     "score_minimo_esperado": null,
-    "observacoes": "Caso controle de anti-alucinação: o próprio edital publicado como base de testes traz o campo de valor em branco ('R$.......... (.....)'), um padrão de documento-modelo não preenchido. Resposta esperada deve declarar que o valor não consta do trecho do edital disponível, e nunca inventar ou estimar um número. Bom teste também de robustez: o documento tem uma inconsistência de datas (processo nº 010601/2026 mas recebimento de propostas encerrando em 02/03/2025) — o agente não deve tentar 'corrigir' ou comentar isso a menos que perguntado, para não fugir do escopo da pergunta."
+    "observacoes": "Caso controle de anti-alucinação: o próprio edital publicado como base de testes traz o campo de valor em branco ('R$.......... (.....)'), um padrão de documento-modelo não preenchido. Resposta esperada deve declarar que o valor não consta do trecho do edital disponível, e nunca inventar ou estimar um número. contexto_edital_esperado ajustado em 2026-07-04: a versão anterior costurava a cláusula 1.1 (objeto, chunk ~3) com a 5.1 (valor, chunk ~48, de 66 total) como se fossem contíguas — recortado para só a cláusula 5.1, que é a única relevante pra esta pergunta pontual sobre valor. Bom teste também de robustez: o documento tem uma inconsistência de datas (processo nº 010601/2026 mas recebimento de propostas encerrando em 02/03/2025) — o agente não deve tentar 'corrigir' ou comentar isso a menos que perguntado, para não fugir do escopo da pergunta."
   },
   {
     "id": "caso_09",
