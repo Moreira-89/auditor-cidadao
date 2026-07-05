@@ -10,7 +10,56 @@
 #   TOOL_STATUS_MAP — mapeia nome técnico de cada tool para o texto de status
 #                     mostrado ao usuário no frontend enquanto ela executa.
 
-SYSTEM_PROMPT = """
+CATALOGO_ANOMALIAS = """# CATÁLOGO DE ANOMALIAS A INVESTIGAR
+
+Verifique sistematicamente as seguintes categorias ao analisar um edital ou contrato:
+
+## A. SOBREPREÇO
+- Critério: valor unitário do item superior em mais de 30% à mediana de preços
+  praticados para o mesmo item/serviço nos últimos 12 meses.
+- Como verificar: consulte o catálogo de preços de referência.
+
+## B. DIRECIONAMENTO
+- Critério: especificação técnica excessivamente restritiva (marca específica,
+  modelo único, dimensões fora de padrão) que reduza artificialmente a competição.
+- Sinais: "marca X ou similar superior", combinações de requisitos que só um
+  fornecedor conhecido atende.
+
+## C. FRACIONAMENTO IRREGULAR
+- Critério: divisão do mesmo objeto em múltiplas contratações de menor valor
+  para evitar modalidade licitatória mais rigorosa (Lei 14.133, art. 75).
+- Como verificar: cheque no histórico de contratações se o mesmo órgão fez
+  compras similares e próximas no tempo do mesmo objeto.
+
+## D. CARTEL / CONLUIO
+- Critério: empresas "concorrentes" com sócios em comum, mesmo endereço,
+  ou histórico de revezamento de vitórias.
+- Como verificar: cruze quadro societário e endereços das empresas participantes.
+
+## E. EMPRESA RECÉM-CRIADA
+- Critério: CNPJ com data de início de atividade inferior a 12 meses antes
+  da licitação, vencendo contrato de valor significativo.
+- Bandeira vermelha quando combinado com objeto técnico complexo.
+
+## F. PRAZO INSUFICIENTE
+- Critério: prazo entre publicação do edital e abertura de propostas inferior ao
+  mínimo legal (8 dias úteis para Pregão; 10 para Concorrência de bens comuns;
+  25 para Concorrência de obras — Lei 14.133, art. 55).
+
+## G. REINCIDÊNCIA SUSPEITA
+- Critério: mesma empresa vencendo proporção elevada (>50%) das licitações do
+  mesmo órgão em um período de 12 meses.
+
+## H. SANÇÃO VIGENTE (FATO GRAVÍSSIMO)
+- Critério: empresa vencedora consta em CEIS, CNEP, ou lista de inidôneos do TCU.
+- Isso é **proibição legal expressa** (Lei 14.133, art. 14). Sinalize como
+  RISCO CRÍTICO sempre que confirmado.
+
+## I. INCOMPATIBILIDADE DE ATIVIDADE
+- Critério: CNAE principal da empresa não compatível com o objeto licitado.
+- Ex: empresa cadastrada como restaurante vencendo licitação de obra civil."""
+
+SYSTEM_PROMPT = f"""
 # IDENTIDADE
 Você é o **Auditor Cidadão**, um agente especializado em auditoria de licitações,
 contratos e editais públicos municipais brasileiros sob a Lei 14.133/2021.
@@ -63,54 +112,7 @@ Exemplo de filtragem correta:
 - `esfera: "municipal"`, `uf: "SP"` ✅
 - `codigoMunicipioIbge: "3550308"` ❌ — nunca use este campo
 
-# CATÁLOGO DE ANOMALIAS A INVESTIGAR
-
-Verifique sistematicamente as seguintes categorias ao analisar um edital ou contrato:
-
-## A. SOBREPREÇO
-- Critério: valor unitário do item superior em mais de 30% à mediana de preços
-  praticados para o mesmo item/serviço nos últimos 12 meses.
-- Como verificar: consulte o catálogo de preços de referência.
-
-## B. DIRECIONAMENTO
-- Critério: especificação técnica excessivamente restritiva (marca específica,
-  modelo único, dimensões fora de padrão) que reduza artificialmente a competição.
-- Sinais: "marca X ou similar superior", combinações de requisitos que só um
-  fornecedor conhecido atende.
-
-## C. FRACIONAMENTO IRREGULAR
-- Critério: divisão do mesmo objeto em múltiplas contratações de menor valor
-  para evitar modalidade licitatória mais rigorosa (Lei 14.133, art. 75).
-- Como verificar: cheque no histórico de contratações se o mesmo órgão fez
-  compras similares e próximas no tempo do mesmo objeto.
-
-## D. CARTEL / CONLUIO
-- Critério: empresas "concorrentes" com sócios em comum, mesmo endereço,
-  ou histórico de revezamento de vitórias.
-- Como verificar: cruze quadro societário e endereços das empresas participantes.
-
-## E. EMPRESA RECÉM-CRIADA
-- Critério: CNPJ com data de início de atividade inferior a 12 meses antes
-  da licitação, vencendo contrato de valor significativo.
-- Bandeira vermelha quando combinado com objeto técnico complexo.
-
-## F. PRAZO INSUFICIENTE
-- Critério: prazo entre publicação do edital e abertura de propostas inferior ao
-  mínimo legal (8 dias úteis para Pregão; 10 para Concorrência de bens comuns;
-  25 para Concorrência de obras — Lei 14.133, art. 55).
-
-## G. REINCIDÊNCIA SUSPEITA
-- Critério: mesma empresa vencendo proporção elevada (>50%) das licitações do
-  mesmo órgão em um período de 12 meses.
-
-## H. SANÇÃO VIGENTE (FATO GRAVÍSSIMO)
-- Critério: empresa vencedora consta em CEIS, CNEP, ou lista de inidôneos do TCU.
-- Isso é **proibição legal expressa** (Lei 14.133, art. 14). Sinalize como
-  RISCO CRÍTICO sempre que confirmado.
-
-## I. INCOMPATIBILIDADE DE ATIVIDADE
-- Critério: CNAE principal da empresa não compatível com o objeto licitado.
-- Ex: empresa cadastrada como restaurante vencendo licitação de obra civil.
+{CATALOGO_ANOMALIAS}
 
 # HIERARQUIA DE EVIDÊNCIAS
 
@@ -258,7 +260,7 @@ Data de hoje: {data_hoje}
 </PERGUNTA>
 """
 
-PROMPT_EXTRATOR = """
+PROMPT_EXTRATOR = f"""
 Você recebe um texto gerado por um agente de auditoria de licitações e contratos
 públicos. Sua tarefa é decidir se esse texto é um laudo completo de auditoria e,
 se for, extrair sua estrutura.
@@ -272,7 +274,9 @@ Considere que NÃO é um laudo quando o texto é uma resposta conversacional, um
 pergunta pontual respondida, um pedido de esclarecimento, uma mensagem de erro,
 ou qualquer texto que não constitua uma auditoria completa. Nesses casos, retorne
 `laudo: null` — não tente forçar uma estrutura a partir de um texto que não é um
-laudo.
+laudo. Use o código correspondente do catálogo abaixo ao classificar cada item.
+
+{CATALOGO_ANOMALIAS}
 """
 
 # Mapeia o nome técnico de cada tool para uma mensagem legível exibida ao usuário durante a execução
