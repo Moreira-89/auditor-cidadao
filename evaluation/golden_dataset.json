@@ -11,7 +11,7 @@
     "caminho_pdf": "evaluation/editais_teste/edital_saoluis.pdf",
     "contexto_edital_esperado": "1.1. Constitui objeto deste procedimento de dispensa eletrônica a aquisição de 09 (nove) notebooks para atender às necessidades administrativas, operacionais e gerenciais da Secretaria Municipal de Segurança com Cidadania - SEMUSC e de suas unidades vinculadas, conforme condições, quantidades e exigências estabelecidas neste Edital, no Termo de Referência e nos demais documentos integrantes do processo administrativo.",
     "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Resultado da Fase de Lances: sagrou-se vencedora do certame uma empresa, CNPJ 38.504.819/0001-69, classificada em primeiro lugar com valor total de R$ 58.400,00 para o fornecimento dos 09 notebooks.",
-    "pergunta": "Essa empresa tem alguma sanção que a impeça de contratar com o poder público?",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
     "tools_esperadas": [
       {
         "tool": "consultar_sancoes_empresa",
@@ -60,7 +60,7 @@
     "caminho_pdf": "evaluation/editais_teste/edital_belem.pdf",
     "contexto_edital_esperado": "1.1. O objeto da presente licitação, na modalidade Pregão Eletrônico, pelo Sistema de Registro de Preços, para futura e eventual \"CONTRATAÇÃO DE EMPRESA ESPECIALIZADA NA PRESTAÇÃO DE SERVIÇO DE LIMPEZA E CONSERVAÇÃO, COM REGIME DE DEDICAÇÃO EXCLUSIVA DE MÃO-DE-OBRA E FORNECIMENTO DE MATERIAIS E EQUIPAMENTOS DE EPI\", para atender a demanda da Secretaria Municipal de Coordenação do Planejamento e Gestão - SEGEP, e dos demais órgãos e entidades da Prefeitura Municipal de Belém, pelo período de 12 (doze) meses. VALOR TOTAL MENSAL DO LOTE R$ 11.517.667,69 / VALOR TOTAL ANUAL DO LOTE R$ 138.212.012,28.",
     "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Ata de Registro de Preços: uma empresa, CNPJ 09.465.148/0001-76, foi declarada vencedora do Lote Único, com valor mensal ofertado de R$ 11.200.000,00.",
-    "pergunta": "Essa empresa tem alguma sanção que a impeça de contratar com o poder público?",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
     "tools_esperadas": [
       {
         "tool": "consultar_sancoes_empresa",
@@ -130,7 +130,7 @@
     "caminho_pdf": "evaluation/editais_teste/edital_melgaco.pdf",
     "contexto_edital_esperado": "1.1. O objeto da presente licitação é a CONTRATAÇÃO DE OBRAS E SERVIÇOS DE ENGENHARIA PARA CONSTRUÇÃO DE 40 (QUARENTA) UNIDADES HABITACIONAIS NO MUNICÍPIO DE MELGAÇO/PA, NO ÂMBITO DO MCMV, COM RECURSOS DO FUNDO NACIONAL DE HABITAÇÃO DE INTERESSE SOCIAL – FNHIS SUB 50, EM CONFORMIDADE COM TERMO DE COMPROMISSO N° 990456/2025/MCIDADES/CAIXA. 13.1. O custo estimado total da contratação é de R$ 6.163.305,06 (seis milhões, cento e sessenta e três mil, trezentos e cinco reais e seis centavos).",
     "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Ata de Julgamento e Homologação: uma empresa, CNPJ 10.470.695/0001-29, sagrou-se vencedora do certame com proposta de R$ 6.150.000,00 para a execução integral do objeto.",
-    "pergunta": "Essa empresa tem alguma sanção que a impeça de contratar com o poder público?",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
     "tools_esperadas": [
       {
         "tool": "consultar_sancoes_empresa",
@@ -179,7 +179,7 @@
     "caminho_pdf": "evaluation/editais_teste/edital_macapa.pdf",
     "contexto_edital_esperado": "1.1. O objeto da presente licitação é a PAVIMENTAÇÃO EM VIAS URBANAS NA CIDADE DE MACAPÁ-AP – CONVENIO N° 955575/2023. VALOR TOTAL DA CONTRATAÇÃO: R$ 4.739.831,03 (Quatro milhões, setecentos e trinta e nove mil, oitocentos e trinta e um reais e três centavos).",
     "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Resultado do Julgamento: uma empresa, CNPJ 08.710.270/0001-06, foi declarada vencedora com proposta de R$ 4.700.000,00.",
-    "pergunta": "Essa empresa tem alguma sanção que a impeça de contratar com o poder público?",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
     "tools_esperadas": [
       {
         "tool": "consultar_sancoes_empresa",
