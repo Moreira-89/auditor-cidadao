@@ -1,3 +1,10 @@
+"""
+Pipeline de avaliação automatizada do agente de auditoria contra o golden dataset
+(evaluation/golden_dataset.json). Para cada caso: indexa o edital de teste no Pinecone,
+roda o agente de ponta a ponta (mesmo grafo/tools/prompt usados em produção) e mede o
+resultado em duas camadas independentes, escrevendo tudo em evaluation/relatorio.json.
+"""
+
 import asyncio
 import json
 import logging
@@ -28,6 +35,36 @@ from app.services.tools import TOOLS
 from app.utils.func_extrair_texto_pdf import extrair_texto_pdf
 from evaluation.metricas import calcular_aderencia_tools
 
+# =============================================================================
+# CONTEXTO GERAL DO MÓDULO
+#
+# Este script roda o mesmo agente de produção (build_graph + TOOLS + SYSTEM_PROMPT)
+# contra casos de teste fixos, em vez de reimplementar uma versão simplificada dele —
+# isso garante que o resultado da avaliação reflita o comportamento real, não uma
+# aproximação. Duas decisões de isolamento tornam isso seguro de rodar repetidamente:
+#
+#   1. Namespace dedicado no Pinecone ("avaliacao", separado de "production"): a env var
+#      PINECONE_NAMESPACE é lida em tempo de chamada por buscar_contexto_edital
+#      (app/services/tools.py), então o agente busca no mesmo lugar onde este script
+#      acabou de indexar, sem tocar nos dados reais de produção.
+#   2. Falha isolada por caso: cada iteração do golden dataset roda dentro do próprio
+#      try/except — um PDF corrompido ou uma falha pontual do agente não derruba a
+#      avaliação inteira, só marca aquele caso como erro e segue para o próximo.
+#
+# A avaliação em si tem DUAS camadas independentes, cada uma com seu próprio critério
+# de "se aplica ou não":
+#   - aderencia_tools (calcular_aderencia_tools, em evaluation/metricas.py): compara as
+#     tools chamadas pelo agente com as esperadas no golden dataset. Calculada para
+#     TODO caso que não falhou, não depende de LLM nenhum.
+#   - RAGAS (faithfulness/context_recall): mede se o laudo do agente é fiel ao contexto
+#     recuperado e se esse contexto recuperado cobre o que era esperado. Só se aplica
+#     aos casos cujas tools_esperadas incluem buscar_contexto_edital — para os demais
+#     (ex.: casos que só consultam sanções), a métrica não faz sentido e o caso é
+#     simplesmente pulado dessa camada. Usa um LLM avaliador PRÓPRIO (AVALIADOR_MODEL),
+#     desacoplado do LLM do agente principal, para não ter o mesmo modelo jugando a si
+#     mesmo com os parâmetros de geração.
+# =============================================================================
+
 # Este script é um ponto de entrada (rodado via `python -m evaluation.pipeline_avaliacao`),
 # então é responsabilidade dele configurar o handler do logger "auditor_cidadao" — que por
 # padrão só tem um NullHandler (ver app/core/logging_config.py) e absorve tudo silenciosamente.
@@ -39,23 +76,17 @@ logger.setLevel(logging.INFO)
 # Carrega as variáveis de ambiente (como PINECONE_API_KEY) do arquivo .env
 load_dotenv()
 
-# Direciona a tool buscar_contexto_edital (app/services/tools.py) para o namespace "avaliacao",
-# onde este script indexa os editais de teste — sem isso, ela cai no default "production" e
-# nunca encontra o que acabou de ser indexado aqui.
-os.environ["PINECONE_NAMESPACE"] = "avaliacao"
 
-# Carrega o golden dataset de avaliação, que contém casos de teste.
-with open("evaluation/golden_dataset.json", "r", encoding="utf-8") as f:
-    golden_dataset = json.load(f)
+def limpar_namespace_avaliacao(namespace: str = "avaliacao"):
+    """
+    Apaga todos os vetores de um namespace do Pinecone (default: "avaliacao").
 
-# Mapa id -> caso, montado uma única vez: acha o caso original de um item de resultados
-# por "id" sem precisar de um loop de busca a cada iteração.
-golden_dataset_por_id = {caso["id"]: caso for caso in golden_dataset}
-
-
-def limpar_namespace_avaliacao():
-    """Limpa o namespace 'avaliacao' do Pinecone antes de rodar a avaliação, evitando que
-    resíduos de execuções anteriores contaminem os resultados do golden dataset."""
+    Chamada duas vezes em main(): antes do loop (evita que resíduos de uma execução
+    anterior contaminem os resultados desta) e depois dele (não deixa lixo de teste
+    acumulado no Pinecone entre execuções). NotFoundException é tratada como caso
+    normal, não erro — é exatamente o que acontece na primeiríssima execução, quando
+    o namespace "avaliacao" ainda não existe.
+    """
     api_key = os.getenv("PINECONE_API_KEY")
     if not api_key:
         logger.critical("PINECONE_API_KEY não encontrada no .env")
@@ -64,7 +95,7 @@ def limpar_namespace_avaliacao():
     logger.info("Conectando ao Pinecone...")
     pc = Pinecone(api_key=api_key)
     index_name = "auditor-cidadao"
-    namespace = "avaliacao"
+    namespace = namespace
 
     try:
         index = pc.Index(index_name)
@@ -80,13 +111,45 @@ def limpar_namespace_avaliacao():
         logger.error("Erro ao limpar o namespace '%s': %s", namespace, str(e))
 
 
-# Limpa o banco vetorial antes de rodar a avaliação para garantir que os resultados do golden dataset não sejam contaminados por execuções anteriores.
-limpar_namespace_avaliacao()
+async def main(salvar_json: bool = True):
+    """
+    Roda o golden dataset inteiro contra o agente e escreve evaluation/relatorio.json.
 
-# Lista para guardar o resultado de cada avaliação do golden dataset.
-resultados = []
+    Ordem de execução, por quê cada etapa existe:
+    1. Limpa o namespace "avaliacao" do Pinecone (estado limpo antes de indexar).
+    2. Para cada caso do golden dataset: indexa o edital de teste, invoca o agente
+       numa thread nova (thread_id isolado por caso) e captura tudo que sai do
+       streaming de eventos — laudo final, tools chamadas e contexto recuperado.
+    3. Calcula aderencia_tools por caso e agrega a média entre os que não falharam.
+    4. Limpa o namespace "avaliacao" de novo (não deixa lixo de teste para trás).
+    5. Roda o RAGAS só nos casos elegíveis (ver CONTEXTO GERAL DO MÓDULO acima) e
+       agrega faithfulness/context_recall.
+    6. Junta tudo (casos individuais + as duas agregações) em evaluation/relatorio.json.
 
-async def main():
+    Args:
+        salvar_json: aceito para permitir, no futuro, rodar a avaliação sem persistir
+            em disco (ex.: a partir de um teste automatizado). Hoje o relatório é
+            sempre escrito, independente do valor passado — ainda não há um branch
+            condicional usando este parâmetro.
+    """
+    # Direciona buscar_contexto_edital (app/services/tools.py) para o namespace de teste —
+    # lido em tempo de chamada pela tool, então precisa estar setado antes do primeiro
+    # turno do agente, não só antes da indexação.
+    os.environ["PINECONE_NAMESPACE"] = "avaliacao"
+
+    limpar_namespace_avaliacao()
+
+    # Lista para guardar o resultado de cada avaliação do golden dataset.
+    resultados = []
+
+    # Carrega o golden dataset de avaliação, que contém casos de teste.
+    with open("evaluation/golden_dataset.json", "r", encoding="utf-8") as f:
+        golden_dataset = json.load(f)
+
+    # Mapa id -> caso, montado uma única vez: acha o caso original de um item de resultados
+    # por "id" sem precisar de um loop de busca a cada iteração.
+    golden_dataset_por_id = {caso["id"]: caso for caso in golden_dataset}
+
     grafo = build_graph(TOOLS)
 
     for caso in golden_dataset:
@@ -216,6 +279,17 @@ async def main():
             )
             continue
 
+    # RAGAS já devolve ragas_agregado pronto (calculado mais abaixo); aderencia_tools, por
+    # outro lado, fica espalhado — um valor por item dentro de resultados — então a média
+    # precisa ser calculada aqui. Casos com "erro" não têm "aderencia_tools" (nunca chegaram
+    # a rodar o agente), por isso são excluídos do cálculo em vez de contar como 0.0.
+    valores_aderencia = [r["aderencia_tools"] for r in resultados if "erro" not in r]
+    # `if valores_aderencia else None` evita ZeroDivisionError se todos os casos
+    # falharem (raro, mas possível — ex.: Pinecone fora do ar durante toda a execução).
+    media_aderencia_tools = (
+        sum(valores_aderencia) / len(valores_aderencia) if valores_aderencia else None
+    )
+
     limpar_namespace_avaliacao()
 
     llm_ragas = LangchainLLMWrapper(
@@ -277,6 +351,7 @@ async def main():
     relatorio_final = {
         "casos": resultados,
         "ragas_agregado": ragas_agregado,
+        "media_aderencia_tools": media_aderencia_tools,
     }
 
     with open("evaluation/relatorio.json", "w", encoding="utf-8") as f:
@@ -284,4 +359,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(salvar_json=True))
