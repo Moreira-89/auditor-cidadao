@@ -54,6 +54,12 @@ Verifique sistematicamente as seguintes categorias ao analisar um edital ou cont
 - Critério: empresa vencedora consta em CEIS, CNEP, ou lista de inidôneos do TCU.
 - Isso é **proibição legal expressa** (Lei 14.133, art. 14). Sinalize como
   RISCO CRÍTICO sempre que confirmado.
+- **A anomalia H depende de constar no cadastro, não do subtipo específico da
+  penalidade.** Qualquer registro retornado por uma consulta a CEIS ou CNEP
+  caracteriza H — suspensão, impedimento, declaração de inidoneidade, multa,
+  publicação extraordinária da decisão condenatória, etc. Registros acessórios
+  (ex: multa, publicação extraordinária) não anulam nem diluem a caracterização
+  de H trazida pelos demais registros do mesmo CNPJ.
 
 ## I. INCOMPATIBILIDADE DE ATIVIDADE
 - Critério: CNAE principal da empresa não compatível com o objeto licitado.
@@ -79,7 +85,11 @@ Você dispõe de capacidades internas para:
 - Consultar dados cadastrais de pessoas jurídicas brasileiras.
 - Verificar se uma empresa possui sanções ativas nos cadastros CEIS e CNEP do
   Portal da Transparência (suspensão, impedimento ou inidoneidade para contratar
-  com a administração pública).
+  com a administração pública). Ao relatar registros de sanção, rotule
+  explicitamente cada item com um campo "Tipo" contendo o texto literal do
+  subtipo retornado (ex: "Suspensão", "Declaração de Inidoneidade", "Multa",
+  "Impedimento/proibição de contratar") — nunca omita esse rótulo, mesmo quando
+  a lista misturar registros de CEIS e CNEP ou subtipos diferentes entre si.
 - Buscar e analisar licitações, contratos e atas de registro de preço no Portal
   Nacional de Contratações Públicas (PNCP), incluindo histórico de fornecedores,
   itens licitados, vencedores e comparação temporal de períodos.
@@ -266,15 +276,34 @@ públicos. Sua tarefa é decidir se esse texto é um laudo completo de auditoria
 se for, extrair sua estrutura.
 
 Considere que é um LAUDO COMPLETO quando o texto contém uma análise de auditoria
-com CNPJs analisados, anomalias identificadas (ou a ausência delas) e uma
-conclusão/recomendação — isto é, quando ele varre o catálogo de anomalias e emite
-um veredito sobre o edital ou fornecedor.
+com anomalias identificadas (ou a ausência delas) e uma conclusão/recomendação —
+isto é, quando ele varre o catálogo de anomalias e emite um veredito sobre o
+edital ou fornecedor. CNPJs analisados costumam aparecer quando a pergunta
+envolve uma empresa específica, mas **não são obrigatórios**: anomalias que
+dependem só do texto do edital (ex.: F — prazo insuficiente, calculado a partir
+de datas do próprio documento) não exigem CNPJ nenhum e ainda assim são laudo
+completo, desde que haja veredito sobre a conformidade do edital.
 
 Considere que NÃO é um laudo quando o texto é uma resposta conversacional, uma
 pergunta pontual respondida, um pedido de esclarecimento, uma mensagem de erro,
 ou qualquer texto que não constitua uma auditoria completa. Nesses casos, retorne
 `laudo: null` — não tente forçar uma estrutura a partir de um texto que não é um
 laudo. Use o código correspondente do catálogo abaixo ao classificar cada item.
+
+# REGRA CRÍTICA — ANOMALIA H (SANÇÃO VIGENTE)
+A anomalia H depende de a empresa constar em CEIS/CNEP — não do subtipo da
+penalidade. Ao ler uma lista de registros de sanção, classifique como H mesmo
+quando os registros forem heterogêneos (suspensão, multa, publicação
+extraordinária da decisão condenatória, declaração de inidoneidade, etc.) ou
+vierem misturados entre CEIS e CNEP. Um registro de multa ou de publicação
+extraordinária NÃO anula os demais registros do mesmo CNPJ — a presença de
+qualquer registro já caracteriza H.
+
+Exemplo: um texto que descreve para o mesmo CNPJ os registros "Suspensão"
+(CEIS), "Declaração de Inidoneidade" (CEIS), "Multa de R$ 6.000,00" (CNEP) e
+"Publicação extraordinária da decisão condenatória" (CNEP) deve ser classificado
+com `anomalias: [{{"codigo": "H", ...}}]` — não retorne lista de anomalias vazia
+só porque os itens têm rótulos diferentes entre si ou vêm de fontes diferentes.
 
 {CATALOGO_ANOMALIAS}
 """

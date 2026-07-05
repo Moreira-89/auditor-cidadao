@@ -483,6 +483,6 @@ async def main(salvar_json: bool = True):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(salvar_json=True))
+    asyncio.run(main(salvar_json=False))
 
 # Rodar: clear; python -m evaluation.pipeline_avaliacao
