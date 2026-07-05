@@ -35,20 +35,18 @@
     "municipio": "São Luís",
     "cnpjs": [],
     "caminho_pdf": "evaluation/editais_teste/edital_saoluis.pdf",
-    "contexto_edital_esperado": "1.4. A eventual menção à marca/modelo Dell Inspiron possui caráter meramente referencial, utilizada exclusivamente como parâmetro de qualidade, desempenho e funcionalidade mínima esperada, não configurando exigência de marca específica. 1.5. Serão aceitos produtos de quaisquer fabricantes, desde que comprovadamente equivalentes, similares ou superiores ao padrão de referência e que atendam integralmente às especificações mínimas exigidas.",
+    "contexto_edital_esperado": "APÊNDICE I - MODELO DE PROPOSTA DE PREÇOS [...] 2. ESPECIFICAÇÕES E ESTIMATIVA DA CONTRATAÇÃO: Notebook corporativo, tendo como marca/modelo de referência Dell Inspiron, ou equivalente, similar ou superior, conforme especificações mínimas. [...] 3. DESCRIÇÃO DETALHADA DO ITEM: Notebook corporativo destinado ao atendimento das necessidades administrativas, operacionais e gerenciais da SEMUSC e de suas unidades vinculadas. A marca/modelo Dell Inspiron é indicada exclusivamente como referência de padrão de qualidade, desempenho e funcionalidade, sendo admitidos equipamentos equivalentes, similares ou superiores, desde que atendidas as especificações mínimas.",
     "pergunta": "A menção à marca Dell Inspiron no edital configura direcionamento da licitação para um fornecedor específico?",
     "tools_esperadas": [
       {
         "tool": "buscar_contexto_edital",
-        "argumentos_esperados": {
-          "pergunta": "menção a marca ou modelo específico, exigência de marca Dell Inspiron"
-        }
+        "argumentos_esperados": null
       }
     ],
     "anomalias_esperadas": [],
     "resposta_esperada": "conversacional",
     "score_minimo_esperado": null,
-    "observacoes": "Caso controle — resposta esperada é conversacional (sem laudo, laudo=null), pois o edital já qualifica a marca como 'meramente referencial' e aceita equivalentes/similares/superiores. Testa se o agente NÃO sinaliza falso-positivo de Anomalia B diante de uma cláusula de marca-parâmetro corretamente justificada. score_minimo_esperado em 0.0 reflete que não se espera Score de Risco Consolidado (não é um laudo completo)."
+    "observacoes": "Caso controle — resposta esperada é conversacional (sem laudo, laudo=null), pois o edital já qualifica a marca como referência e aceita equivalentes/similares/superiores. Testa se o agente NÃO sinaliza falso-positivo de Anomalia B diante de uma cláusula de marca-parâmetro corretamente justificada. A cláusula real está no APÊNDICE I (Modelo de Proposta de Preços, itens 2 e 3) — não na seção 1 do corpo do edital como uma versão anterior deste caso presumia; corrigido em 2026-07-04 após conferência direta do PDF (ver testes_locais/test_gerenciador_busca_contexto.py). score_minimo_esperado em null reflete que não se espera Score de Risco Consolidado (não é um laudo completo)."
   },
   {
     "id": "caso_03",
@@ -91,9 +89,7 @@
     "tools_esperadas": [
       {
         "tool": "buscar_contexto_edital",
-        "argumentos_esperados": {
-          "pergunta": "valor total estimado e prazo de vigência da contratação"
-        }
+        "argumentos_esperados": null
       }
     ],
     "anomalias_esperadas": [],
@@ -142,9 +138,7 @@
     "tools_esperadas": [
       {
         "tool": "buscar_contexto_edital",
-        "argumentos_esperados": {
-          "pergunta": "data de publicação do edital ou do aviso de licitação"
-        }
+        "argumentos_esperados": null
       }
     ],
     "anomalias_esperadas": [],
@@ -193,9 +187,7 @@
     "tools_esperadas": [
       {
         "tool": "buscar_contexto_edital",
-        "argumentos_esperados": {
-          "pergunta": "valor total estimado da contratação"
-        }
+        "argumentos_esperados": null
       }
     ],
     "anomalias_esperadas": [],
@@ -216,9 +208,7 @@
     "tools_esperadas": [
       {
         "tool": "buscar_informacao_web",
-        "argumentos_esperados": {
-          "assunto_busca": "obra unidades habitacionais MCMV atraso paralisação denúncia"
-        }
+        "argumentos_esperados": null
       }
     ],
     "anomalias_esperadas": [],

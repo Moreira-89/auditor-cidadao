@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import uuid
 from datetime import date
@@ -26,6 +27,14 @@ from app.services.build_graph import build_graph
 from app.services.tools import TOOLS
 from app.utils.func_extrair_texto_pdf import extrair_texto_pdf
 from evaluation.metricas import calcular_aderencia_tools
+
+# Este script é um ponto de entrada (rodado via `python -m evaluation.pipeline_avaliacao`),
+# então é responsabilidade dele configurar o handler do logger "auditor_cidadao" — que por
+# padrão só tem um NullHandler (ver app/core/logging_config.py) e absorve tudo silenciosamente.
+_handler = logging.StreamHandler()
+_handler.setFormatter(logging.Formatter("%(asctime)s | %(levelname)s | %(message)s"))
+logger.addHandler(_handler)
+logger.setLevel(logging.INFO)
 
 # Carrega as variáveis de ambiente (como PINECONE_API_KEY) do arquivo .env
 load_dotenv()
@@ -96,11 +105,19 @@ async def main():
                 )
                 texto_extraido += caso.get("trecho_injetado", "")
 
+            # Disambigua se uma falha de recuperação (ex.: caso_02, cláusula Dell Inspiron)
+            # vem do RAG/chunking ou já do próprio pdfplumber não ter extraído o trecho
+            if "Dell Inspiron" not in texto_extraido:
+                logger.warning("Cláusula da marca NÃO está no texto extraído do PDF!")
+
             metadados = {"estado": caso["estado"], "municipio": caso["municipio"]}
 
             gerenciador.executar(
                 texto_edital=texto_extraido, metadados=metadados, namespace="avaliacao"
             )
+
+            chunks_debug = gerenciador.chunkizar_documento(texto_extraido)
+            logger.info("Caso %s: %d chunks gerados", caso["id"], len(chunks_debug))
 
             thread_id = str(uuid.uuid4())
             config = {"configurable": {"thread_id": thread_id}}
