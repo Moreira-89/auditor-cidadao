@@ -165,7 +165,8 @@
     "anomalias_esperadas": [],
     "resposta_esperada": "conversacional",
     "score_minimo_esperado": null,
-    "observacoes": "Caso controle voltado a anti-alucinação: o edital disponibiliza a data da sessão (27/02/2026) mas não a data de publicação do aviso, então o critério da Anomalia F não é computável com os dados disponíveis. Resposta esperada: informar que a data de publicação não está disponível no trecho indexado e que a verificação não pôde ser concluída — nunca inferir/assumir uma data de publicação, nem cravar cumprimento ou descumprimento do prazo. anomalias_esperadas vazio porque a informação é insuficiente para confirmar a Anomalia F (não porque ela foi descartada por evidência)."
+    "excluir_do_ragas": true,
+    "observacoes": "Caso controle voltado a anti-alucinação: o edital disponibiliza a data da sessão (27/02/2026) mas não a data de publicação do aviso, então o critério da Anomalia F não é computável com os dados disponíveis. Resposta esperada: informar que a data de publicação não está disponível no trecho indexado e que a verificação não pôde ser concluída — nunca inferir/assumir uma data de publicação, nem cravar cumprimento ou descumprimento do prazo. anomalias_esperadas vazio porque a informação é insuficiente para confirmar a Anomalia F (não porque ela foi descartada por evidência). excluir_do_ragas=true porque contexto_edital_esperado é uma afirmação NEGATIVA (\"o edital não traz a data de publicação\") — estruturalmente não é um trecho literal atribuível a nenhum chunk recuperado, então context_recall penalizaria este caso independentemente da qualidade real do retrieval. O campo não afeta aderencia_tools nem recall_anomalias, que continuam usando este caso normalmente."
   },
   {
     "id": "caso_07",

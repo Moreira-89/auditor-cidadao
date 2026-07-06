@@ -1,0 +1,166 @@
+
+####################################################################################################
+CASO: caso_02 — São Luís/MA — cláusula de marca de referência (Dell Inspiron) não configura direcionamento
+Pergunta usada na busca: A menção à marca Dell Inspiron no edital configura direcionamento da licitação para um fornecedor específico?
+####################################################################################################
+Total de chunks gerados na indexação: 16
+
+--- TOP 16 CHUNKS RETORNADOS (ordem de relevância) ---
+
+[01] score=0.4237 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[02] score=0.5521 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[03] score=0.4829 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[04] score=0.5160 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[05] score=0.5168 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[06] score=0.4925 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[07] score=0.4651 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[08] score=0.5014 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[09] score=0.4984 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[10] score=0.4628 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[11] score=0.4866 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[12] score=0.5134 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[13] score=0.4889 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[14] score=0.4968 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[15] score=0.4360 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+[16] score=0.5861 | b) Prazo de entrega: até 30 (trinta) dias, salvo prazo diverso previsto no Termo de Referência; c) Local de entrega: conforme indicado pela SEMUSC na Ordem de Fornecimento; d) Forma de pagamento: ordi
+
+>>> CHUNK-ALVO NÃO encontrado nos top 16. Escalando para top_k=50...
+>>> CHUNK-ALVO ainda NÃO encontrado nos top 16 (top_k=50) de um total de 16 chunks. O ground_truth pode estar fragmentado entre chunks (nenhum chunk isolado contém a janela inicial do texto esperado) ou não ser literalmente recuperável por similaridade semântica com esta pergunta.
+
+Namespace 'debug-topk-caso_02' limpo.
+
+####################################################################################################
+CASO: caso_04a — Belém/PA — prazo de vigência do contrato de limpeza e conservação (sem anomalia)
+Pergunta usada na busca: Por quanto tempo vigora essa contratação?
+####################################################################################################
+Total de chunks gerados na indexação: 112
+
+--- TOP 20 CHUNKS RETORNADOS (ordem de relevância) ---
+
+[01] score=0.5910 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[02] score=0.5585 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[03] score=0.5577 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[04] score=0.5526 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[05] score=0.5451 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[06] score=0.5419 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[07] score=0.5420 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[08] score=0.5327 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[09] score=0.5297 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[10] score=0.5415 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[11] score=0.5281 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[12] score=0.5268 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[13] score=0.5244 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[14] score=0.5194 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[15] score=0.5189 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[16] score=0.5154 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[17] score=0.5111 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[18] score=0.5090 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[19] score=0.5088 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[20] score=0.5319 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+
+>>> CHUNK-ALVO NÃO encontrado nos top 20. Escalando para top_k=50...
+>>> CHUNK-ALVO ainda NÃO encontrado nos top 50 (top_k=50) de um total de 112 chunks. O ground_truth pode estar fragmentado entre chunks (nenhum chunk isolado contém a janela inicial do texto esperado) ou não ser literalmente recuperável por similaridade semântica com esta pergunta.
+
+Namespace 'debug-topk-caso_04a' limpo.
+
+####################################################################################################
+CASO: caso_04b — Belém/PA — valor total mensal/anual do lote de limpeza e conservação (sem anomalia)
+Pergunta usada na busca: Qual o valor total estimado (mensal e anual) dessa contratação?
+####################################################################################################
+Total de chunks gerados na indexação: 112
+
+--- TOP 20 CHUNKS RETORNADOS (ordem de relevância) ---
+
+[01] score=0.5845 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[02] score=0.5493 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[03] score=0.6463 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[04] score=0.6115 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[05] score=0.5496 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[06] score=0.5550 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[07] score=0.5491 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[08] score=0.6131 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[09] score=0.6357 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[10] score=0.5501 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[11] score=0.5991 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[12] score=0.5862 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[13] score=0.5711 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[14] score=0.5487 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[15] score=0.5635 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[16] score=0.6097 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[17] score=0.5445 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[18] score=0.5395 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[19] score=0.5347 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+[20] score=0.5286 | determina os artigos 105 e 107 da Lei n° 14.133/2021, contados a partir da data de sua assinatura, submetidas ao que determina o art. 105, da Lei Federal nº 14.133/2021, conforme a especificidade das 
+
+>>> CHUNK-ALVO NÃO encontrado nos top 20. Escalando para top_k=50...
+>>> CHUNK-ALVO ainda NÃO encontrado nos top 50 (top_k=50) de um total de 112 chunks. O ground_truth pode estar fragmentado entre chunks (nenhum chunk isolado contém a janela inicial do texto esperado) ou não ser literalmente recuperável por similaridade semântica com esta pergunta.
+
+Namespace 'debug-topk-caso_04b' limpo.
+
+####################################################################################################
+CASO: caso_06 — Melgaço-PA — prazo entre publicação e sessão pública não é verificável no texto do edital (anti-alucinação)
+Pergunta usada na busca: O prazo entre a publicação deste edital e a sessão pública cumpre o mínimo legal de 25 dias úteis exigido para concorrência de obras?
+####################################################################################################
+Total de chunks gerados na indexação: 77
+
+--- TOP 20 CHUNKS RETORNADOS (ordem de relevância) ---
+
+[01] score=0.5365 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[02] score=0.5782 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[03] score=0.5354 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[04] score=0.5480 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[05] score=0.6589 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[06] score=0.5332 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[07] score=0.5327 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[08] score=0.5682 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[09] score=0.5384 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[10] score=0.5376 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[11] score=0.5339 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[12] score=0.5348 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[13] score=0.5450 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[14] score=0.5326 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[15] score=0.5323 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[16] score=0.5314 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[17] score=0.5308 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[18] score=0.5304 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[19] score=0.5286 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+[20] score=0.5282 | CPF E RG NOME DA EMPRESA Obs.: O documento deverá ser em papel timbrado do licitante. PREFEITURA MUNICIPAL DE MELGAÇO | Comissão Permanente de Contratação CNPJ: 04.876.470/0001-74 | Av. Senador Lemos,
+
+>>> CHUNK-ALVO NÃO encontrado nos top 20. Escalando para top_k=50...
+>>> CHUNK-ALVO ainda NÃO encontrado nos top 50 (top_k=50) de um total de 77 chunks. O ground_truth pode estar fragmentado entre chunks (nenhum chunk isolado contém a janela inicial do texto esperado) ou não ser literalmente recuperável por similaridade semântica com esta pergunta.
+
+Namespace 'debug-topk-caso_06' limpo.
+
+####################################################################################################
+CASO: caso_08 — Marajá do Sena/MA — edital não informa o valor total da contratação (campo em branco no documento)
+Pergunta usada na busca: Qual é o valor total estimado desta contratação?
+####################################################################################################
+Total de chunks gerados na indexação: 66
+
+--- TOP 20 CHUNKS RETORNADOS (ordem de relevância) ---
+
+[01] score=0.5446 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[02] score=0.5465 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[03] score=0.5099 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[04] score=0.5098 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[05] score=0.5048 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[06] score=0.5191 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[07] score=0.5162 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[08] score=0.5026 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[09] score=0.5249 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[10] score=0.4992 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[11] score=0.4946 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[12] score=0.5067 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[13] score=0.4982 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[14] score=0.5386 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[15] score=0.5055 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[16] score=0.4880 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[17] score=0.4841 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[18] score=0.4824 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[19] score=0.4771 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+[20] score=0.4751 | da Constituição. 8. DECLARA, que cumpre as exigências de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, previstas em lei e em outras normas específicas. 9. DEC
+
+>>> CHUNK-ALVO NÃO encontrado nos top 20. Escalando para top_k=50...
+>>> CHUNK-ALVO ainda NÃO encontrado nos top 50 (top_k=50) de um total de 66 chunks. O ground_truth pode estar fragmentado entre chunks (nenhum chunk isolado contém a janela inicial do texto esperado) ou não ser literalmente recuperável por similaridade semântica com esta pergunta.
+
+Namespace 'debug-topk-caso_08' limpo.

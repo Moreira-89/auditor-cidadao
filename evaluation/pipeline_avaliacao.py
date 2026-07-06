@@ -474,6 +474,14 @@ async def main(salvar_json: bool = True):
         if "buscar_contexto_edital" not in nomes_tools_esperadas:
             continue  # RAGAS não se aplica a este caso
 
+        if caso_original.get("excluir_do_ragas"):
+            # Casos com contexto_edital_esperado estruturalmente não-avaliável por
+            # context_recall (ex.: caso_06 — gabarito é uma afirmação NEGATIVA, "o
+            # edital não traz X", que não é um trecho literal atribuível a nenhum
+            # chunk recuperado). Continuam normalmente em aderencia_tools e
+            # recall_anomalias — só ficam de fora do dataset do RAGAS.
+            continue
+
         eval_data["question"].append(caso_original["pergunta"])
         eval_data["answer"].append(item["laudo_completo"])
         eval_data["contexts"].append(item["contexto_recuperado"])
