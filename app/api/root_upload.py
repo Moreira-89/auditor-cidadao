@@ -1,3 +1,14 @@
+"""
+Endpoint HTTP de upload de editais.
+
+Recebe um PDF, valida (tipo e tamanho), extrai o texto, indexa no banco vetorial
+(Pinecone) e devolve os CNPJs encontrados no documento — que o frontend guarda para
+usar nas perguntas seguintes. A extração de texto e a indexação ficam em módulos
+dedicados; aqui é só a "borda" HTTP: validar a entrada e traduzir falhas em respostas
+com o código HTTP certo (415 tipo inválido, 413 grande demais, 422 PDF ilegível,
+502 falha ao indexar).
+"""
+
 import asyncio
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile

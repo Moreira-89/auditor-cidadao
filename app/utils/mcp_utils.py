@@ -8,16 +8,17 @@ from pydantic.fields import FieldInfo
 # =============================================================================
 # CONTEXTO GERAL DO MÓDULO
 #
-# Provedores LLM exigem que cada tool tenha um schema Python estrito
-# (ex: campo "idade" deve ser int). O problema: LLMs frequentemente enviam
-# os valores como strings ("42" em vez de 42), causando erro de validação
-# do Pydantic antes mesmo de chamar o MCP server.
+# O problema que este módulo resolve: cada ferramenta tem um "schema" (o formato dos
+# argumentos que ela aceita — ex.: o campo "ano" deve ser um inteiro). Mas o LLM
+# frequentemente manda números como texto ("2024" em vez de 2024), o que faria a
+# validação do Pydantic falhar antes mesmo de a ferramenta MCP ser chamada.
 #
-# Este módulo resolve isso em duas etapas:
-#   1. Torna os tipos do schema permissivos (int → Union[int, str])
-#      para que o LLM passe na validação do Pydantic.
-#   2. Converte os valores de volta ao tipo correto (str → int)
-#      antes de enviá-los ao MCP server, que valida via Zod (Node.js).
+# A solução tem duas etapas:
+#   1. Afrouxar o schema (int -> passa a aceitar int OU str), para o valor do LLM
+#      passar na validação do Pydantic em vez de ser rejeitado de cara.
+#   2. Logo antes de chamar o MCP, converter cada valor de volta ao tipo certo
+#      (str "2024" -> int 2024), porque o servidor MCP (Node.js) valida de novo,
+#      via Zod, e rejeitaria o texto onde espera número.
 # =============================================================================
 
 

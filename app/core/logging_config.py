@@ -24,8 +24,9 @@ SOBRE OS NÍVEIS DE LOG:
 NOTA ARQUITETURAL:
     O `basicConfig` (que define o handler de saída e o formato) NÃO é chamado aqui.
     Isso é proposital: quem configura o handler é o ponto de entrada da aplicação
-    (o `main()` em `avaliar.py` para o script CLI, ou o próprio uvicorn para a API).
-    Assim, bibliotecas que importam este módulo não "sequestram" o logging do chamador.
+    (o `main()` em `evaluation/pipeline_avaliacao.py` para o script CLI, ou o próprio
+    uvicorn para a API). Assim, bibliotecas que importam este módulo não "sequestram"
+    o logging do chamador.
 """
 
 import logging
@@ -45,5 +46,5 @@ logger = logging.getLogger("auditor_cidadao")
 # quando o chamador não configurou nenhum handler, evitando o aviso
 # "No handlers could be found for logger 'auditor_cidadao'".
 # O handler real (StreamHandler, FileHandler, etc.) é sempre configurado pelo
-# ponto de entrada da aplicação (main() em avaliar.py ou o uvicorn na API).
+# ponto de entrada da aplicação (main() em evaluation/pipeline_avaliacao.py ou o uvicorn na API).
 logger.addHandler(logging.NullHandler())

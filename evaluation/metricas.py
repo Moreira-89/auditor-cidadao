@@ -1,7 +1,11 @@
 """
-Métricas de avaliação do agente de auditoria contra o golden dataset: comparam o
-que o agente efetivamente fez durante a execução (tools_chamadas, capturado em
-pipeline_avaliacao.py) com o que cada caso espera (tools_esperadas).
+Métrica de "aderência de tools": mede se o agente chamou as ferramentas certas em cada
+caso do golden dataset.
+
+Compara o que o agente REALMENTE fez durante a execução (tools_chamadas, capturado em
+evaluation/pipeline_avaliacao.py) com o que o caso ESPERAVA (tools_esperadas). Não julga a
+qualidade da resposta final — só se as ferramentas previstas foram acionadas (e, quando o
+caso exige, com os argumentos certos). É uma checagem determinística, sem nenhum LLM no meio.
 """
 
 import re

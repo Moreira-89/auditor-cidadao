@@ -1,7 +1,11 @@
 """
-Integração com a Tavily para busca de informações complementares na web:
-monta a query com contexto geográfico (estado/município) e filtra/normaliza
-os resultados brutos antes de repassá-los ao LLM.
+Busca informações complementares na web via Tavily (um serviço de busca feito para uso
+por LLMs, que já devolve o conteúdo das páginas em texto pronto para análise).
+
+Este módulo monta a query juntando o assunto ao contexto geográfico (estado/município)
+e depois filtra/normaliza os resultados brutos antes de entregá-los ao LLM: descarta
+páginas curtas demais (provável erro de acesso, paywall ou lixo), corta as longas demais
+e mantém só url/título/conteúdo.
 """
 
 from langchain_tavily import TavilySearch

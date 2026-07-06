@@ -1,7 +1,9 @@
 """
-Ponto de entrada da aplicação FastAPI. Registra os routers de upload e chat,
-serve o frontend estático (Home + página de chat) e delega a inicialização
-pesada (MCP, grafo, modelo extrator) ao lifespan em app/services/lifespan.py.
+Ponto de entrada da aplicação FastAPI. Aqui montamos o "app": registramos os endpoints
+de upload e de conversa, servimos o frontend estático (a home e a página de chat) e
+instalamos uma rede de segurança global que captura qualquer erro não tratado e responde
+500 sem vazar stack trace ao cliente. A inicialização pesada (MCP, grafo do agente, modelo
+extrator) é delegada ao lifespan em app/services/lifespan.py.
 """
 
 import logging

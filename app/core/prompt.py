@@ -1,14 +1,18 @@
-# Textos de prompt usados pelo agente (app/services/ai_engine.py):
-#   SYSTEM_PROMPT   — injetado uma vez no primeiro turno de cada thread; define
-#                     identidade, capacidades, catálogo de anomalias e regras
-#                     de segurança do agente conversacional.
-#   PROMPT_DINAMICO — envelope XML com CNPJs/estado/município/pergunta, enviado
-#                     como HumanMessage no primeiro turno junto ao SYSTEM_PROMPT.
-#   PROMPT_EXTRATOR — SystemMessage de uma segunda chamada LLM separada (o
-#                     extrator), que decide se o Markdown gerado é um laudo
-#                     completo e, se for, extrai o RespostaLaudo estruturado.
-#   TOOL_STATUS_MAP — mapeia nome técnico de cada tool para o texto de status
-#                     mostrado ao usuário no frontend enquanto ela executa.
+# Este arquivo guarda os TEXTOS que instruem o comportamento do agente — é aqui que mora
+# boa parte da "engenharia de prompt" do projeto. Não há lógica; só os prompts e um mapa
+# de mensagens de status. Os quatro elementos, e onde cada um é usado (app/services/ai_engine.py):
+#
+#   SYSTEM_PROMPT   — injetado uma vez no primeiro turno de cada conversa; define a
+#                     identidade, as capacidades, o catálogo de anomalias e as regras de
+#                     segurança do agente.
+#   PROMPT_DINAMICO — o "envelope" (em tags no estilo XML) com CNPJs/estado/município/
+#                     pergunta, enviado como HumanMessage no primeiro turno junto ao
+#                     SYSTEM_PROMPT.
+#   PROMPT_EXTRATOR — instrução de uma SEGUNDA chamada ao LLM (o "extrator"), que decide se
+#                     o texto gerado é um laudo completo e, se for, extrai o RespostaLaudo
+#                     (a versão estruturada em JSON).
+#   TOOL_STATUS_MAP — traduz o nome técnico de cada ferramenta para a mensagem amigável
+#                     mostrada ao usuário enquanto ela executa (ex.: "Consultando a Receita...").
 
 CATALOGO_ANOMALIAS = """# CATÁLOGO DE ANOMALIAS A INVESTIGAR
 

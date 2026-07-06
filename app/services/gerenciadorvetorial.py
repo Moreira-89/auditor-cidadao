@@ -96,9 +96,13 @@ class GerenciadorVetorial:
         top_k: int = 3,
     ) -> str:
         """
-        Busca semanticamente os 3 trechos do edital mais relevantes para a pergunta.
-        Filtra por estado e município para garantir que o contexto retornado
-        pertence ao edital correto e não a outro município indexado.
+        Busca no Pinecone os `top_k` trechos do edital mais parecidos com a pergunta.
+        A busca é semântica: compara o SIGNIFICADO da pergunta com o dos trechos, não as
+        palavras exatas. O default é 3, mas o valor real vem da env TOP_K_EDITAL
+        (ver a tool buscar_contexto_edital em app/services/tools.py).
+
+        Filtra por estado e município para garantir que os trechos retornados são do
+        edital certo — e não de outro município também indexado no mesmo índice.
         """
         logger.info(
             "Busca semântica | pergunta=%s | estado=%s | municipio=%s | namespace=%s",
@@ -108,7 +112,7 @@ class GerenciadorVetorial:
             namespace,
         )
 
-        # Converte a pergunta em vetor e localiza os K=3 chunks mais próximos semanticamente
+        # Converte a pergunta em vetor (embedding) e localiza os top_k chunks mais próximos
         documentos_encontrados = self.vector_store.similarity_search(
             query=pergunta,
             k=top_k,

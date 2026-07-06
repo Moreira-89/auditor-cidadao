@@ -31,7 +31,10 @@ async def consultar_cnpj(cnpj_limpo: str) -> dict:
     response.raise_for_status()
 
     data = response.json()
-    # Retorna apenas os campos relevantes para auditoria, descartando dados de telefone
+    # Devolve só os campos usados na auditoria e descarta o resto da resposta da BrasilAPI
+    # (telefone, quadro de sócios/QSA, capital social, CNAEs secundários...). Isso enxuga o
+    # que chega ao LLM. Obs.: alguns desses campos descartados são candidatos a reforçar o
+    # catálogo de anomalias numa versão futura (ver "Backlog V2" no roadmap).
     return {
         "razao_social": data.get("razao_social"),
         "nome_fantasia": data.get("nome_fantasia"),

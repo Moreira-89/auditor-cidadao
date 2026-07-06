@@ -1,9 +1,13 @@
 """
-Schema de saída estruturada usado pelo modelo extrator (app/services/ai_engine.py,
-via with_structured_output). O Markdown do laudo já foi entregue ao usuário pelo
-streaming — este schema só formaliza a mesma informação em JSON para renderização
-em cards no frontend. As descrições dos campos Field() são lidas pelo próprio LLM
-extrator para saber o que preencher em cada um, não são só documentação.
+Formato (schema Pydantic) da versão ESTRUTURADA do laudo — o mesmo conteúdo do laudo,
+porém em JSON em vez de texto.
+
+Como é usado: depois que o laudo em Markdown já foi transmitido ao usuário, uma segunda
+chamada ao LLM (o "extrator", em app/services/ai_engine.py) lê esse texto e o converte
+para este formato via with_structured_output. O JSON serve para o frontend desenhar os
+"cards" de anomalia e de risco. Detalhe importante: os textos em Field(description=...)
+NÃO são só documentação — o próprio LLM extrator os lê para saber o que preencher em
+cada campo.
 """
 
 from typing import Literal

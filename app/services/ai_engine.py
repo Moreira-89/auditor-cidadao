@@ -1,3 +1,20 @@
+"""
+Coração do agente: orquestra um turno de conversa de ponta a ponta.
+
+run_agent() é chamado pelo endpoint de chat e devolve a resposta em streaming (SSE).
+O que ele faz, em resumo:
+1. Protege os campos vindos do usuário contra prompt injection (escapa < e >).
+2. Recupera/continua a conversa pelo thread_id (o histórico fica no checkpointer do grafo).
+3. Conserta o histórico se um turno anterior foi interrompido no meio de uma chamada de
+   ferramenta — senão a próxima chamada à OpenAI falharia (ver _curar_tool_calls_pendentes).
+4. Roda o grafo do agente e vai transmitindo os eventos ao frontend: tokens de texto,
+   status de "ferramenta X executando" e, no fim, o laudo estruturado (JSON) e o "done".
+
+Regra-chave do streaming (buffer-then-commit): um trecho de texto só entra no laudo final
+quando confirmamos que aquela mensagem do LLM NÃO pediu ferramenta — assim o raciocínio
+intermediário do agente não contamina o laudo estruturado.
+"""
+
 import json
 import uuid
 from datetime import date

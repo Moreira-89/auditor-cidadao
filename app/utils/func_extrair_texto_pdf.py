@@ -1,9 +1,11 @@
 """
-Extração de texto de PDFs recebidos via upload, usando pdfplumber.
+Extrai o texto de um PDF de edital recebido no upload, usando a biblioteca pdfplumber.
 
-Separado de app/api/root_upload.py para manter a rota enxuta: aqui mora a
-lógica de leitura do PDF; quem está na borda (o endpoint) decide como
-traduzir ErroExtracaoPDF em uma resposta HTTP.
+Fica separado de app/api/root_upload.py para manter o endpoint enxuto: aqui mora só a
+leitura do PDF. Quando o pdfplumber não consegue abrir o arquivo (corrompido, protegido
+por senha), levantamos uma exceção própria (ErroExtracaoPDF) em vez de deixar vazar o erro
+técnico da lib — assim a "borda" (o endpoint) trata uma exceção clara e específica do nosso
+domínio e decide qual resposta HTTP devolver.
 """
 
 import io

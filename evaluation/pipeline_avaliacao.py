@@ -1,9 +1,15 @@
 """
-Pipeline de avaliação automatizada do agente de auditoria contra o golden dataset
-(evaluation/golden_dataset.json). Para cada caso: indexa o edital de teste no Pinecone,
-roda o agente de ponta a ponta (mesmo grafo/tools/prompt usados em produção) e mede o
-resultado em três métricas independentes (aderencia_tools, RAGAS, recall_anomalias),
-escrevendo tudo em evaluation/relatorio.json.
+Pipeline de avaliação automática do agente, rodado como script (não faz parte da API).
+
+Ele testa o agente contra o "golden dataset" (evaluation/golden_dataset.json) — um conjunto
+de casos com gabarito: cada caso diz qual edital usar, o que perguntar e o que se espera de
+resposta. Para cada caso: indexa o edital de teste no Pinecone, roda o agente de ponta a
+ponta (o MESMO grafo/tools/prompt de produção) e mede três métricas independentes:
+  - aderencia_tools  — o agente chamou as ferramentas certas? (comparação direta, sem LLM)
+  - recall_anomalias — o agente detectou as anomalias esperadas (catálogo A–I)?
+  - RAGAS            — o contexto recuperado do edital foi suficiente (context_recall) e a
+                       resposta ficou fiel a esse contexto, sem alucinar (faithfulness)?
+O resultado consolidado é gravado em evaluation/relatorio.json.
 """
 
 import asyncio

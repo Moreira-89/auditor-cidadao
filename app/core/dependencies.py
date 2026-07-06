@@ -1,7 +1,10 @@
 """
-Configuração e dependências compartilhadas lidas uma única vez no import: parâmetros
-do LLM (agente principal e extrator) vindos do .env, e o singleton do GerenciadorVetorial
-(Pinecone + embeddings), caro demais para recriar a cada requisição.
+Configuração e recursos compartilhados, carregados UMA vez no import do módulo:
+
+- Os parâmetros dos modelos (agente principal, extrator e avaliador) lidos do .env, com
+  defaults seguros para o servidor não quebrar no boot se alguma env var faltar.
+- Um único GerenciadorVetorial (embeddings + conexão com o Pinecone), reutilizado por todo
+  o app — abrir essa conexão é caro demais para refazer a cada requisição (padrão singleton).
 """
 
 import os

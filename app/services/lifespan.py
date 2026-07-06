@@ -1,8 +1,16 @@
 """
-Lifespan do FastAPI: roda uma única vez no startup do servidor, antes do primeiro
-request. Conecta ao MCP LiciNexus (subprocess Node.js), monta a lista final de
-tools (nativas + MCP, corrigidas e cacheadas) e inicializa os singletons usados
-em toda a aplicação — o grafo do agente (build_graph) e o modelo extrator.
+"Lifespan" do FastAPI: código que roda UMA vez no startup do servidor (antes do primeiro
+request) e uma vez no shutdown. É onde concentramos a inicialização pesada, para não pagar
+esse custo de novo a cada requisição.
+
+O que acontece no startup, em ordem:
+1. Garante que o Node.js/npx está acessível (o MCP roda como um processo Node).
+2. Conecta ao MCP LiciNexus e obtém as ferramentas de PNCP. (MCP = Model Context Protocol,
+   um padrão para expor ferramentas a um agente; aqui é um pacote npm que fala com o PNCP.)
+3. Filtra só as ferramentas MCP desejadas, ajusta os schemas delas (mcp_utils) e envolve
+   tudo em cache com validade de 24h (cache_mcp) — inclusive as ferramentas nativas.
+4. Constrói o grafo do agente (com todas as ferramentas) e o modelo extrator, guardando
+   ambos como singletons usados pela aplicação inteira.
 """
 
 import os
