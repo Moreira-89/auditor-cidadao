@@ -8,6 +8,7 @@ Este projeto foi desenvolvido sob a trilha de *Assistência e Interação* combi
 
 ## 🎯 Objetivo do Projeto
 O Auditor Cidadão rompe o paradigma tradicional de simples validação cadastral para se tornar uma plataforma inteligente capaz de:
+
 * **Cruzar múltiplas fontes oficiais:** Dados do PNCP, Receita Federal, CEIS/CNEP (Portal da Transparência) e consultas direcionadas à Web.
 * **Detectar padrões anômalos:** Análise automatizada baseada em um catálogo rigoroso de anomalias de contratação.
 * **Emitir laudos estruturados:** Geração automática de relatórios técnicos em formato JSON e Markdown para apoiar a investigação humana.
