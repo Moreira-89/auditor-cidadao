@@ -485,36 +485,39 @@ um trecho literal recuperável por similaridade semântica (`caso_06`).
 
 ## 12. Tabela-mestra de todos os artefatos gerados
 
-Todos os arquivos abaixo estão em `evaluation/relatorios_investigacao/`:
+Todos os arquivos abaixo estão (ou estavam) em `evaluation/relatorios_investigacao/`:
 
-| Arquivo | O que é | Fase |
-|---|---|---|
-| `01_fixminimo_run1.json` a `03_fixminimo_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com o fix mínimo (barreira de consistência, namespace único) | Fase 2 |
-| `04_fixreforcado_run1.json` a `06_fixreforcado_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com o fix reforçado (namespace por caso), juiz ainda `gpt-4o-mini` | Fase 3 |
-| `07_juiz_gpt4o_run1.json` a `09_juiz_gpt4o_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com o juiz trocado para `gpt-4o` | Fase 4 |
-| `10a_diagnostico_topk_com_bug_metadados_v1.log` | 1ª rodada do diagnóstico de `top_k`, script ainda sem barreira de consistência, bug de metadados presente | Fase 5 |
-| `10b_diagnostico_topk_com_bug_metadados_v2.log` | 2ª rodada, script já com barreira de consistência adicionada — bug de metadados persiste idêntico (prova de que não era race condition) | Fase 5 |
-| `11_diagnostico_topk_APOS_fix_metadados.log` | 3ª rodada, após corrigir `gerenciadorvetorial.py` — chunks genuinamente distintos, posições reais medidas | Fase 5 |
-| `12_final_todas_correcoes_run1.json` a `14_final_todas_correcoes_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com TODAS as correções ativas (fix de metadados + barreira de consistência + namespace por caso + juiz `gpt-4o` + `excluir_do_ragas` no `caso_06`) | Fase 6 |
+| Arquivo | O que é | Fase | Status |
+|---|---|---|---|
+| `01_fixminimo_run1.json` a `03_fixminimo_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com o fix mínimo (barreira de consistência, namespace único) | Fase 2 | Removido do repositório (ver nota abaixo) |
+| `04_fixreforcado_run1.json` a `06_fixreforcado_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com o fix reforçado (namespace por caso), juiz ainda `gpt-4o-mini` | Fase 3 | Removido do repositório |
+| `07_juiz_gpt4o_run1.json` a `09_juiz_gpt4o_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com o juiz trocado para `gpt-4o` | Fase 4 | Removido do repositório |
+| `10a_diagnostico_topk_com_bug_metadados_v1.log` | 1ª rodada do diagnóstico de `top_k`, script ainda sem barreira de consistência, bug de metadados presente | Fase 5 | Mantido |
+| `10b_diagnostico_topk_com_bug_metadados_v2.log` | 2ª rodada, script já com barreira de consistência adicionada — bug de metadados persiste idêntico (prova de que não era race condition) | Fase 5 | Mantido |
+| `11_diagnostico_topk_APOS_fix_metadados.log` | 3ª rodada, após corrigir `gerenciadorvetorial.py` — chunks genuinamente distintos, posições reais medidas | Fase 5 | Mantido |
+| `12_final_todas_correcoes_run1.json` a `14_final_todas_correcoes_run3.json` | `relatorio.json` bruto de cada uma das 3 execuções com TODAS as correções ativas (fix de metadados + barreira de consistência + namespace por caso + juiz `gpt-4o` + `excluir_do_ragas` no `caso_06`) | Fase 6 | Removido do repositório |
 
-> **Nota de continuidade**: esta pasta não é rastreada pelo git e já foi apagada
-> (sem querer, pelo usuário) ao menos uma vez durante a investigação — o que
-> também explica desaparecimentos anteriores registrados nesta mesma sessão.
-> **Recomenda-se commitar esta pasta assim que possível** para não depender de
-> arquivos não versionados sobreviverem entre sessões.
+> **Nota**: os 12 arquivos `relatorio.json` brutos (fases 2, 3, 4 e 6) foram
+> commitados inicialmente, mas removidos do repositório depois — todo o
+> conteúdo relevante deles (agregados, tabelas de aprovação, comparações) já
+> está documentado nas seções 7, 8, 9 e 15 deste arquivo, então mantê-los como
+> binários versionados era redundante. Os `.log` do diagnóstico de `top_k`
+> (`10a`, `10b`, `11`) foram mantidos, pois documentam uma evidência bruta
+> (o texto de cada chunk lado a lado) que a narrativa das seções 10-11 resume
+> mas não reproduz por inteiro.
 
-**Importante:** as 9 rodadas de RAGAS das fases 2-4 (arquivos `01` a `09`) foram
-**todas medidas com o bug de metadados ainda ativo** (ele só foi descoberto na
-fase 5). Isso significa que os números de `faithfulness`/`context_recall`
-reportados nessas fases devem ser lidos como "o piso que o pipeline conseguia
-mesmo com o retriever sistematicamente devolvendo o chunk errado" — não como a
-medida final e correta do sistema. As conclusões *qualitativas* de cada fase (a
-barreira de consistência reduz variância; o namespace por caso estabiliza o
-`caso_06`; um juiz mais forte elimina o ruído de `context_recall`) continuam
-válidas, porque são efeitos independentes e cumulativos ao bug de metadados — mas
-os valores absolutos de `faithfulness`/`context_recall` precisam ser remedidos
-agora que o bug foi corrigido — **essa remedição já foi feita, ver seção 15
-(Fase 6)**: `faithfulness` subiu para ≈0.87 e `context_recall` para 0.6 (ainda
+**Importante:** as 9 rodadas de RAGAS das fases 2-4 foram **todas medidas com o
+bug de metadados ainda ativo** (ele só foi descoberto na fase 5). Isso significa
+que os números de `faithfulness`/`context_recall` reportados nessas fases devem
+ser lidos como "o piso que o pipeline conseguia mesmo com o retriever
+sistematicamente devolvendo o chunk errado" — não como a medida final e correta
+do sistema. As conclusões *qualitativas* de cada fase (a barreira de
+consistência reduz variância; o namespace por caso estabiliza o `caso_06`; um
+juiz mais forte elimina o ruído de `context_recall`) continuam válidas, porque
+são efeitos independentes e cumulativos ao bug de metadados — mas os valores
+absolutos de `faithfulness`/`context_recall` precisavam ser remedidos depois do
+fix — **essa remedição já foi feita, ver seção 15 (Fase 6)**: `faithfulness`
+subiu para ≈0.87 e `context_recall` para 0.6 (ainda
 abaixo do limiar de aprovação de 0.75).
 
 ## 13. Causas-raiz — visão consolidada
@@ -647,11 +650,11 @@ afirmar com confiança, sem arredondar a leitura:
 
 ### Artefatos desta rodada
 
-| Arquivo | Conteúdo |
-|---|---|
-| `12_final_todas_correcoes_run1.json` | `relatorio.json` bruto, rodada 1, todas as correções ativas |
-| `13_final_todas_correcoes_run2.json` | `relatorio.json` bruto, rodada 2, todas as correções ativas |
-| `14_final_todas_correcoes_run3.json` | `relatorio.json` bruto, rodada 3, todas as correções ativas |
+Os 3 `relatorio.json` brutos desta rodada (`12_final_todas_correcoes_run1.json`,
+`run2`, `run3`) foram gerados e revisados durante a investigação, mas **não
+foram mantidos no repositório** — todo o conteúdo relevante (agregados, tabela
+de aprovação por métrica, comparação contra o baseline) já está reproduzido nas
+tabelas acima, então guardá-los como binários versionados era redundante.
 
 ## 16. O que ainda falta fazer
 
