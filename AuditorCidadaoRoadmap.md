@@ -5,8 +5,8 @@
 > **Mudança de paradigma:** sair de "valida CNPJ + busca contexto" para "cruza múltiplas
 > fontes oficiais, detecta padrões anômalos e entrega laudo estruturado".
 >
-> **Última atualização:** 2026-07-04 (Bloco 3 concluído — integração PNCP nativa, refatoração de
-> services e documentação — e mesclado na `main`)
+> **Última atualização:** 2026-07-05 (Bloco 4 concluído — framework de avaliação, golden dataset,
+> 3 métricas validadas, bug de produção em `gerenciadorvetorial.py` encontrado e corrigido)
 
 ---
 
@@ -57,7 +57,7 @@
 | T1 | ✅ | Documentar justificativa (OpenAI `gpt-4o-mini` + `text-embedding-3-small`) |
 | T2 | ✅ Forte | Só consolidar na apresentação |
 | T3 | ✅ | Articular que os dados são editais públicos + bases governamentais |
-| T4 | ⚠️ **GAP crítico** | JSON estruturado (Bloco 2) concluído; avaliação automatizada em si ainda não existe → Bloco 4 |
+| T4 | ✅ | Framework de avaliação concluído (Bloco 4): 3 métricas, critérios documentados, validado com dado real |
 | T5 | ⚠️ | Falta diagrama de arquitetura e doc de trade-offs consolidado → Bloco 5 |
 | T6 | ⚠️ **GAP** | Falta seção explícita de ética/LGPD/limitações → Bloco 5 |
 | E1 | ✅ | Dockerfile + lifespan + frontend prontos |
@@ -78,7 +78,7 @@
 | **Fase 3 — Novas fontes de dados** | PNCP (12 tools ativas), CEIS/CNEP, busca web | ✅ Concluída |
 | **Fase 4 — Cache + Output estruturado** | Cache TTL ✅, JSON de risco ✅ | ✅ Concluída |
 | **Fase 5 — Streaming** | Tokens em tempo real no frontend | ✅ Concluída |
-| **Fase 6 — Framework de avaliação** | LLM-as-Judge sobre golden dataset | ❌ Pendente |
+| **Fase 6 — Framework de avaliação** | Golden dataset + RAGAS + aderência/anomalia | ✅ Concluída |
 | **Fase 7 — Indexação automática via PNCP** | Busca + ingestão sem upload manual | 🚫 Backlog V2 |
 | **Fase 8 — Infraestrutura e deploy** | Docker ✅, Railway ✅, Frontend ✅ | ✅ Concluída |
 
@@ -213,32 +213,69 @@ seção honesta de limitações conhecidas citando a tool de PNCP desativada. Ve
 `v0.4.0`). Todo o trabalho foi para um PR único (#6), revisado e mesclado na `main`; branch de
 feature removida local e remotamente após o merge.
 
----
+**Bloco 4 — Framework de Avaliação:** `evaluation/golden_dataset.json` criado com 11 casos
+(reais + sintéticos), cobrindo empresa com sanção ativa no CEIS/CNEP (Anomalia H), prazo de
+publicação irregular (Anomalia F), caso controle sem anomalia esperada e caso puramente
+conversacional — mix exigido pelo roadmap original coberto. `evaluation/pipeline_avaliacao.py`
+(substitui o `avaliar.py`/`JulgamentoLLM` originalmente planejado — ver trade-off documentado
+no Bloco 5) roda o agente de ponta a ponta contra cada caso e mede três famílias de métrica
+independentes:
+- **`aderencia_tools`** — comparação determinística (sem LLM) entre `tools_esperadas` e
+  `tools_chamadas`; percorre só o que era esperado, tools extras chamadas pelo agente não
+  entram na conta.
+- **`recall_anomalias`** — reusa o extrator estruturado de produção (`RespostaLaudo`) sobre o
+  `laudo_completo` de cada caso, comparando os códigos do catálogo A–I detectados contra
+  `anomalias_esperadas`.
+- **RAGAS (`faithfulness`, `context_recall`)** — mede alucinação e cobertura de contexto nos
+  casos que usam `buscar_contexto_edital`, contra o `contexto_edital_esperado` de cada caso.
 
-# 🔵 BLOCO 4 — Framework de Avaliação (dias 10–13)
+Cinco bugs reais foram encontrados e corrigidos durante a validação do framework, o mais grave
+deles em produção, não só no teste:
+1. **Catálogo de anomalias ausente no `PROMPT_EXTRATOR`** — o extrator via só a lista de
+   códigos válidos (`Literal["A"..."I"]"`), sem os critérios de cada um, e por isso não sabia
+   mapear texto de sanção para o código `H`. Corrigido extraindo o catálogo completo (com
+   critério por letra) para uma constante única (`CATALOGO_ANOMALIAS`), reusada tanto no
+   `SYSTEM_PROMPT` quanto no `PROMPT_EXTRATOR` — elimina duplicação de texto entre os dois.
+2. **Corrida de consistência eventual do Pinecone** — o pipeline consultava o índice logo após
+   indexar, sem esperar a propagação, derrubando `context_recall` de forma não-determinística.
+   Corrigido com `_aguardar_contagem_namespace`, que faz *polling* em `describe_index_stats`
+   até a contagem esperada de vetores aparecer.
+3. **Namespace compartilhado entre casos do mesmo município** — causava delete-readd
+   adjacente e contaminação de chunks entre casos consecutivos. Corrigido isolando cada caso
+   num namespace exclusivo (`avaliacao_<id>`).
+4. **Ruído do juiz RAGAS** — `gpt-4o-mini` como `AVALIADOR_MODEL` dava notas inconsistentes
+   para o mesmo contexto recuperado entre execuções (comprovado: contexto byte-a-byte idêntico,
+   nota diferente). Trocado para `gpt-4o`, que eliminou a variância de `context_recall` entre
+   rodadas (amplitude `0.000` em 3 execuções).
+5. **Bug de produção real: metadados compartilhados no upsert do Pinecone**
+   (`app/services/gerenciadorvetorial.py`, `processar_e_salvar`) — `[metadados] * len(lista_chunks)`
+   criava `N` referências ao mesmo dict em vez de `N` cópias independentes; o `add_texts` da
+   lib então sobrescrevia repetidamente o mesmo objeto, fazendo **todo chunk indexado — em
+   qualquer edital, inclusive os de usuários reais em produção — ser armazenado com o texto do
+   último chunk do documento**, disfarçado atrás de scores de similaridade que continuavam
+   plausíveis (os embeddings, calculados antes da mutação, permaneciam corretos). Corrigido
+   trocando a multiplicação de lista por `[dict(metadados) for _ in lista_chunks]`. Achado
+   durante uma investigação que começou como debug de métrica de teste e terminou revelando um
+   defeito que afetava usuários reais — banco vetorial de produção já estava limpo no momento
+   da correção, então não foi necessário reindexar nada retroativamente.
 
-> Resposta definitiva para "como você garante que o modelo não alucina?" (T4). Depende do CEIS
-> (Bloco 1) e do JSON estruturado (Bloco 2) para funcionar de forma automatizada.
+Além dos bugs, uma limitação estrutural foi identificada e tratada por decisão consciente, não
+por correção de código: o `caso_06` tem `contexto_edital_esperado` como uma afirmação **negativa**
+("o edital não traz a data de publicação") — `context_recall` do RAGAS não tem mecanismo para
+validar ausência de informação contra chunks recuperados, então esse caso nunca pontuaria bem
+nessa métrica específica, independentemente da qualidade do retrieval. Excluído do cálculo do
+RAGAS via um campo próprio no dataset (`excluir_do_ragas: true`), mantendo-se normalmente nas
+demais métricas (aderência de tools).
 
-### 4.1 — Golden Dataset
-- [ ] Criar `evaluation/golden_dataset.json`
-- [ ] Cada caso: `id`, `descricao`, `pergunta`, `contexto_edital`, `cnpjs`, `tools_esperadas`,
-      `anomalias_esperadas`, `score_minimo_esperado`
-- [ ] Mínimo 8 casos a partir dos editais reais disponíveis
-- [ ] Priorizar editais de municípios de alto risco (IDH baixo, alta concentração política)
-- [ ] Mix: sem anomalia / anomalia leve / anomalia crítica
-- [ ] Ao menos 1 caso com empresa no CEIS
-- [ ] Ao menos 1 caso controle (nenhuma anomalia esperada)
-
-### 4.2 — Avaliador LLM-as-Judge (`evaluation/avaliar.py`)
-- [ ] Modelo `JulgamentoLLM` com 4 métricas (0–1): `relevancia`, `fidelidade`,
-      `aderencia_tools`, `deteccao_anomalia` (booleana)
-- [ ] `julgar_caso(caso, resposta_agente)` com LLM judge, `temperature=0.0`
-- [ ] Relatório agregado: médias por métrica + recall de anomalias
-- [ ] Critérios mínimos de aprovação documentados (sugestão: relevância ≥ 0.75, fidelidade ≥
-      0.85, aderência tools ≥ 0.70, recall anomalias ≥ 0.80)
-- [ ] Script `python evaluation/avaliar.py` → gera `evaluation/relatorio.json`
-- [ ] Rodar antes de cada deploy; incluir relatório no repositório
+Critérios mínimos de aprovação definidos e aplicados automaticamente (`aprovacao["geral"]`):
+`aderencia_tools ≥ 0.70`, `faithfulness ≥ 0.85`, `context_recall ≥ 0.75`, `recall_anomalias ≥
+0.80`. Resultado validado em 3 execuções estáveis após todas as correções acima:
+`aderencia_tools = 1.00`, `recall_anomalias = 1.00`, `faithfulness ≈ 0.87` (aprovado),
+`context_recall = 0.60` (reprovado — limitação documentada de `top_k=3` em 2 dos 5 casos
+elegíveis ao RAGAS, ver Backlog V2). Uma execução manual posterior isolada registrou
+`context_recall = 0.90`, ainda **não confirmada em múltiplas rodadas** — tratar como resultado
+preliminar até validar estabilidade com o mesmo protocolo (3 execuções), não como o número
+oficial do projeto.
 
 ---
 
@@ -296,6 +333,31 @@ docs/
   pra mim" chama uma tool de auditoria mas não é um laudo completo). A solução final delega
   a decisão para o próprio LLM extrator via `SystemMessage`, e não para uma heurística fixa
   no código.
+
+### Apontamentos do Bloco 4 a documentar (decisões e trade-offs — E5)
+- **RAGAS em vez do `avaliar.py`/`JulgamentoLLM` originalmente planejado:** o roadmap previa um
+  único LLM-juiz caseiro julgando 4 métricas (`relevancia`, `fidelidade`, `aderencia_tools`,
+  `deteccao_anomalia` booleana). A implementação final usa RAGAS (biblioteca validada pela
+  comunidade) para `faithfulness`/`context_recall`, mantém `aderencia_tools` como comparação
+  determinística sem LLM (mais confiável que julgamento subjetivo para esse caso), e
+  `recall_anomalias` como fração (não booleano), reaproveitando o mesmo extrator estruturado
+  já usado em produção. Decisão consciente de engenharia, não desvio por falta de tempo — vale
+  como boa resposta para "por que a implementação diverge do plano original?" (T4/E5).
+- **Bug de metadados como exemplo de "bug de avaliação que era, na verdade, bug de produção":**
+  o `gerenciadorvetorial.py` é compartilhado entre o pipeline de teste e o fluxo real de
+  indexação de editais — uma investigação que começou puramente sobre instabilidade de métrica
+  terminou revelando que usuários reais recebiam sempre o último chunk do documento como
+  contexto, independente da pergunta. Boa resposta prática para "como o framework de avaliação
+  ajudou a encontrar problemas reais do sistema, não só medir números?" (T4).
+- **Exclusão do `caso_06` do cálculo de RAGAS:** `context_recall` não tem mecanismo para validar
+  uma afirmação negativa ("o edital não traz X") contra chunks recuperados — limitação da
+  métrica, não do sistema. Excluído via campo próprio no golden dataset em vez de reescrever o
+  gabarito, preservando o caso para as demais métricas.
+- **Juiz do RAGAS trocado de `gpt-4o-mini` para `gpt-4o`:** o mini dava notas inconsistentes
+  para o mesmo contexto recuperado entre execuções (comprovado com contexto byte-a-byte
+  idêntico e nota diferente). Custo maior do `gpt-4o` só incide em CI/avaliação manual — esse
+  modelo nunca é chamado por um usuário real (ver Backlog V2 para plano de retestar o mini após
+  estabilizar o dado de entrada).
 
 ---
 
@@ -452,8 +514,36 @@ sistema de TI por R$2 milhões).
 | Cache de tools | Dict/`TTLCache` em memória | Redis com TTL nativo, compartilhado entre instâncias |
 
 ### Qualidade
-- Busca semântica com K=5 (K=3 atual pode perder posições 4–5); comparar via LLM-as-Judge
+- **Busca semântica com `top_k` maior (hoje 3), já configurável via `TOP_K_EDITAL`** (env var,
+  default 3, não exposta à tool que o LLM chama — só o código controla). Diagnóstico real feito
+  no Bloco 4: de 5 casos com `context_recall` ruim, 2 (`caso_04b`, `caso_08`) são recuperáveis
+  com `top_k` maior (posições 9 e 2 no ranking) — subir pra ~10 resolveria esses. Os outros 2
+  (`caso_02`, `caso_04a`) **não aparecem nem em `top_k=50`** — limitação genuína de posição no
+  documento (chunk-alvo no apêndice/muito distante), que só reranking ou chunking diferente
+  resolveria. Decisão de valor final adiada — subir `top_k` em produção aumenta custo de token
+  por chamada e pode piorar `faithfulness` (mais contexto irrelevante pro LLM confundir), não é
+  troca sem custo.
 - Expansão do golden dataset para 30+ casos cobrindo as 9 categorias
+- **Reavaliar `AVALIADOR_MODEL` de volta para `gpt-4o-mini`** como otimização de custo de
+  CI/avaliação recorrente (não afeta usuário final — esse modelo só roda quando o time executa
+  o golden dataset). Adiado para depois da entrega: o `gpt-4o-mini` mostrou ruído de julgamento
+  mesmo com dado de entrada correto (nota variando para o mesmo contexto recuperado); trocar de
+  volta exige revalidar estabilidade em 3+ rodadas antes de confiar no resultado.
+- **Investigar variância residual de `faithfulness`** (~0.096 de amplitude mesmo com juiz
+  `gpt-4o`) — hipótese não confirmada: `temperature=0.1` do agente principal (mesma configuração
+  de produção) usada também na avaliação, gerando laudos ligeiramente distintos por execução.
+  Poderia ser testado congelando `temperature=0` só durante a avaliação.
+- **Auditar o repositório atrás de outros usos do padrão `[X] * N` com objeto mutável** — o bug
+  de metadados do Bloco 4 foi corrigido pontualmente em `gerenciadorvetorial.py`; não houve
+  varredura completa do projeto atrás do mesmo padrão em outro lugar.
+- **Namespace de indexação por `thread_id` em produção:** hoje todo usuário indexa no mesmo
+  namespace, isolado só por filtro de metadado (`estado`+`municipio`) — dois usuários indexando
+  ao mesmo tempo podem, em tese, disputar entre si a mesma barreira de consistência usada na
+  avaliação. Isolar por `thread_id` resolve, mas introduz um problema de ciclo de vida novo
+  (quando apagar o namespace de uma sessão encerrada). `beforeunload`/`visibilitychange` no
+  frontend não é confiável sozinho (não dispara em crash, perda de rede, ou boa parte do mobile)
+  — precisaria de uma rotina de expiração no backend como rede de segurança, no mesmo espírito
+  do TTL já aplicado ao cache de tools.
 
 ### Módulos futuros da plataforma
 | Módulo | Descrição |
@@ -494,10 +584,6 @@ BLOCO 3 (dias 6–9)
 ├─ Frontend final
 └─ Deploy Railway
 
-BLOCO 4 (dias 10–13)
-├─ Golden dataset
-└─ avaliar.py (LLM-as-Judge)
-
 BLOCO 5 (paralelo, entregue no dia 13)
 ├─ Diagrama de arquitetura
 ├─ etica.md (T6)
@@ -519,11 +605,6 @@ BACKLOG V2 (pós-entrega)
 - [ ] Três estados do frontend implementados
 - [ ] SSE end-to-end validado com `done`/`error`
 - [ ] Deploy Railway funcionando com todas as env vars
-
-### Bloco 4 — Avaliação
-- [ ] `golden_dataset.json` com 8+ casos
-- [ ] `avaliar.py` rodando e gerando `relatorio.json`
-- [ ] 4 métricas calculadas e critérios mínimos documentados
 
 ### Bloco 5 — Documentação
 - [ ] Diagrama de arquitetura (Mermaid)
