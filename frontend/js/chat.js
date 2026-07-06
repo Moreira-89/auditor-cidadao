@@ -49,7 +49,6 @@ const dom = {
     btnConfirm:    $('btn-confirm'),
 
     // Chat
-    chatHead:      $('chat-head'),
     chatScroll:    $('chat-scroll'),
     chatEmpty:     $('chat-empty'),
     chatMessages:  $('chat-messages'),
@@ -434,7 +433,6 @@ async function confirmarUpload() {
 
         dom.modalLoading.classList.add('hidden');
         dom.modalOverlay.classList.add('hidden');
-        dom.chatHead.classList.add('hidden');
 
         dom.chatInput.disabled = false;
         dom.btnSend.disabled   = true; // segue desabilitado até haver texto
@@ -477,7 +475,6 @@ function abrirModalNovaSessao() {
 
     dom.chatMessages.innerHTML = '';
     dom.chatEmpty.classList.remove('hidden');
-    dom.chatHead.classList.remove('hidden');
     dom.chatInput.disabled = true;
     dom.btnSend.disabled   = true;
     dom.chatInput.value    = '';
@@ -786,6 +783,9 @@ async function streamAgentResponse(texto) {
 
             if (accumulated) {
                 renderMarkdown(refs.markdownEl, accumulated);
+                // Cursor ▍ no fim do texto enquanto a resposta ainda chega —
+                // o CSS (.is-streaming) desenha e anima; removido no finally.
+                refs.markdownEl.classList.add('is-streaming');
             }
             scrollChatToBottom();
         }
@@ -826,6 +826,7 @@ async function streamAgentResponse(texto) {
             addRetryButton(refs, texto);
         }
     } finally {
+        refs.markdownEl.classList.remove('is-streaming');
         currentAbortController = null;
         setLoading(false);
     }

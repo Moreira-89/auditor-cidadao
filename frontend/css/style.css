@@ -139,6 +139,20 @@ a {
     display: none !important;
 }
 
+/* Visível apenas para leitores de tela — preserva a semântica (ex.: o h1 do
+   chat) sem desenhar nada na tela. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* Ícones via Material Symbols (fonts.google.com/icons) — substituem todo emoji
    Unicode usado como ícone de UI. O nome do ícone é o próprio texto do elemento
    (ex.: <span class="material-symbols-outlined">arrow_forward</span>). */
@@ -450,6 +464,49 @@ a {
 
 
 /* ==========================================================================
+   5b. HOME — COREOGRAFIA DO HERO (home.js)
+   ========================================================================== */
+
+/* Enquanto o home.js não assume, o conteúdo do laudo fica oculto para não dar
+   flash do estado final antes da coreografia. A classe .hero-anim é adicionada
+   por um inline script no <head> SOMENTE quando a animação vai rodar — sem JS
+   ou com prefers-reduced-motion, o HTML mostra o laudo pronto direto. */
+.hero-anim .code-window-body > * {
+    visibility: hidden;
+}
+
+/* O texto da evidência guarda a quebra de linha no próprio conteúdo (o home.js
+   "digita" via textContent) — pre-line preserva o \n sem precisar de <br>. */
+.evidence-text {
+    white-space: pre-line;
+}
+
+/* Cursor de streaming — o mesmo glifo ▍ usado no chat durante a resposta. */
+.stream-caret {
+    color: var(--primary);
+    animation: ac-caret 0.9s steps(1) infinite;
+}
+
+@keyframes ac-caret {
+    50% { opacity: 0; }
+}
+
+/* Ponto de status pulsando enquanto as consultas estão em andamento. */
+.status-dot.is-live {
+    animation: ac-dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ac-dot-pulse {
+    50% { opacity: 0.4; box-shadow: 0 0 3px var(--primary); }
+}
+
+/* Estado final do status ("Laudo pronto") — o verde marca conclusão ao vivo. */
+.code-window-status.is-done {
+    color: var(--primary);
+}
+
+
+/* ==========================================================================
    6. HOME — COMO FUNCIONA
    ========================================================================== */
 
@@ -512,6 +569,112 @@ a {
 
 
 /* ==========================================================================
+   6b. HOME — CATÁLOGO DE ANOMALIAS (empilhamento sticky)
+   ========================================================================== */
+
+.section-lead {
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--body-text);
+    max-width: 620px;
+    margin: -28px 0 48px;
+}
+
+.anomalia-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Cada PAR de cards "gruda" um pouco abaixo do anterior (top escalonado via
+   --stack-i) e o seguinte desliza por cima conforme o scroll. O fundo opaco
+   no par é obrigatório: sem ele, o par coberto apareceria pelo vão entre os
+   dois cards. A hairline delimita as camadas empilhadas. */
+.anomalia-par {
+    position: sticky;
+    top: calc(84px + var(--stack-i) * 12px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    background: var(--canvas);
+}
+
+/* O nono card fecha a sequência sozinho, em largura total. */
+.anomalia-par-solo {
+    grid-template-columns: 1fr;
+}
+
+.anomalia-cat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    padding: 26px 28px 24px;
+    min-height: 230px;
+}
+
+.anomalia-cat-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+}
+
+.anomalia-letra {
+    font-family: var(--font-mono);
+    font-size: 26px;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.anomalia-titulo {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--ink-strong);
+    margin: 0;
+}
+
+.anomalia-indice {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--mute);
+}
+
+.anomalia-criterio {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--body-text);
+    margin: 0;
+    max-width: 660px;
+}
+
+/* margin-top: auto ancora os chips no pé do card — os 9 ficam alinhados
+   entre si mesmo com critérios de comprimentos diferentes. */
+.anomalia-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.anomalia-chip {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--mute);
+    background: var(--canvas-soft);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-pill);
+    padding: 3px 10px;
+}
+
+
+/* ==========================================================================
    7. HOME — FOOTER
    ========================================================================== */
 
@@ -566,26 +729,6 @@ a {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-}
-
-.chat-head {
-    flex: none;
-    padding: 24px 28px 16px;
-    border-bottom: 1px solid var(--hairline-soft);
-}
-
-.chat-head h1 {
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    color: var(--ink-strong);
-    margin: 0 0 4px;
-}
-
-.chat-head p {
-    font-size: 14px;
-    color: var(--mute);
-    margin: 0;
 }
 
 .chat-scroll {
@@ -695,11 +838,11 @@ a {
     display: flex;
     gap: 12px;
     margin: 0 0 24px;
-    animation: msg-in 0.28s ease-out;
+    animation: msg-in 0.18s ease-out;
 }
 
 @keyframes msg-in {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -868,6 +1011,15 @@ a {
     border: 0;
     border-top: 1px solid var(--hairline);
     margin: 16px 0;
+}
+
+/* Cursor de streaming no fim do último bloco enquanto a resposta ainda está
+   chegando — a classe .is-streaming é gerenciada pelo chat.js. */
+.msg-markdown.is-streaming > :last-child::after {
+    content: '▍';
+    color: var(--primary);
+    margin-left: 2px;
+    animation: ac-caret 0.9s steps(1) infinite;
 }
 
 
@@ -1491,6 +1643,22 @@ a {
         padding: 14px 16px;
     }
 
+    /* Em telas estreitas o par vira coluna única e ficaria alto demais para
+       pinar — o catálogo flui como lista simples, sem empilhamento. */
+    .anomalia-par {
+        position: static;
+        grid-template-columns: 1fr;
+    }
+
+    .anomalia-cat {
+        padding: 20px;
+        min-height: 0;
+    }
+
+    .section-lead {
+        margin: -20px 0 36px;
+    }
+
     .nav-links {
         gap: 12px;
     }
@@ -1535,10 +1703,6 @@ a {
         padding: 24px 20px;
     }
 
-    .chat-head {
-        padding: 16px 18px 12px;
-    }
-
     .chat-scroll {
         padding: 18px;
     }
@@ -1561,5 +1725,61 @@ a {
 
     .modal-card {
         padding: 22px;
+    }
+}
+
+
+/* ==========================================================================
+   16. ACESSIBILIDADE — FOCO VISÍVEL E MOVIMENTO REDUZIDO
+   ========================================================================== */
+
+/* Anel de foco por teclado em todo elemento interativo (mouse não dispara
+   :focus-visible) — mesma linguagem do glow de foco dos inputs. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[role='button']:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* Navegação entre home e chat resolve na hora, sem slide. */
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
+
+    /* Entradas decorativas viram aparição direta. O spinner permanece:
+       é indicador essencial de progresso, não decoração. */
+    .chat-msg,
+    .toast,
+    .modal-overlay,
+    .modal-card {
+        animation: none;
+    }
+
+    /* Cursores de streaming e ponto de status continuam visíveis, sem piscar. */
+    .stream-caret,
+    .msg-markdown.is-streaming > :last-child::after,
+    .status-dot.is-live {
+        animation: none;
+    }
+
+    /* O catálogo vira uma lista simples, sem empilhamento no scroll. */
+    .anomalia-par {
+        position: static;
+    }
+
+    /* Micro-deslocamentos de hover desligados (o jump-bottom mantém o
+       translateX que o centraliza). */
+    .btn:hover:not(:disabled),
+    .send-btn:hover:not(:disabled) {
+        transform: none;
+    }
+
+    .jump-bottom:hover {
+        transform: translateX(-50%);
     }
 }

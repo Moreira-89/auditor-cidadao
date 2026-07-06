@@ -581,34 +581,3 @@ não acusa nem emite sentenças. Framing explícito no `SYSTEM_PROMPT`, na docum
 | 9 | `TAMANHO_MAXIMO_CONTEUDO=2000` em `app/services/busca_web.py:12` (migrado de `filtragem_resultados_web.py` no Bloco 3) quase não trunca na prática | Baixo | Valor ainda não revisado — pendente antes da apresentação |
 | 10 | ~~Cobertura de `try/except` inconsistente fora das tools nativas~~ | Resolvido | ✅ Handler global de exceção em `main.py`, try/except em torno do upsert no Pinecone em `root_upload.py` e da conexão MCP no startup em `lifespan.py`. `busca_web.py`/`consulta_receita_federal.py` mantidos sem try/except de propósito — já seguem o padrão "levanta exceção nativa, chamador em `tools.py` traduz" |
 | 11 | Sem autenticação nem limite de uso: usuário pode conversar (gastar tokens da OpenAI) indefinidamente | Alto | Confirmado: nenhum middleware, `Depends` de auth ou rate limiter em `app/`. Backlog V2: rate limiting/quota/timeout de conversa — ver seção "Controle de custo e limite de uso" |
-
----
-
-## 🔍 Auditoria de Código Pré-Banca — Revisão Sênior (2026-07-05)
-
-> Checklist de correções levantado numa revisão de qualidade antes da apresentação.
-> Marque `- [x]` conforme for corrigindo. Nenhum item é de alta severidade — o projeto
-> está sólido; são refinos de robustez e documentação.
-
-### Bugs a corrigir
-- [x] **[média] `frontend/js/chat.js` (~L736-770) — parser SSE perde/corrompe evento em linha `data:` cortada na fronteira do chunk de rede.** Corrigido: a última linha incompleta agora é guardada em `leftover` **antes** de qualquer tentativa de tratá-la como `data:` (inclusive quando ela começa com `data: `), evitando que um fragmento de JSON cortado vaze como texto na resposta.
-- [x] **[baixa] `app/services/consulta_sancoes.py` (L88-89) — falha crua se `CGU_API_KEY` ausente.** Corrigido: `consultar_sancoes` agora checa a chave no início e retorna dois avisos `tipo_registro: "aviso"` (CEIS/CNEP indisponíveis) em vez de deixar o `TypeError` do header `None` escapar do `except httpx.HTTPError`.
-- [x] ~~`app/services/ai_engine.py` (L161-173) — texto de raciocínio intermediário pode vazar para a resposta exibida.~~ **Confirmado pelo autor: não ocorre na prática** (rodada de decisão de tool do `gpt-4o-mini` não emite conteúdo antes do `tool_calls`). Mantido como está, sem alteração de lógica.
-
-### Código morto / a confirmar (intencional — não remover agora)
-- [x] `buscar_contratos_fornecedor_pncp` (`tools.py` L215-293), `buscar_contratos_por_fornecedor` (`consulta_pncp.py`) e a entrada `"buscar_contratos_fornecedor_pncp"` no `TOOL_STATUS_MAP` (`prompt.py` L318) estão **inalcançáveis** hoje (tool fora de `TOOLS` e do `SYSTEM_PROMPT`). **Confirmado pelo autor: desativação intencional** — a tool sofre rate limit alto e demora para trazer resultado por causa dos filtros/varreduras no PNCP; será revista depois da entrega. `consulta_pncp.py` ganhou uma nota explícita disso no topo do arquivo.
-- [ ] Ao reativar a tool PNCP: `buscar_contratos_por_fornecedor` acessa chaves cruas do JSON (`compra["sequencialCompra"]`, `item["numeroItem"]`); um `KeyError` não é pego pelos `except httpx.*` do wrapper. Adicionar `.get()`/checagem ou `except (KeyError, TypeError)` quando for reativar.
-
-### Documentação a ajustar
-- [x] `app/core/logging_config.py` (L27 e L48): referência a `avaliar.py` (não existe mais) trocada por `evaluation/pipeline_avaliacao.py`.
-- [x] `app/services/gerenciadorvetorial.py` (docstring de `buscar_contexto`): "os 3 trechos" → "os top_k trechos (default 3)", já que é configurável via `TOP_K_EDITAL`.
-- [x] `app/models/agent_state.py`: exemplo que citava "o nome do usuário" (removido no Bloco 0) trocado por "um score parcial de risco".
-- [x] `app/models/pergunta_request.py` (docstring): papel do `thread_id` (continuidade da conversa via checkpointer) documentado.
-
-Além desses 4, foi feita uma passada geral de clareza nas docstrings/comentários de todo o projeto (`app/`, `evaluation/`, `main.py`), deixando o "porquê" de cada decisão mais explícito para leitura durante a apresentação — sem alterar nenhuma lógica além dos dois bugs acima.
-
-### Regressão a garantir (não é bug)
-- [ ] Manter no golden dataset um caso que exercite `buscar_contexto_edital` **pelo caminho com cache** (`aplicar_cache` reconstrói o `StructuredTool` — a detecção de `InjectedState` pelo `ToolNode` depende do `args_schema` preservado). Hoje funciona; o teste pega de imediato se uma futura atualização de lib quebrar isso.
-
-### Causa raiz (para a apresentação)
-Dois dos três achados têm a **mesma causa**: *fronteiras de streaming tratadas pela metade*. O backend resolve bem o lado do LLM (buffer-then-commit isola a resposta final), mas (a) o frontend não trata a fronteira do chunk de **rede** no parser SSE e (b) o texto intermediário que o backend descarta ainda é **transmitido**. Mesmo tema — "o que é um pedaço *completo* de dado?" — em dois pontos. O terceiro (CGU) é a família "robustez a variável de ambiente ausente", igual ao `float(None)` já corrigido em `dependencies.py`.
