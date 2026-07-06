@@ -118,6 +118,7 @@ async def buscar_contexto_edital(
     # possa apontar para o namespace "avaliacao" via env var sem afetar o agente em produção,
     # que continua usando o default "production" do GerenciadorVetorial.
     namespace_busca = os.getenv("PINECONE_NAMESPACE", "production")
+    top_k = int(os.getenv("TOP_K_EDITAL", "3"))
 
     # asyncio.to_thread garante que a query síncrona ao Pinecone não bloqueie o event loop
     return await asyncio.to_thread(
@@ -126,6 +127,7 @@ async def buscar_contexto_edital(
         estado=estado,
         municipio=municipio,
         namespace=namespace_busca,
+        top_k=top_k,
     )
 
 

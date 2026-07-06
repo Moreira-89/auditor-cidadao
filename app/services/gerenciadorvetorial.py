@@ -76,9 +76,13 @@ class GerenciadorVetorial:
             metadados,
         )
 
+        # Cada chunk precisa do seu PRÓPRIO dict de metadados (por isso o `dict(metadados)`
+        # abaixo, em vez de `[metadados] * N`). O add_texts do langchain_pinecone grava o
+        # texto do chunk dentro do próprio dict de metadados; se todos os chunks compartilhassem
+        # o mesmo objeto, o texto do último chunk sobrescreveria o dos demais.
         self.vector_store.add_texts(
             texts=lista_chunks,
-            metadatas=[metadados] * len(lista_chunks),
+            metadatas=[dict(metadados) for _ in lista_chunks],
             namespace=namespace,
         )
         logger.info("Upsert concluído | index=%s | namespace=%s", self.index_name, namespace)
@@ -89,6 +93,7 @@ class GerenciadorVetorial:
         estado: str,
         municipio: str,
         namespace: str = "production",
+        top_k: int = 3,
     ) -> str:
         """
         Busca semanticamente os 3 trechos do edital mais relevantes para a pergunta.
@@ -106,7 +111,7 @@ class GerenciadorVetorial:
         # Converte a pergunta em vetor e localiza os K=3 chunks mais próximos semanticamente
         documentos_encontrados = self.vector_store.similarity_search(
             query=pergunta,
-            k=3,
+            k=top_k,
             filter={
                 "estado": estado,
                 "municipio": municipio,
