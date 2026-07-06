@@ -6,12 +6,13 @@ pesada (MCP, grafo, modelo extrator) ao lifespan em app/services/lifespan.py.
 
 import logging
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.root_perguntar import router as perguntar_router
 from app.api.root_upload import router as upload_router
+from app.core.logging_config import logger
 from app.services.lifespan import lifespan
 
 logging.basicConfig(
@@ -28,6 +29,17 @@ app = FastAPI(
 
 app.include_router(upload_router)
 app.include_router(perguntar_router)
+
+
+@app.exception_handler(Exception)
+async def tratar_excecao_nao_prevista(request: Request, exc: Exception):
+    """Rede de segurança final: qualquer exceção não tratada por um router específico
+    cai aqui, evitando vazar stack trace ao cliente e garantindo que fique logada."""
+    logger.exception("Erro não tratado | path=%s", request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Erro interno inesperado. Tente novamente em instantes."},
+    )
 
 # Serve o front-end (index.html, chat.html, css/, js/) como arquivos estáticos —
 # não há build step nem framework, é HTML/CSS/JS puro na mesma origem da API.

@@ -75,16 +75,23 @@ async def upload_edital(
     # Envia o texto para o GerenciadorVetorial, que chunkiza, gera embeddings e salva no Pinecone
     # Roda em thread separada porque a função é síncrona e bloquearia o event loop
     logger.info("Iniciando indexação no Pinecone | arquivo=%s", file.filename)
-    await asyncio.to_thread(
-        gerenciador.executar,
-        texto_edital=texto,
-        metadados={
-            # Metadados usados para filtrar buscas por localidade depois da indexação
-            "municipio": municipio,
-            "estado": estado,
-            "arquivo": file.filename,
-        },
-    )
+    try:
+        await asyncio.to_thread(
+            gerenciador.executar,
+            texto_edital=texto,
+            metadados={
+                # Metadados usados para filtrar buscas por localidade depois da indexação
+                "municipio": municipio,
+                "estado": estado,
+                "arquivo": file.filename,
+            },
+        )
+    except Exception:
+        logger.exception("Falha ao indexar edital no Pinecone | arquivo=%s", file.filename)
+        raise HTTPException(
+            status_code=502,
+            detail="Falha ao indexar o edital no banco vetorial. Tente novamente em instantes.",
+        )
     logger.info("Indexação concluída | arquivo=%s", file.filename)
 
     # Usa expressão regular para encontrar todos os CNPJs no texto do edital

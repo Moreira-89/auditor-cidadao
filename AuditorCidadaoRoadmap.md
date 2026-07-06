@@ -269,13 +269,17 @@ demais métricas (aderência de tools).
 
 Critérios mínimos de aprovação definidos e aplicados automaticamente (`aprovacao["geral"]`):
 `aderencia_tools ≥ 0.70`, `faithfulness ≥ 0.85`, `context_recall ≥ 0.75`, `recall_anomalias ≥
-0.80`. Resultado validado em 3 execuções estáveis após todas as correções acima:
-`aderencia_tools = 1.00`, `recall_anomalias = 1.00`, `faithfulness ≈ 0.87` (aprovado),
-`context_recall = 0.60` (reprovado — limitação documentada de `top_k=3` em 2 dos 5 casos
-elegíveis ao RAGAS, ver Backlog V2). Uma execução manual posterior isolada registrou
-`context_recall = 0.90`, ainda **não confirmada em múltiplas rodadas** — tratar como resultado
-preliminar até validar estabilidade com o mesmo protocolo (3 execuções), não como o número
-oficial do projeto.
+0.80`. Resultado consolidado em **6 execuções** após todas as correções acima (3 do pipeline +
+3 manuais adicionais, mesmo protocolo): `aderencia_tools = 1.00` e `recall_anomalias = 1.00`
+estáveis nas 6/6. `context_recall` ficou em `0.60` em 5 das 6 execuções (uma delas registrou
+`0.90`, tratado como outlier pontual, não repetido) — reprovado, limitação documentada de
+`top_k=3` em 2 dos 5 casos elegíveis ao RAGAS (ver Backlog V2). `faithfulness` se mostrou
+**instável em torno do próprio limiar**: variou entre `0.79` e `0.88` nas 6 execuções (4
+aprovadas, 2 reprovadas) — não é uma aprovação sólida, apesar de ter passado nas 3 primeiras
+rodadas medidas. Hipótese não confirmada: variância herdada da `temperature=0.1` do agente
+principal (mesma configuração de produção), usada também durante a avaliação — ver item
+correspondente no Backlog V2. Veredito geral (`aprovacao["geral"]`) reprovado na maioria das
+6 execuções, por causa de `context_recall`.
 
 ---
 
@@ -529,10 +533,13 @@ sistema de TI por R$2 milhões).
   o golden dataset). Adiado para depois da entrega: o `gpt-4o-mini` mostrou ruído de julgamento
   mesmo com dado de entrada correto (nota variando para o mesmo contexto recuperado); trocar de
   volta exige revalidar estabilidade em 3+ rodadas antes de confiar no resultado.
-- **Investigar variância residual de `faithfulness`** (~0.096 de amplitude mesmo com juiz
-  `gpt-4o`) — hipótese não confirmada: `temperature=0.1` do agente principal (mesma configuração
-  de produção) usada também na avaliação, gerando laudos ligeiramente distintos por execução.
-  Poderia ser testado congelando `temperature=0` só durante a avaliação.
+- **Investigar variância residual de `faithfulness`** — prioridade elevada após 6 execuções
+  totais mostrarem oscilação de `0.79` a `0.88` (amplitude `0.086`), com 2 das 6 reprovando o
+  limiar de `0.85` mesmo com o juiz `gpt-4o` e o bug de metadados já corrigido — não é mais
+  ruído desprezível, é a métrica mais próxima de aprovação consistente e a mais fácil de destravar.
+  Hipótese não confirmada: `temperature=0.1` do agente principal (mesma configuração de
+  produção) usada também na avaliação, gerando laudos ligeiramente distintos por execução.
+  Testável congelando `temperature=0` só durante a avaliação, sem mudar produção.
 - **Auditar o repositório atrás de outros usos do padrão `[X] * N` com objeto mutável** — o bug
   de metadados do Bloco 4 foi corrigido pontualmente em `gerenciadorvetorial.py`; não houve
   varredura completa do projeto atrás do mesmo padrão em outro lugar.
@@ -567,47 +574,10 @@ não acusa nem emite sentenças. Framing explícito no `SYSTEM_PROMPT`, na docum
 | 2 | ~~`float(None)` em `dependencies.py` se env vars faltarem~~ | Resolvido | ✅ Defaults adicionados |
 | 3 | ~~Cache MCP nunca expira entradas antigas~~ | Resolvido | ✅ Migrado para `cachetools.TTLCache` |
 | 4 | Tavily: cota gratuita de 1.000 req/mês | Baixo | Monitorar; pay-as-you-go se necessário |
-| 5 | PNCP rate limits não documentados | Baixo | Cache TTL 24h mitiga |
-| 6 | `npm notice` nos logs do container | Cosmético | `NO_UPDATE_NOTIFIER=1` não suprime stderr |
-| 7 | `.env.docker` não usa aspas | Baixo | Documentar em `deploy.md` |
+| 5 | PNCP rate limits não documentados | Baixo | Cache TTL 24h mitiga. Parcial: comportamento do WAF já documentado como comentário em `consulta_pncp.py:44-53`, mas ainda não em doc formal (`docs/` não existe) |
+| 6 | ~~`npm notice` nos logs do container~~ | Resolvido | ✅ `ENV NO_UPDATE_NOTIFIER=1` presente em `Dockerfile:8` |
+| 7 | `.env.docker` não usa aspas | Baixo | Ainda sem aspas nos valores; sem doc em `deploy.md` (pasta `docs/` ainda não existe) |
 | 8 | ~~Subprocess MCP sem shutdown explícito~~ | Resolvido | ✅ Falso positivo — lib já fecha sessão por chamada |
-| 9 | `TAMANHO_MAXIMO_CONTEUDO=2000` em `filtragem_resultados_web.py` quase não trunca na prática — amostras reais da Tavily ficam na faixa de 1900–2000 caracteres | Baixo | Revisar o valor com mais amostras antes da apresentação |
-| 10 | Cobertura de `try/except` inconsistente em partes do código fora das tools nativas (não revisada nesta sessão) | Médio | Passar revisão de tratamento de erro em todo o projeto antes da banca |
-| 11 | Sem autenticação nem limite de uso: usuário pode conversar (gastar tokens da OpenAI) indefinidamente | Alto | Backlog V2: rate limiting/quota/timeout de conversa — ver seção "Controle de custo e limite de uso" |
-
----
-
-## 🎯 Ordem Recomendada de Execução
-
-```
-BLOCO 3 (dias 6–9)
-├─ Frontend final
-└─ Deploy Railway
-
-BLOCO 5 (paralelo, entregue no dia 13)
-├─ Diagrama de arquitetura
-├─ etica.md (T6)
-├─ README completo (E2/E3/R3)
-└─ Justificativa tecnológica consolidada
-
-BACKLOG V2 (pós-entrega)
-├─ Fase 7: indexação automática + migração de metadata (cnpjs)
-├─ buscar_historico_empresa
-├─ PostgresSaver + Redis
-└─ Módulos futuros da plataforma
-```
-
----
-
-## Checklist de Verificação
-
-### Bloco 3 — Frontend + Deploy
-- [ ] Três estados do frontend implementados
-- [ ] SSE end-to-end validado com `done`/`error`
-- [ ] Deploy Railway funcionando com todas as env vars
-
-### Bloco 5 — Documentação
-- [ ] Diagrama de arquitetura (Mermaid)
-- [ ] `etica.md` cobrindo LGPD, anti-alucinação, anti-injection, limitações, responsabilidade
-- [ ] README com todas as env vars, execução local e Docker
-- [ ] Justificativa tecnológica consolidada
+| 9 | `TAMANHO_MAXIMO_CONTEUDO=2000` em `app/services/busca_web.py:12` (migrado de `filtragem_resultados_web.py` no Bloco 3) quase não trunca na prática | Baixo | Valor ainda não revisado — pendente antes da apresentação |
+| 10 | ~~Cobertura de `try/except` inconsistente fora das tools nativas~~ | Resolvido | ✅ Handler global de exceção em `main.py`, try/except em torno do upsert no Pinecone em `root_upload.py` e da conexão MCP no startup em `lifespan.py`. `busca_web.py`/`consulta_receita_federal.py` mantidos sem try/except de propósito — já seguem o padrão "levanta exceção nativa, chamador em `tools.py` traduz" |
+| 11 | Sem autenticação nem limite de uso: usuário pode conversar (gastar tokens da OpenAI) indefinidamente | Alto | Confirmado: nenhum middleware, `Depends` de auth ou rate limiter em `app/`. Backlog V2: rate limiting/quota/timeout de conversa — ver seção "Controle de custo e limite de uso" |

@@ -71,7 +71,17 @@ async def lifespan(app: FastAPI):
         }
     )
 
-    mcp_tools_todas = await mcp_client.get_tools()
+    try:
+        mcp_tools_todas = await mcp_client.get_tools()
+    except Exception as e:
+        # Falha aqui derruba o startup do servidor de propósito (fail-fast) — mas sem
+        # contexto, o traceback bruto do subprocess Node.js não deixa claro se o problema
+        # é o MCP em si ou a inicialização do npx/PATH feita acima.
+        logger.exception("Falha ao conectar ao MCP LiciNexus durante o startup.")
+        raise RuntimeError(
+            "Não foi possível obter as ferramentas do MCP LiciNexus. "
+            "Verifique se o pacote @licinexusbr/mcp está acessível e se o npx foi localizado corretamente."
+        ) from e
 
     # Filtra apenas as tools necessárias para o agente, descartando as demais do MCP
     TOOLS_MCP_SELECIONADAS = {
