@@ -9,19 +9,24 @@ from langgraph.graph import add_messages
 # -----------------------------------------------------------------------------
 class AgentState(TypedDict):
     """
-    Resumo Principal: Define a estrutura de dados (estado) mantida e transacionada ao longo do fluxo do LangGraph.
+    O "estado" do agente: a caixa de dados que o LangGraph carrega de um nó para o outro
+    durante uma conversa. Tudo o que os nós do grafo precisam ler ou atualizar mora aqui.
 
-    COMO FUNCIONA:
-    1. Armazenamento de Mensagens: Utiliza a chave `messages` para armazenar o histórico da conversa.
-    2. Redução de Mensagens: A anotação `add_messages` atua como um "reducer", garantindo que novas
-       mensagens retornadas pelos nós sejam concatenadas ao histórico existente, em vez de sobrescrevê-lo.
-    3. Contexto Geográfico: As chaves `estado` e `municipio` são obrigatórias para que o LangGraph
-       possa injetá-las automaticamente na ferramenta `buscar_contexto_edital` via `InjectedState`.
-       Sem elas no TypedDict, o framework não consegue localizar os valores no estado do grafo.
+    O que guarda:
+    1. `messages` — o histórico da conversa (perguntas do usuário, respostas do LLM e
+       resultados das ferramentas).
+    2. `estado` e `municipio` — o contexto geográfico do edital em análise.
 
-    OBSERVAÇÃO ARQUITETURAL:
-        Quando quiser atualizar algo durante o processamento (ex: adicionar uma lista de CNPJs ou
-        o nome do usuário), basta adicionar uma nova chave nesta TypedDict.
+    Dois detalhes importantes:
+    - `add_messages` (anotação sobre `messages`) é um "reducer": quando um nó devolve algo
+      em `messages`, o LangGraph ANEXA ao histórico existente em vez de sobrescrever. Sem
+      isso, cada passo apagaria a conversa anterior.
+    - `estado` e `municipio` precisam estar declarados aqui para o LangGraph conseguir
+      injetá-los automaticamente na ferramenta `buscar_contexto_edital` (via `InjectedState`).
+      Se não estiverem no TypedDict, o framework não encontra esses valores no estado do grafo.
+
+    Para estender: precisa carregar um dado novo pelo fluxo (ex.: um score parcial de risco)?
+    Basta adicionar uma nova chave neste TypedDict.
     """
 
     # --- 1. Armazenamento de Mensagens e 2. Redução de Mensagens ---

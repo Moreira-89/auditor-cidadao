@@ -1,3 +1,13 @@
+"""
+Endpoint HTTP de conversa com o agente.
+
+Recebe a pergunta do usuário (já validada pelo schema PerguntaRequest) e devolve a
+resposta do agente em STREAMING via Server-Sent Events (SSE) — assim o texto aparece
+no frontend aos poucos, token a token, sem o usuário esperar a resposta inteira ficar
+pronta. Aqui é só a "borda" HTTP: a lógica de verdade mora em run_agent
+(app/services/ai_engine.py).
+"""
+
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 

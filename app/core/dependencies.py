@@ -1,7 +1,10 @@
 """
-Configuração e dependências compartilhadas lidas uma única vez no import: parâmetros
-do LLM (agente principal e extrator) vindos do .env, e o singleton do GerenciadorVetorial
-(Pinecone + embeddings), caro demais para recriar a cada requisição.
+Configuração e recursos compartilhados, carregados UMA vez no import do módulo:
+
+- Os parâmetros dos modelos (agente principal, extrator e avaliador) lidos do .env, com
+  defaults seguros para o servidor não quebrar no boot se alguma env var faltar.
+- Um único GerenciadorVetorial (embeddings + conexão com o Pinecone), reutilizado por todo
+  o app — abrir essa conexão é caro demais para refazer a cada requisição (padrão singleton).
 """
 
 import os
@@ -25,6 +28,12 @@ LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 EXTRATOR_MODEL = os.getenv("EXTRATOR_MODEL", "openai:gpt-4o-mini")
 # Temperatura 0 por padrão: saída determinística é o comportamento esperado para extração.
 EXTRATOR_TEMPERATURE = float(os.getenv("EXTRATOR_TEMPERATURE", "0.0"))
+
+# Modelo usado pelo RAGAS (evaluation/pipeline_avaliacao.py) para julgar as métricas —
+# separado do LLM_MODEL do agente principal para permitir trocar um sem afetar o outro.
+AVALIADOR_MODEL = os.getenv("AVALIADOR_MODEL", "openai:gpt-4o-mini")
+# Temperatura 0 por padrão: saída determinística é o comportamento esperado para avaliação.
+AVALIADOR_TEMPERATURE = float(os.getenv("AVALIADOR_TEMPERATURE", "0.0"))
 
 
 # GerenciadorVetorial instanciado uma única vez no import (Singleton):

@@ -1,3 +1,13 @@
+"""
+Encontra CNPJs no texto de um edital.
+
+Usado logo após a extração do PDF (app/api/root_upload.py) para descobrir quais empresas
+aparecem no documento e já entregá-las ao frontend. A estratégia: "pescar" candidatos com
+duas expressões regulares (formato pontuado e 14 dígitos seguidos) e depois filtrar os
+falsos positivos validando os dígitos verificadores — assim um CEP, um timestamp ou um ID
+qualquer de 14 dígitos não passa por CNPJ.
+"""
+
 import re
 
 from validate_docbr import CNPJ as ValidadorCNPJ

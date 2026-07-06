@@ -1,15 +1,15 @@
 """
-As 4 tools nativas ATIVAS do projeto, passadas ao agente junto com as tools MCP
-do PNCP (ver app/services/lifespan.py): consulta cadastral (Receita Federal),
-busca semântica no edital indexado (Pinecone), busca web (Tavily) e verificação
-de sanções (CEIS/CNEP do Portal da Transparência).
+As 4 ferramentas ("tools") NATIVAS do projeto — as capacidades que o agente pode
+acionar sozinho durante a conversa. Vão para o agente junto com as tools de PNCP
+vindas do MCP (ver app/services/lifespan.py). São elas: consulta cadastral (Receita
+Federal), busca semântica no edital indexado (Pinecone), busca na web (Tavily) e
+verificação de sanções (CEIS/CNEP do Portal da Transparência).
 
-Cada tool aqui é intencionalmente um wrapper fino: valida e normaliza os
-argumentos vindos do LLM, delega a chamada externa de verdade para um módulo
-de serviço dedicado (app/services/consulta_*.py, busca_web.py) e traduz o
-resultado (ou a exceção) em algo que o LLM consegue interpretar. Isso mantém
-este arquivo legível conforme o número de tools cresce, e permite reusar a
-lógica de integração fora do contexto de agente (scripts, testes, endpoints).
+Cada tool aqui é, de propósito, uma "casca fina" (wrapper): só valida/normaliza os
+argumentos que o LLM enviou, repassa a chamada externa de verdade para um módulo de
+serviço dedicado (app/services/consulta_*.py, busca_web.py) e traduz o resultado — ou
+o erro — em algo que o LLM entenda. Isso mantém este arquivo legível conforme o número
+de tools cresce e deixa a lógica de integração reutilizável fora do agente (scripts, testes).
 
 NOTA — buscar_contratos_fornecedor_pncp (histórico de contratos entre um
 fornecedor e um órgão no PNCP) está definida abaixo mas DESATIVADA de propósito:
@@ -23,6 +23,7 @@ CAPACIDADES DISPONÍVEIS do SYSTEM_PROMPT.
 """
 
 import asyncio
+import os
 import re
 
 import httpx
@@ -64,7 +65,8 @@ async def consultar_receita_federal(
         cnpj: O CNPJ da empresa a ser consultada.
 
     Returns:
-        Em sucesso: dicionário com razão social, nome fantasia, situação cadastral, CNAE e data de início.
+        Em sucesso: dicionário com razão social, nome fantasia, situação cadastral, CNAE,
+        data de início de atividade e endereço (logradouro, número, bairro, município, UF, CEP).
         Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
     """
     # Remove pontuação e hífens para padronizar o CNPJ antes de validar e consultar
@@ -112,12 +114,20 @@ async def buscar_contexto_edital(
         Trechos do edital mais relevantes para a pergunta, prontos para análise.
         Se nenhum trecho for encontrado, retorna uma mensagem informando que o edital pode não estar indexado.
     """
+    # Lido em tempo de chamada (não de import) para que evaluation/pipeline_avaliacao.py
+    # possa apontar para o namespace "avaliacao" via env var sem afetar o agente em produção,
+    # que continua usando o default "production" do GerenciadorVetorial.
+    namespace_busca = os.getenv("PINECONE_NAMESPACE", "production")
+    top_k = int(os.getenv("TOP_K_EDITAL", "3"))
+
     # asyncio.to_thread garante que a query síncrona ao Pinecone não bloqueie o event loop
     return await asyncio.to_thread(
         gerenciador.buscar_contexto,
         pergunta=pergunta,
         estado=estado,
         municipio=municipio,
+        namespace=namespace_busca,
+        top_k=top_k,
     )
 
 

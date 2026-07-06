@@ -1,12 +1,22 @@
-import asyncio
-import io
+"""
+Endpoint HTTP de upload de editais.
 
-import pdfplumber
+Recebe um PDF, valida (tipo e tamanho), extrai o texto, indexa no banco vetorial
+(Pinecone) e devolve os CNPJs encontrados no documento — que o frontend guarda para
+usar nas perguntas seguintes. A extração de texto e a indexação ficam em módulos
+dedicados; aqui é só a "borda" HTTP: validar a entrada e traduzir falhas em respostas
+com o código HTTP certo (415 tipo inválido, 413 grande demais, 422 PDF ilegível,
+502 falha ao indexar).
+"""
+
+import asyncio
+
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.core.dependencies import gerenciador
 from app.core.logging_config import logger
 from app.utils.func_extrair_cnpj import extrair_cnpj
+from app.utils.func_extrair_texto_pdf import ErroExtracaoPDF, extrair_texto_pdf
 
 # Roteador com prefixo "/upload" — agrupa os endpoints de ingestão de editais
 router = APIRouter(prefix="/upload", tags=["Upload"])
@@ -60,14 +70,8 @@ async def upload_edital(
 
     # Abre o PDF em memória (sem salvar em disco) e extrai o texto de cada página
     try:
-        with pdfplumber.open(io.BytesIO(conteudo_bytes)) as pdf:
-            num_paginas = len(pdf.pages)
-            # Concatena o texto de todas as páginas; usa "" se uma página não tiver texto legível
-            texto = "\n".join(pagina.extract_text() or "" for pagina in pdf.pages)
-    except Exception as e:
-        logger.error(
-            "Falha na extração de texto | arquivo=%s | erro=%s", file.filename, str(e)
-        )
+        texto, num_paginas = extrair_texto_pdf(conteudo_bytes, file.filename)
+    except ErroExtracaoPDF:
         raise HTTPException(
             status_code=422,
             detail="Não foi possível ler o PDF. O arquivo pode estar corrompido ou protegido por senha.",
@@ -82,16 +86,23 @@ async def upload_edital(
     # Envia o texto para o GerenciadorVetorial, que chunkiza, gera embeddings e salva no Pinecone
     # Roda em thread separada porque a função é síncrona e bloquearia o event loop
     logger.info("Iniciando indexação no Pinecone | arquivo=%s", file.filename)
-    await asyncio.to_thread(
-        gerenciador.executar,
-        texto_edital=texto,
-        metadados={
-            # Metadados usados para filtrar buscas por localidade depois da indexação
-            "municipio": municipio,
-            "estado": estado,
-            "arquivo": file.filename,
-        },
-    )
+    try:
+        await asyncio.to_thread(
+            gerenciador.executar,
+            texto_edital=texto,
+            metadados={
+                # Metadados usados para filtrar buscas por localidade depois da indexação
+                "municipio": municipio,
+                "estado": estado,
+                "arquivo": file.filename,
+            },
+        )
+    except Exception:
+        logger.exception("Falha ao indexar edital no Pinecone | arquivo=%s", file.filename)
+        raise HTTPException(
+            status_code=502,
+            detail="Falha ao indexar o edital no banco vetorial. Tente novamente em instantes.",
+        )
     logger.info("Indexação concluída | arquivo=%s", file.filename)
 
     # Usa expressão regular para encontrar todos os CNPJs no texto do edital

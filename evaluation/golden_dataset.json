@@ -1,0 +1,264 @@
+[
+  {
+    "id": "caso_01",
+    "descricao": "São Luís/MA — sanção CEIS/CNEP vigente da empresa vencedora fictícia na dispensa de notebooks",
+    "categoria": "hibrido",
+    "estado": "Maranhão (MA)",
+    "municipio": "São Luís",
+    "cnpjs": [
+      "38504819000169"
+    ],
+    "caminho_pdf": "evaluation/editais_teste/edital_saoluis.pdf",
+    "contexto_edital_esperado": "1.1. Constitui objeto deste procedimento de dispensa eletrônica a aquisição de 09 (nove) notebooks para atender às necessidades administrativas, operacionais e gerenciais da Secretaria Municipal de Segurança com Cidadania - SEMUSC e de suas unidades vinculadas, conforme condições, quantidades e exigências estabelecidas neste Edital, no Termo de Referência e nos demais documentos integrantes do processo administrativo.",
+    "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Resultado da Fase de Lances: sagrou-se vencedora do certame uma empresa, CNPJ 38.504.819/0001-69, classificada em primeiro lugar com valor total de R$ 58.400,00 para o fornecimento dos 09 notebooks.",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
+    "tools_esperadas": [
+      {
+        "tool": "consultar_sancoes_empresa",
+        "argumentos_esperados": {
+          "cnpj": "38504819000169"
+        }
+      }
+    ],
+    "anomalias_esperadas": [
+      "H"
+    ],
+    "resposta_esperada": "laudo",
+    "score_minimo_esperado": 0.9,
+    "observacoes": "CNPJ real com múltiplas sanções ativas verificadas em 2026-07-04 na API do Portal da Transparência (suspensão pelo SERPRO até 15/10/2027; declaração de inidoneidade pelo TRE-MS até 09/02/2029; suspensão pela Câmara Municipal de Registro-SP até 02/10/2027). CNAE principal 'comércio varejista especializado de equipamentos e suprimentos de informática' — compatível com o objeto (notebooks). A vinculação dessa empresa a este edital específico é fictícia (o edital real é um formulário em branco, sem vencedor definido); a sanção em si é real e deve ser confirmada por quem for rodar o caso (consultar pelo CNPJ, não pelo nome — cadastros de sanção mudam com o tempo)."
+  },
+  {
+    "id": "caso_02",
+    "descricao": "São Luís/MA — cláusula de marca de referência (Dell Inspiron) não configura direcionamento",
+    "categoria": "real",
+    "estado": "Maranhão (MA)",
+    "municipio": "São Luís",
+    "cnpjs": [],
+    "caminho_pdf": "evaluation/editais_teste/edital_saoluis.pdf",
+    "contexto_edital_esperado": "APÊNDICE I - MODELO DE PROPOSTA DE PREÇOS [...] 2. ESPECIFICAÇÕES E ESTIMATIVA DA CONTRATAÇÃO: Notebook corporativo, tendo como marca/modelo de referência Dell Inspiron, ou equivalente, similar ou superior, conforme especificações mínimas. [...] 3. DESCRIÇÃO DETALHADA DO ITEM: Notebook corporativo destinado ao atendimento das necessidades administrativas, operacionais e gerenciais da SEMUSC e de suas unidades vinculadas. A marca/modelo Dell Inspiron é indicada exclusivamente como referência de padrão de qualidade, desempenho e funcionalidade, sendo admitidos equipamentos equivalentes, similares ou superiores, desde que atendidas as especificações mínimas.",
+    "pergunta": "A menção à marca Dell Inspiron no edital configura direcionamento da licitação para um fornecedor específico?",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [],
+    "resposta_esperada": "conversacional",
+    "score_minimo_esperado": null,
+    "observacoes": "Caso controle — resposta esperada é conversacional (sem laudo, laudo=null), pois o edital já qualifica a marca como referência e aceita equivalentes/similares/superiores. Testa se o agente NÃO sinaliza falso-positivo de Anomalia B diante de uma cláusula de marca-parâmetro corretamente justificada. A cláusula real está no APÊNDICE I (Modelo de Proposta de Preços, itens 2 e 3) — não na seção 1 do corpo do edital como uma versão anterior deste caso presumia; corrigido em 2026-07-04 após conferência direta do PDF (ver testes_locais/test_gerenciador_busca_contexto.py). score_minimo_esperado em null reflete que não se espera Score de Risco Consolidado (não é um laudo completo)."
+  },
+  {
+    "id": "caso_03",
+    "descricao": "Belém/PA — sanção vigente da empresa vencedora fictícia no pregão de limpeza e conservação",
+    "categoria": "hibrido",
+    "estado": "Pará (PA)",
+    "municipio": "Belém",
+    "cnpjs": [
+      "09465148000176"
+    ],
+    "caminho_pdf": "evaluation/editais_teste/edital_belem.pdf",
+    "contexto_edital_esperado": "1.1. O objeto da presente licitação, na modalidade Pregão Eletrônico, pelo Sistema de Registro de Preços, para futura e eventual \"CONTRATAÇÃO DE EMPRESA ESPECIALIZADA NA PRESTAÇÃO DE SERVIÇO DE LIMPEZA E CONSERVAÇÃO, COM REGIME DE DEDICAÇÃO EXCLUSIVA DE MÃO-DE-OBRA E FORNECIMENTO DE MATERIAIS E EQUIPAMENTOS DE EPI\", para atender a demanda da Secretaria Municipal de Coordenação do Planejamento e Gestão - SEGEP, e dos demais órgãos e entidades da Prefeitura Municipal de Belém, pelo período de 12 (doze) meses. VALOR TOTAL MENSAL DO LOTE R$ 11.517.667,69 / VALOR TOTAL ANUAL DO LOTE R$ 138.212.012,28.",
+    "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Ata de Registro de Preços: uma empresa, CNPJ 09.465.148/0001-76, foi declarada vencedora do Lote Único, com valor mensal ofertado de R$ 11.200.000,00.",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
+    "tools_esperadas": [
+      {
+        "tool": "consultar_sancoes_empresa",
+        "argumentos_esperados": {
+          "cnpj": "09465148000176"
+        }
+      }
+    ],
+    "anomalias_esperadas": [
+      "H"
+    ],
+    "resposta_esperada": "laudo",
+    "score_minimo_esperado": 0.9,
+    "observacoes": "CNPJ real com 5 registros de impedimento ativos no CEIS aplicados pelo Instituto Federal da Paraíba (IFPB), o mais recente vigente até 20/03/2030 — verificado em 2026-07-04. CNAE principal 'limpeza em prédios e em domicílios', compatível com o objeto. Vinculação ao edital de Belém é fictícia; sanção real, sujeita a mudança (consultar pelo CNPJ, não pelo nome)."
+  },
+  {
+    "id": "caso_04a",
+    "descricao": "Belém/PA — prazo de vigência do contrato de limpeza e conservação (sem anomalia)",
+    "categoria": "real",
+    "estado": "Pará (PA)",
+    "municipio": "Belém",
+    "cnpjs": [],
+    "caminho_pdf": "evaluation/editais_teste/edital_belem.pdf",
+    "contexto_edital_esperado": "1.1. O objeto da presente licitação, na modalidade Pregão Eletrônico, pelo Sistema de Registro de Preços, para futura e eventual \"CONTRATAÇÃO DE EMPRESA ESPECIALIZADA NA PRESTAÇÃO DE SERVIÇO DE LIMPEZA E CONSERVAÇÃO, COM REGIME DE DEDICAÇÃO EXCLUSIVA DE MÃO-DE-OBRA E FORNECIMENTO DE MATERIAIS E EQUIPAMENTOS DE EPI\", para atender a demanda da Secretaria Municipal de Coordenação do Planejamento e Gestão - SEGEP, e dos demais órgãos e entidades da Prefeitura Municipal de Belém, pelo período de 12 (doze) meses, de acordo com as condições estabelecidas neste Edital e seus Anexos.",
+    "pergunta": "Por quanto tempo vigora essa contratação?",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [],
+    "resposta_esperada": "conversacional",
+    "score_minimo_esperado": null,
+    "observacoes": "Split em 2026-07-04 do caso_04 original, que combinava vigência + valor num único contexto_edital_esperado costurado a partir de dois trechos distantes do PDF real (cláusula do objeto no chunk ~1-2 vs. tabela de valores no chunk ~57, perto do ANEXO III, de um total de 112 chunks) — inviável para uma busca top-k=3 recuperar os dois juntos. Este caso cobre só a vigência (12 meses, cláusula 1.1); ver caso_04b para o valor. Resposta esperada: 12 meses."
+  },
+  {
+    "id": "caso_04b",
+    "descricao": "Belém/PA — valor total mensal/anual do lote de limpeza e conservação (sem anomalia)",
+    "categoria": "real",
+    "estado": "Pará (PA)",
+    "municipio": "Belém",
+    "cnpjs": [],
+    "caminho_pdf": "evaluation/editais_teste/edital_belem.pdf",
+    "contexto_edital_esperado": "VALOR TOTAL MENSAL DO LOTE R$ 11.517.667,69 VALOR TOTAL ANUAL DO LOTE R$ 138.212.012,28 OBS: O valor TOTAL/ANUAL (considerando todos os itens que compõem o LOTE ÚNICO) como 1 (um) único serviço na quantidade de 1 (um), em algarismo, expresso em moeda corrente nacional (R$), considerando a(s) quantidades, constante(s) nos Anexos I e II do presente Edital.",
+    "pergunta": "Qual o valor total estimado (mensal e anual) dessa contratação?",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [],
+    "resposta_esperada": "conversacional",
+    "score_minimo_esperado": null,
+    "observacoes": "Split do caso_04 original — ver observações de caso_04a. Este cobre só o valor: R$ 11.517.667,69/mês, R$ 138.212.012,28/ano. O trecho fica perto do ANEXO III, ~55 chunks depois da cláusula do objeto; isolar a pergunta em só-valor aumenta a chance real de o RAG (top-k=3) recuperar o chunk certo."
+  },
+  {
+    "id": "caso_05",
+    "descricao": "Melgaço-PA — verificação de sanção no CNEP/CEIS da empresa vencedora fictícia da obra do MCMV",
+    "categoria": "hibrido",
+    "estado": "Pará (PA)",
+    "municipio": "Melgaço",
+    "cnpjs": [
+      "10470695000129"
+    ],
+    "caminho_pdf": "evaluation/editais_teste/edital_melgaco.pdf",
+    "contexto_edital_esperado": "1.1. O objeto da presente licitação é a CONTRATAÇÃO DE OBRAS E SERVIÇOS DE ENGENHARIA PARA CONSTRUÇÃO DE 40 (QUARENTA) UNIDADES HABITACIONAIS NO MUNICÍPIO DE MELGAÇO/PA, NO ÂMBITO DO MCMV, COM RECURSOS DO FUNDO NACIONAL DE HABITAÇÃO DE INTERESSE SOCIAL – FNHIS SUB 50, EM CONFORMIDADE COM TERMO DE COMPROMISSO N° 990456/2025/MCIDADES/CAIXA. 13.1. O custo estimado total da contratação é de R$ 6.163.305,06 (seis milhões, cento e sessenta e três mil, trezentos e cinco reais e seis centavos).",
+    "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Ata de Julgamento e Homologação: uma empresa, CNPJ 10.470.695/0001-29, sagrou-se vencedora do certame com proposta de R$ 6.150.000,00 para a execução integral do objeto.",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
+    "tools_esperadas": [
+      {
+        "tool": "consultar_sancoes_empresa",
+        "argumentos_esperados": {
+          "cnpj": "10470695000129"
+        }
+      }
+    ],
+    "anomalias_esperadas": [
+      "H"
+    ],
+    "resposta_esperada": "laudo",
+    "score_minimo_esperado": 0.9,
+    "observacoes": "Este caso substitui o CNPJ de exemplo originalmente cogitado (04876470000174) — atenção: esse número é o CNPJ da própria Prefeitura de Melgaço (órgão contratante), não de uma empresa licitante, e não faz sentido como alvo de consulta de sanções. CNPJ real usado aqui tem impedimento ativo aplicado pela Prefeitura de São Benedito-CE até 02/09/2026 — verificado em 2026-07-04. CNAE 'construção de edifícios', compatível com o objeto. Vinculação ao edital de Melgaço é fictícia; sanção real, sujeita a mudança (consultar pelo CNPJ, não pelo nome)."
+  },
+  {
+    "id": "caso_06",
+    "descricao": "Melgaço-PA — prazo entre publicação e sessão pública não é verificável no texto do edital (anti-alucinação)",
+    "categoria": "real",
+    "estado": "Pará (PA)",
+    "municipio": "Melgaço",
+    "cnpjs": [],
+    "caminho_pdf": "evaluation/editais_teste/edital_melgaco.pdf",
+    "contexto_edital_esperado": "CONCORRÊNCIA Nº 90002/2026 [...] Data da sessão: 27 de fevereiro de 2026, às 09:00 horas (horário de Brasília). [O edital não traz, em nenhum trecho indexado, a data de publicação do aviso de licitação — apenas a data da sessão pública.]",
+    "pergunta": "O prazo entre a publicação deste edital e a sessão pública cumpre o mínimo legal de 25 dias úteis exigido para concorrência de obras?",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [],
+    "resposta_esperada": "conversacional",
+    "score_minimo_esperado": null,
+    "excluir_do_ragas": true,
+    "observacoes": "Caso controle voltado a anti-alucinação: o edital disponibiliza a data da sessão (27/02/2026) mas não a data de publicação do aviso, então o critério da Anomalia F não é computável com os dados disponíveis. Resposta esperada: informar que a data de publicação não está disponível no trecho indexado e que a verificação não pôde ser concluída — nunca inferir/assumir uma data de publicação, nem cravar cumprimento ou descumprimento do prazo. anomalias_esperadas vazio porque a informação é insuficiente para confirmar a Anomalia F (não porque ela foi descartada por evidência). excluir_do_ragas=true porque contexto_edital_esperado é uma afirmação NEGATIVA (\"o edital não traz a data de publicação\") — estruturalmente não é um trecho literal atribuível a nenhum chunk recuperado, então context_recall penalizaria este caso independentemente da qualidade real do retrieval. O campo não afeta aderencia_tools nem recall_anomalias, que continuam usando este caso normalmente."
+  },
+  {
+    "id": "caso_07",
+    "descricao": "Macapá/AP — sanção vigente e situação cadastral irregular da empresa vencedora fictícia da pavimentação",
+    "categoria": "hibrido",
+    "estado": "Amapá (AP)",
+    "municipio": "Macapá",
+    "cnpjs": [
+      "08710270000106"
+    ],
+    "caminho_pdf": "evaluation/editais_teste/edital_macapa.pdf",
+    "contexto_edital_esperado": "1.1. O objeto da presente licitação é a PAVIMENTAÇÃO EM VIAS URBANAS NA CIDADE DE MACAPÁ-AP – CONVENIO N° 955575/2023. VALOR TOTAL DA CONTRATAÇÃO: R$ 4.739.831,03 (Quatro milhões, setecentos e trinta e nove mil, oitocentos e trinta e um reais e três centavos).",
+    "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Resultado do Julgamento: uma empresa, CNPJ 08.710.270/0001-06, foi declarada vencedora com proposta de R$ 4.700.000,00.",
+    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
+    "tools_esperadas": [
+      {
+        "tool": "consultar_sancoes_empresa",
+        "argumentos_esperados": {
+          "cnpj": "08710270000106"
+        }
+      }
+    ],
+    "anomalias_esperadas": [
+      "H"
+    ],
+    "resposta_esperada": "laudo",
+    "score_minimo_esperado": 0.95,
+    "observacoes": "CNPJ real com Declaração de Inidoneidade aplicada pelo Governo do Estado da Bahia desde 25/04/2018, por prazo indeterminado ('enquanto perdurarem os motivos') — verificado em 2026-07-04, portanto ainda ativa. Também interessante para o laudo: a situação cadastral na Receita Federal está como 'INAPTA' (não ATIVA), um segundo sinal de alerta que consultar_receita_federal traria — vale usar este caso também para checar se o agente cita as duas fontes quando ambas forem chamadas em uma pergunta mais ampla. score_minimo_esperado um pouco acima dos demais casos H (0.95) por combinar inidoneidade permanente + CNAE compatível + alto valor. Vinculação ao edital de Macapá é fictícia; sanção real, sujeita a mudança (consultar pelo CNPJ, não pelo nome)."
+  },
+  {
+    "id": "caso_08",
+    "descricao": "Marajá do Sena/MA — edital não informa o valor total da contratação (campo em branco no documento)",
+    "categoria": "real",
+    "estado": "Maranhão (MA)",
+    "municipio": "Marajá do Sena",
+    "cnpjs": [],
+    "caminho_pdf": "evaluation/editais_teste/edital_marajadosena.pdf",
+    "contexto_edital_esperado": "5. CLÁUSULA QUINTA – PREÇO (art. 92, V) 5.1. O valor total da contratação é de R$.......... (.....) 5.2. No valor acima estão incluídas todas as despesas ordinárias diretas e indiretas decorrentes da execução do objeto, inclusive tributos e/ou impostos, encargos sociais, trabalhistas, previdenciários, fiscais e comerciais incidentes, taxa de administração, frete, seguro e outros necessários ao cumprimento integral do objeto da contratação.",
+    "pergunta": "Qual é o valor total estimado desta contratação?",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [],
+    "resposta_esperada": "conversacional",
+    "score_minimo_esperado": null,
+    "observacoes": "Caso controle de anti-alucinação: o próprio edital publicado como base de testes traz o campo de valor em branco ('R$.......... (.....)'), um padrão de documento-modelo não preenchido. Resposta esperada deve declarar que o valor não consta do trecho do edital disponível, e nunca inventar ou estimar um número. contexto_edital_esperado ajustado em 2026-07-04: a versão anterior costurava a cláusula 1.1 (objeto, chunk ~3) com a 5.1 (valor, chunk ~48, de 66 total) como se fossem contíguas — recortado para só a cláusula 5.1, que é a única relevante pra esta pergunta pontual sobre valor. Bom teste também de robustez: o documento tem uma inconsistência de datas (processo nº 010601/2026 mas recebimento de propostas encerrando em 02/03/2025) — o agente não deve tentar 'corrigir' ou comentar isso a menos que perguntado, para não fugir do escopo da pergunta."
+  },
+  {
+    "id": "caso_09",
+    "descricao": "Melgaço-PA — busca por notícias/registros públicos sobre a obra do MCMV (fonte complementar via web)",
+    "categoria": "real",
+    "estado": "Pará (PA)",
+    "municipio": "Melgaço",
+    "cnpjs": [],
+    "caminho_pdf": "evaluation/editais_teste/edital_melgaco.pdf",
+    "contexto_edital_esperado": "1.1. O objeto da presente licitação é a CONTRATAÇÃO DE OBRAS E SERVIÇOS DE ENGENHARIA PARA CONSTRUÇÃO DE 40 (QUARENTA) UNIDADES HABITACIONAIS NO MUNICÍPIO DE MELGAÇO/PA, NO ÂMBITO DO MCMV, COM RECURSOS DO FUNDO NACIONAL DE HABITAÇÃO DE INTERESSE SOCIAL – FNHIS SUB 50, EM CONFORMIDADE COM TERMO DE COMPROMISSO N° 990456/2025/MCIDADES/CAIXA.",
+    "pergunta": "Existe alguma notícia ou denúncia pública recente sobre atraso, paralisação ou irregularidade nessa obra de habitação em Melgaço?",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_informacao_web",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [],
+    "resposta_esperada": "conversacional",
+    "score_minimo_esperado": null,
+    "observacoes": "Caso focado em ADERÊNCIA DE TOOLS (regra de precedência do SYSTEM_PROMPT), não em detecção de anomalia: nenhuma fonte oficial (PNCP/Receita/CGU) cobre 'notícia de atraso/denúncia', então a busca web é a ferramenta correta aqui — o objetivo é confirmar que o agente NÃO tenta responder isso com consultar_receita_federal/consultar_sancoes_empresa nem se recusa a buscar. anomalias_esperadas deixado vazio de propósito: o resultado de uma busca web real é não-determinístico (pode mudar com o tempo ou não retornar nada), então a nota de aprovação deste caso deve vir principalmente da métrica aderencia_tools, não de deteccao_anomalia. Considere se faz sentido manter este tipo de caso no golden dataset automatizado ou tratá-lo como checagem manual, já que a evidência-fonte não é estável."
+  },
+  {
+    "id": "caso_10",
+    "descricao": "Cenário fictício — pregão eletrônico com prazo de publicação inferior ao mínimo legal (Anomalia F)",
+    "categoria": "sintetico",
+    "estado": "Goiás (GO)",
+    "municipio": "Município Fictício Alfa",
+    "cnpjs": [],
+    "caminho_pdf": null,
+    "contexto_edital_esperado": "PREGÃO ELETRÔNICO Nº 014/2026 — PREFEITURA MUNICIPAL DE MUNICÍPIO FICTÍCIO ALFA/GO (cenário integralmente fictício, criado para fins de teste; não corresponde a nenhum município real). Processo Administrativo nº 0231/2026. Objeto: aquisição de medicamentos para a rede municipal de saúde, conforme condições estabelecidas neste Edital, com fundamento na Lei Federal nº 14.133/2021. Critério de julgamento: menor preço por item. Valor total estimado: R$ 480.000,00 (quatrocentos e oitenta mil reais). Data de publicação do aviso de licitação no Portal Nacional de Contratações Públicas (PNCP): 01/07/2026. Data e horário da sessão pública de abertura das propostas: 06/07/2026, às 09h00 (horário de Brasília).",
+    "pergunta": "Verifique se este edital cumpre o prazo mínimo de publicação exigido pela Lei 14.133/2021 para a modalidade pregão eletrônico.",
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": null
+      }
+    ],
+    "anomalias_esperadas": [
+      "F"
+    ],
+    "resposta_esperada": "laudo",
+    "score_minimo_esperado": 0.75,
+    "observacoes": "Caso sintético (sem PDF de origem) para cobrir a Anomalia F, difícil de encontrar em editais reais publicados já em conformidade. Entre a publicação (01/07/2026) e a sessão pública (06/07/2026) há apenas 5 dias corridos — abaixo do mínimo de 8 dias úteis exigido pelo art. 55 da Lei 14.133/2021 para pregão de bens/serviços comuns, qualquer que seja o encaixe de fins de semana no período. Nenhum CNPJ de empresa é necessário para este critério: a verificação depende só das duas datas do próprio texto do edital. Para uso em avaliação automatizada, quem for rodar este caso precisa indexar o texto de contexto_edital acima como se fosse o conteúdo extraído de um PDF (não há arquivo físico correspondente), associado ao município/estado fictícios indicados."
+  }
+]

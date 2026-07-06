@@ -12,6 +12,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <script>
+        // Marca o <html> quando a coreografia do hero vai rodar — o CSS usa essa
+        // classe para esconder o laudo até o home.js assumir, evitando um flash
+        // do estado final antes da animação. Com prefers-reduced-motion (ou sem
+        // JS), a classe não existe e o HTML já mostra o laudo pronto, estático.
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.documentElement.classList.add('hero-anim');
+        }
+    </script>
 </head>
 <body>
 
@@ -29,6 +39,7 @@
         </a>
         <nav class="nav-links">
             <a href="#como-funciona" class="nav-link">Como funciona</a>
+            <a href="#anomalias" class="nav-link">O que detecta</a>
             <a href="/chat" class="btn btn-primary btn-sm"><span>Abrir o chat</span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></a>
         </nav>
     </header>
@@ -51,6 +62,9 @@
             </div>
         </div>
 
+        <!-- O conteúdo abaixo está escrito no ESTADO FINAL (laudo pronto): é o que
+             usuários sem JS ou com prefers-reduced-motion veem direto. O home.js
+             captura esses textos, zera a janela e reencena a chegada via streaming. -->
         <div class="hero-mockup">
             <div class="code-window">
                 <div class="code-window-bar">
@@ -60,19 +74,18 @@
                     <span class="code-window-name">laudo_auditoria.md</span>
                 </div>
                 <div class="code-window-body">
-                    <div class="code-window-muted"># Resumo Executivo</div>
-                    <div class="code-window-score">Score de risco: <strong>0.87</strong> — <strong>CRÍTICO</strong></div>
-                    <div class="code-window-row">
+                    <div class="code-window-muted" id="hero-heading"># Resumo Executivo</div>
+                    <div class="code-window-score" id="hero-score-line">Score de risco: <strong id="hero-score">0.87</strong><span id="hero-class-wrap"> — <strong>CRÍTICO</strong></span></div>
+                    <div class="code-window-row" id="hero-row">
                         <span class="risk-pill">CRÍTICA</span>
                         <span>Sanção Vigente</span>
                     </div>
-                    <div class="code-window-evidence">
-                        <span class="material-symbols-outlined" aria-hidden="true">subdirectory_arrow_right</span> Empresa XYZ LTDA consta no CEIS<br>
-                        &nbsp;&nbsp;&nbsp;(Lei 14.133/2021, art. 14)
+                    <div class="code-window-evidence" id="hero-evidence-line">
+                        <span class="material-symbols-outlined" aria-hidden="true">subdirectory_arrow_right</span> <span class="evidence-text" id="hero-evidence">Empresa XYZ LTDA consta no CEIS&#10;&nbsp;&nbsp;&nbsp;(Lei 14.133/2021, art. 14)</span>
                     </div>
-                    <div class="code-window-status">
-                        <span class="status-dot"></span>
-                        Consultando Receita Federal…
+                    <div class="code-window-status is-done" id="hero-status">
+                        <span class="status-dot" id="hero-status-dot"></span>
+                        <span id="hero-status-text">Laudo pronto</span>
                     </div>
                 </div>
             </div>
@@ -112,6 +125,186 @@
     </section>
 
     <!-- ===========================
+         CATÁLOGO DE ANOMALIAS
+         =========================== -->
+    <section id="anomalias" class="section section-anomalias">
+        <div class="eyebrow">Catálogo de anomalias</div>
+        <h2 class="section-title">Nove categorias de irregularidade, verificadas uma a uma.</h2>
+        <p class="section-lead">
+            A cada auditoria, o agente varre este catálogo de ponta a ponta — cruzando o que o
+            edital declara com o que as fontes oficiais registram.
+        </p>
+
+        <!-- Empilhamento sticky por PARES: cada dupla de cards fixa por cima da
+             anterior conforme o scroll avança — a sequência A→I é real e finita,
+             o efeito comunica a estrutura do catálogo. Só position: sticky. -->
+        <div class="anomalia-stack">
+            <div class="anomalia-par" style="--stack-i: 0">
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">A</span>
+                        <h3 class="anomalia-titulo">Sobrepreço</h3>
+                        <span class="anomalia-indice">01 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        O item está sendo comprado por um preço bem acima do praticado no mercado.
+                        O agente compara o valor unitário com a mediana paga pelo mesmo item nos
+                        últimos 12 meses — mais de 30% acima acende o alerta.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">&gt; +30% sobre a mediana</span>
+                        <span class="anomalia-chip">Catálogo de preços de referência</span>
+                    </div>
+                </article>
+
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">B</span>
+                        <h3 class="anomalia-titulo">Direcionamento</h3>
+                        <span class="anomalia-indice">02 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        O edital parece escrito sob medida para uma empresa específica: marca única,
+                        modelo exato, dimensões fora de padrão. Exigências assim eliminam a
+                        concorrência antes mesmo de a disputa começar.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">“marca X ou similar superior”</span>
+                        <span class="anomalia-chip">Texto do edital</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="anomalia-par" style="--stack-i: 1">
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">C</span>
+                        <h3 class="anomalia-titulo">Fracionamento irregular</h3>
+                        <span class="anomalia-indice">03 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        Uma compra grande é fatiada em várias contratações pequenas para escapar das
+                        regras mais rígidas de licitação. O agente procura no histórico do órgão
+                        compras parecidas feitas em datas próximas.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">Lei 14.133, art. 75</span>
+                        <span class="anomalia-chip">Histórico no PNCP</span>
+                    </div>
+                </article>
+
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">D</span>
+                        <h3 class="anomalia-titulo">Cartel e conluio</h3>
+                        <span class="anomalia-indice">04 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        Empresas que parecem concorrentes, mas jogam no mesmo time — sócios em comum,
+                        mesmo endereço, vitórias que se revezam. O agente cruza o quadro societário
+                        e os endereços das participantes.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">Quadro societário</span>
+                        <span class="anomalia-chip">Receita Federal</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="anomalia-par" style="--stack-i: 2">
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">E</span>
+                        <h3 class="anomalia-titulo">Empresa recém-criada</h3>
+                        <span class="anomalia-indice">05 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        Uma empresa aberta há poucos meses vencendo contrato de alto valor. Fica
+                        ainda mais suspeito quando o objeto exige experiência técnica que ela não
+                        teve tempo de construir.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">&lt; 12 meses de CNPJ</span>
+                        <span class="anomalia-chip">Receita Federal</span>
+                    </div>
+                </article>
+
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">F</span>
+                        <h3 class="anomalia-titulo">Prazo insuficiente</h3>
+                        <span class="anomalia-indice">06 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        O edital dá menos tempo que o mínimo legal entre a publicação e a abertura
+                        das propostas. Na prática, só participa quem já sabia da licitação antes de
+                        ela ser publicada.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">Lei 14.133, art. 55</span>
+                        <span class="anomalia-chip">Datas do próprio edital</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="anomalia-par" style="--stack-i: 3">
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">G</span>
+                        <h3 class="anomalia-titulo">Reincidência suspeita</h3>
+                        <span class="anomalia-indice">07 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        A mesma empresa vence quase tudo em um único órgão: mais da metade das
+                        licitações em 12 meses. Pode ser eficiência — ou proximidade demais com
+                        quem contrata.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">&gt; 50% das vitórias</span>
+                        <span class="anomalia-chip">PNCP</span>
+                    </div>
+                </article>
+
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">H</span>
+                        <h3 class="anomalia-titulo">Sanção vigente</h3>
+                        <span class="anomalia-indice">08 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        A empresa vencedora está proibida por lei de contratar com o poder público —
+                        consta no CEIS, no CNEP ou na lista de inidôneos do TCU. É o achado mais
+                        grave do catálogo: risco crítico imediato.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="risk-badge risk-critico">Risco crítico</span>
+                        <span class="anomalia-chip">Lei 14.133, art. 14</span>
+                        <span class="anomalia-chip">CEIS · CNEP</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="anomalia-par anomalia-par-solo" style="--stack-i: 4">
+                <article class="anomalia-cat">
+                    <div class="anomalia-cat-head">
+                        <span class="anomalia-letra">I</span>
+                        <h3 class="anomalia-titulo">Incompatibilidade de atividade</h3>
+                        <span class="anomalia-indice">09 / 09</span>
+                    </div>
+                    <p class="anomalia-criterio">
+                        A atividade registrada da empresa não tem relação com o que ela venceu para
+                        entregar — como um restaurante ganhando uma licitação de obra civil.
+                    </p>
+                    <div class="anomalia-meta">
+                        <span class="anomalia-chip">CNAE × objeto</span>
+                        <span class="anomalia-chip">Receita Federal</span>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===========================
          RODAPÉ
          =========================== -->
     <footer class="footer">
@@ -126,6 +319,15 @@
             <span class="footer-note">IA para fiscalização de gastos públicos · Apache 2.0</span>
         </div>
     </footer>
+
+    <!-- Dependências externas — versão travada + SRI (Subresource Integrity),
+         mesmo padrão usado no chat.html para marked e dompurify. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+            integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Coreografia do hero -->
+    <script src="/static/js/home.js"></script>
 
 </body>
 </html>

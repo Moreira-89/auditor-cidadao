@@ -1,8 +1,13 @@
 """
-Monta o grafo LangGraph do agente: um ciclo ReAct simples (call_llm ↔ tool_node)
-com checkpointer InMemorySaver para manter histórico por thread_id. Exposto como
-singleton (initialize_graph/get_graph) porque é caro de construir e é o mesmo
-grafo, com as mesmas tools, para todas as requisições do processo.
+Monta o grafo LangGraph do agente.
+
+O fluxo é um ciclo ReAct simples: o LLM pensa e decide se precisa de uma ferramenta
+(nó call_llm); se precisar, o grafo executa a ferramenta (nó tool_node) e devolve o
+resultado ao LLM; isso se repete até o LLM responder sem pedir mais nenhuma ferramenta.
+
+Usa o checkpointer InMemorySaver para lembrar o histórico de cada conversa (por
+thread_id). É exposto como singleton (initialize_graph/get_graph) porque construir o
+grafo é caro e ele é idêntico — mesmas tools — para todas as requisições do processo.
 """
 
 from typing import Literal

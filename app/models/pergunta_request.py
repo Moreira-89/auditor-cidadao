@@ -13,17 +13,20 @@ MAX_CNPJS_POR_REQUISICAO = 10
 # -----------------------------------------------------------------------------
 class PerguntaRequest(BaseModel):
     """
-    Modelo de dados que o endpoint `/conversar-com-auditor` espera receber (Body da Requisição HTTP).
+    O que o endpoint `/conversar-com-auditor` espera receber no corpo (body) da requisição.
 
-    COMO FUNCIONA:
-    O FastAPI utiliza a biblioteca Pydantic nativamente para validar tudo que chega.
-    Se o front-end mandar um JSON faltando algum desses campos (ou com o tipo de
-    dado errado), o próprio FastAPI bloqueia a requisição e devolve um Erro 422
-    (Unprocessable Entity) antes mesmo do seu código executar, garantindo segurança.
+    O FastAPI usa o Pydantic para validar isso automaticamente: se o front-end mandar um
+    JSON faltando um campo obrigatório (ou com o tipo errado), a requisição é barrada com
+    erro 422 antes de o nosso código rodar — não precisamos validar manualmente.
 
-    Os campos `estado` e `municipio` são essenciais para servirem de filtro na
-    busca vetorial no Pinecone, evitando mistura de editais diferentes.
-    A `lista_cnpjs` é injetada para que o LLM saiba de antemão quem pesquisar.
+    Papel de cada campo:
+    - `pergunta`    — o texto que o usuário digitou.
+    - `estado` e `municipio` — filtram a busca vetorial no Pinecone, evitando misturar
+      trechos de editais de municípios diferentes.
+    - `lista_cnpjs` — CNPJs já extraídos do edital, entregues ao LLM para ele saber de
+      antemão quem investigar (revalidados abaixo, por segurança).
+    - `thread_id`   — identifica a conversa; é o que permite ao LangGraph recuperar o
+      histórico e dar continuidade entre uma pergunta e a seguinte.
     """
     pergunta: str = Field(description="Pergunta sobre o edital.")
     estado: str = Field(description="Estado do edital.")

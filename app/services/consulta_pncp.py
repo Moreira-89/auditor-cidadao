@@ -4,6 +4,10 @@ Contratações Públicas), usada pela tool `buscar_contratos_fornecedor_pncp`
 (ver app/services/tools.py) para verificar se um fornecedor específico já
 venceu contratações anteriores junto a um órgão específico.
 
+ATENÇÃO: esta tool está DESATIVADA hoje (ver a nota em app/services/tools.py). A varredura
+de todas as modalidades de um órgão é lenta e esbarra no rate limit do PNCP, então o código
+fica pronto para reativação futura — este módulo, portanto, não roda em produção no momento.
+
 Feita à parte do MCP LiciNexus (@licinexusbr/mcp, ver app/services/lifespan.py)
 porque este fluxo de "órgão + fornecedor -> histórico de contratos" não é
 coberto pelas tools MCP selecionadas hoje. Validado manualmente, endpoint a

@@ -7,18 +7,19 @@ from langchain_core.tools import StructuredTool
 # =============================================================================
 # CONTEXTO GERAL DO MÓDULO
 #
-# Cada chamada a uma tool MCP dispara uma requisição ao servidor Node.js via
-# subprocess. Para consultas idempotentes ao PNCP (licitações, contratos, atas),
-# os dados mudam com pouca frequência — chamar o mesmo endpoint com os mesmos
-# argumentos várias vezes no mesmo dia desperdiça latência e tokens de contexto.
+# Cada chamada a uma tool MCP dispara uma requisição ao servidor Node.js (que fala
+# com o PNCP). Como esses dados de licitações/contratos/atas mudam pouco ao longo do
+# dia, repetir a mesma chamada com os mesmos argumentos só desperdiça tempo e tokens
+# de contexto — o resultado seria idêntico.
 #
-# Este módulo resolve isso com um cache em memória com TTL, usando
-# `cachetools.TTLCache`: entradas expiradas são removidas automaticamente pela
-# própria lib (sem precisar checar timestamp manualmente), e o `maxsize` evita
-# crescimento ilimitado do cache em runtime longo (ex.: Railway 512MB).
+# Este módulo evita isso guardando os resultados num cache em memória com "prazo de
+# validade" (TTL, time-to-live), via `cachetools.TTLCache`: a própria lib descarta
+# sozinha as entradas vencidas (não precisamos checar horário na mão), e o `maxsize`
+# impede o cache de crescer sem limite num servidor que fica dias no ar (ex.: Railway,
+# 512 MB de RAM).
 #
-# O cache é por processo (RAM) e não persiste entre reinicializações do servidor.
-# TTL padrão: 86400 segundos (24 horas).
+# O cache vive na RAM do processo e some quando o servidor reinicia.
+# Validade padrão: 86400 segundos (24 horas).
 # =============================================================================
 
 

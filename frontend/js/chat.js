@@ -49,7 +49,6 @@ const dom = {
     btnConfirm:    $('btn-confirm'),
 
     // Chat
-    chatHead:      $('chat-head'),
     chatScroll:    $('chat-scroll'),
     chatEmpty:     $('chat-empty'),
     chatMessages:  $('chat-messages'),
@@ -434,7 +433,6 @@ async function confirmarUpload() {
 
         dom.modalLoading.classList.add('hidden');
         dom.modalOverlay.classList.add('hidden');
-        dom.chatHead.classList.add('hidden');
 
         dom.chatInput.disabled = false;
         dom.btnSend.disabled   = true; // segue desabilitado até haver texto
@@ -477,7 +475,6 @@ function abrirModalNovaSessao() {
 
     dom.chatMessages.innerHTML = '';
     dom.chatEmpty.classList.remove('hidden');
-    dom.chatHead.classList.remove('hidden');
     dom.chatInput.disabled = true;
     dom.btnSend.disabled   = true;
     dom.chatInput.value    = '';
@@ -733,8 +730,24 @@ async function streamAgentResponse(texto) {
             leftover = '';
             const lines = text.split('\n');
 
+            // Cada chunk de rede pode conter várias linhas SSE — e a última pode ter chegado
+            // cortada no meio. Processamos linha a linha; a linha incompleta do fim é guardada
+            // em `leftover` para ser completada quando o próximo chunk chegar.
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
+
+                // A última linha só está COMPLETA se o texto terminou em '\n'. Se não terminou,
+                // ela foi cortada pela fronteira do chunk de rede (ex.: veio só 'data: {"type":"to').
+                // Guardamos em `leftover` e completamos no próximo read — isso vale INCLUSIVE para
+                // linhas que começam com 'data:'. Sem esse tratamento, uma linha partida cairia no
+                // JSON.parse abaixo, falharia, e o pedaço quebrado vazaria como texto na resposta.
+                if (i === lines.length - 1 && line !== '' && !text.endsWith('\n')) {
+                    leftover = line;
+                    break;
+                }
+
+                // Linha em branco é apenas o separador entre eventos SSE — nada a processar.
+                if (line === '') continue;
 
                 if (line.startsWith('data: ')) {
                     const payload = line.slice(6);
@@ -751,8 +764,8 @@ async function streamAgentResponse(texto) {
                             renderLaudoEstruturado(refs.laudoEl, event.content);
                             scrollChatToBottom();
                         } else if (event.type === 'laudo_estruturado_erro') {
-                            // Extração estruturada falhou no backend, mas o texto do laudo já
-                            // chegou com sucesso — apenas avisa, sem interromper o streaming.
+                            // A montagem do laudo estruturado (JSON) falhou no backend, mas o
+                            // texto do laudo já chegou com sucesso — só avisa, sem interromper.
                             showToast(event.content || 'Não foi possível gerar a versão estruturada do laudo.', 'error');
                         } else if (event.type === 'error') {
                             streamError = event.content || 'Erro desconhecido durante o streaming.';
@@ -761,17 +774,18 @@ async function streamAgentResponse(texto) {
                             break streamLoop;
                         }
                     } catch {
+                        // Só deve cair aqui se o backend mandar um payload realmente malformado —
+                        // linha cortada no meio já foi tratada pelo `leftover` acima.
                         accumulated += payload;
                     }
-                } else if (line === '' && i < lines.length - 1) {
-                    continue;
-                } else if (line !== '' && i === lines.length - 1) {
-                    leftover = line;
                 }
             }
 
             if (accumulated) {
                 renderMarkdown(refs.markdownEl, accumulated);
+                // Cursor ▍ no fim do texto enquanto a resposta ainda chega —
+                // o CSS (.is-streaming) desenha e anima; removido no finally.
+                refs.markdownEl.classList.add('is-streaming');
             }
             scrollChatToBottom();
         }
@@ -812,6 +826,7 @@ async function streamAgentResponse(texto) {
             addRetryButton(refs, texto);
         }
     } finally {
+        refs.markdownEl.classList.remove('is-streaming');
         currentAbortController = null;
         setLoading(false);
     }

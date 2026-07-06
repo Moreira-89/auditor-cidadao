@@ -86,6 +86,19 @@ async def consultar_sancoes(cnpj_limpo: str) -> list[dict]:
     """
     # Chave da API do Portal da Transparência (CGU), exigida no header em vez de query param
     CGU_API_KEY = os.getenv("CGU_API_KEY")
+
+    # Sem a chave não há como consultar. Tratamos isso como "não verificado" (dois avisos,
+    # um por base), no mesmo formato que a Anomalia H espera — em vez de deixar o httpx
+    # estourar. Motivo técnico: um header com valor None levanta TypeError, que NÃO é um
+    # httpx.HTTPError e por isso escaparia do try/except de _consultar_sancao_async,
+    # virando um erro cru e confuso para o LLM em vez de um aviso claro.
+    if not CGU_API_KEY:
+        aviso = "CGU_API_KEY não configurada no ambiente — sanções não verificadas."
+        return [
+            {"tipo_registro": "aviso", "error": f"CEIS indisponível: {aviso}"},
+            {"tipo_registro": "aviso", "error": f"CNEP indisponível: {aviso}"},
+        ]
+
     headers = {"chave-api-dados": CGU_API_KEY, "Accept": "application/json"}
 
     # Consulta CEIS e CNEP em paralelo, já que são endpoints independentes;
