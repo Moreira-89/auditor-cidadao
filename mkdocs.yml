@@ -3,24 +3,25 @@ theme:
   name: material
   features:
     - navigation.tabs
+    - navigation.top
     - content.code.copy
+  font:
+    text: Inter
+    code: JetBrains Mono
+  # Sem toggle claro/escuro: o frontend do Auditor Cidadão também é
+  # "canvas escuro único, sem modo claro" (ver frontend/css/style.css) —
+  # a documentação segue a mesma identidade visual.
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/weather-night
-        name: Mudar para modo escuro
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/weather-sunny
-        name: Mudar para modo claro
+    - scheme: slate
+      primary: black
+      accent: teal
+
+extra_css:
+  - stylesheets/extra.css
 
 markdown_extensions:
+  - admonition
+  - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -29,3 +30,21 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Operacional:
+      - Visão geral: operacional/index.md
+      - Setup local: operacional/setup_local.md
+      - Docker & Deploy: operacional/docker.md
+      - Variáveis de ambiente: operacional/variaveis_ambiente.md
+  - Arquitetura:
+      - Visão geral: arquitetura/visao_geral.md
+      - Fluxo de dados: arquitetura/fluxo_dados.md
+      - Protocolo MCP: arquitetura/protocolo_mcp.md
+  - Engenharia de IA:
+      - Modelos e prompts: ia/modelos_prompts.md
+      - Extração de laudo: ia/extracao_laudo.md
+      - Avaliação (RAGAS): ia/avaliacao.md
+      - Catálogo de anomalias: ia/anomalias.md
+  - Governança:
+      - LGPD e privacidade: governanca/lgpd.md
+      - Guardrails: governanca/guardrails.md
+      - Limitações conhecidas: governanca/limitacoes.md

@@ -6,6 +6,19 @@ Este projeto foi desenvolvido sob a trilha de *Assistência e Interação* combi
 
 ---
 
+## 🚀 Acesse a plataforma
+
+A forma mais recomendada de conhecer o Auditor Cidadão é acessando a instância já publicada em
+produção, sem precisar instalar nada:
+
+**[auditor-cidadao-production.up.railway.app](https://auditor-cidadao-production.up.railway.app/)**
+
+Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/setup_local.md)) é
+recomendado para quem quer inspecionar o código, rodar o framework de avaliação ou contribuir com
+o projeto — não é um pré-requisito para experimentar a solução.
+
+---
+
 ## 🎯 Objetivo do Projeto
 O Auditor Cidadão rompe o paradigma tradicional de simples validação cadastral para se tornar uma plataforma inteligente capaz de:
 

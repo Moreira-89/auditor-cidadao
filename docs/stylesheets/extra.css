@@ -1,0 +1,67 @@
+/* ==========================================================================
+   AUDITOR CIDADÃO — DOCUMENTAÇÃO (MkDocs Material)
+   extra.css — aproxima a paleta do site ao design system do frontend
+   (ver frontend/css/style.css: mesmo --canvas escuro e verde --primary)
+   ========================================================================== */
+
+[data-md-color-scheme="slate"] {
+    /* Superfície — mesmo canvas escuro do frontend */
+    --md-default-bg-color: #101010;
+    --md-default-bg-color--light: #1a1a1a;
+    --md-default-bg-color--lighter: #1a1a1a;
+
+    /* Texto */
+    --md-default-fg-color: #f2f2f2;
+    --md-default-fg-color--light: #bdbdbd;
+    --md-default-fg-color--lighter: #8b949e;
+
+    /* Acento — verde elétrico usado em todo o frontend */
+    --md-primary-fg-color: #101010;
+    --md-primary-bg-color: #f2f2f2;
+    --md-accent-fg-color: #00d992;
+    --md-accent-fg-color--transparent: rgba(0, 217, 146, 0.12);
+    /* !important necessário: o Material define --md-typeset-a-color num seletor
+       composto (data-md-color-scheme + data-md-color-accent) mais específico
+       que este bloco, então perderia na cascata sem isso. */
+    --md-typeset-a-color: #2fd6a1 !important;
+
+    /* Blocos de código */
+    --md-code-bg-color: #1a1a1a;
+    --md-code-fg-color: #f5f6f7;
+
+    /* Rodapé no mesmo tom do canvas, sem contraste extra */
+    --md-footer-bg-color: #0d0d0d;
+    --md-footer-bg-color--dark: #0d0d0d;
+    --md-footer-fg-color: #bdbdbd;
+    --md-footer-fg-color--light: #8b949e;
+}
+
+/* Header/tabs sticky com o mesmo hairline + blur do .nav do frontend */
+.md-header,
+.md-tabs {
+    background-color: rgba(16, 16, 16, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #3d3a39;
+}
+
+/* Cards/admonitions com bordas suaves em vez do azul padrão do Material */
+.md-typeset .admonition,
+.md-typeset details {
+    border-color: #3d3a39;
+    border-radius: 8px;
+}
+
+.md-typeset .admonition-title,
+.md-typeset summary {
+    background-color: rgba(0, 217, 146, 0.08);
+}
+
+/* Tabelas no mesmo estilo de hairline usado nos cards do frontend */
+.md-typeset table:not([class]) {
+    border: 1px solid #3d3a39;
+    border-radius: 8px;
+}
+
+.md-typeset table:not([class]) th {
+    background-color: #1a1a1a;
+}
