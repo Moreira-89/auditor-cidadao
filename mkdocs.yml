@@ -1,6 +1,7 @@
 site_name: Auditor Cidadão - Documentação Técnica
 theme:
   name: material
+  language: pt-BR
   features:
     - navigation.tabs
     - navigation.top
@@ -8,11 +9,7 @@ theme:
   font:
     text: Inter
     code: JetBrains Mono
-  # Sem toggle claro/escuro: o frontend do Auditor Cidadão também é
-  # "canvas escuro único, sem modo claro" (ver frontend/css/style.css) —
-  # a documentação segue a mesma identidade visual na tela. A exportação
-  # para PDF (Ctrl+P) usa uma paleta clara à parte, forçada via
-  # @media print em stylesheets/extra.css — ver comentário lá.
+    
   palette:
     - scheme: slate
       primary: black

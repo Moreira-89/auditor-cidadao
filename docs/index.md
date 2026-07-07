@@ -1,20 +1,28 @@
 # Auditor Cidadão — Documentação Técnica
 
-Seja bem-vindo à documentação oficial do **Auditor Cidadão**, uma solução funcional de Inteligência Artificial Generativa voltada para a **auditoria de licitações públicas municipais**. 
+Seja bem-vindo à documentação oficial do **Auditor Cidadão**, uma solução funcional de Inteligência Artificial Generativa voltada para a **auditoria de licitações públicas municipais**.
 
-Este projeto foi desenvolvido sob a trilha de *Assistência e Interação* combinada com *Automação e Extração de Conhecimento*, com foco em escalabilidade, segurança e eficiência.
+---
 
-## Com mais detalhes, o que é o Auditor Cidadão? 
+## 🔍 O problema
 
-Dando um significado mais completo o Auditor Cidadão é um sistema inteligente onde um cidadão ou jornalista pode fazer o upload de editais de licitação, contratos públicos e diários oficiais (em formato PDF) de uma prefeitura, e interagir com um Agente que cruza esses dados para encontrar anomalias. Ele visa trazer mais transparência e clareza na hora de realizar uma fiscalização municipal. Hoje em dia Fiscalizar licitações municipais no Brasil exige cruzar um edital em PDF com meia dúzia de bases públicas diferentes (PNCP, Receita Federal, CEIS/CNEP) — um trabalho manual, lento e que a maioria dos cidadãos e jornalistas não tem tempo ou conhecimento técnico para fazer. 
+Fiscalizar licitações municipais no Brasil exige cruzar um edital em PDF com meia dúzia de bases públicas diferentes — PNCP, Receita Federal, CEIS/CNEP — para identificar irregularidades como sobrepreço, direcionamento ou empresas sancionadas participando de uma disputa. É um trabalho manual e lento, que a maioria dos cidadãos e jornalistas não tem tempo nem conhecimento técnico para fazer sozinha. Na prática, isso significa que boa parte das licitações municipais do país nunca chega a ser auditada por ninguém fora do próprio órgão que a conduziu.
 
-O Auditor Cidadão automatiza essa varredura: recebe o edital em PDF, indexa seu conteúdo com RAG (busca semântica) e disponibiliza um agente de IA que decide sozinho quais fontes oficiais consultar para investigar 9 categorias de anomalias — de sobrepreço a empresas sancionadas — entregando um laudo estruturado com evidências e nível de risco, em streaming, em tempo real para o usuário!
+## 🤖 A solução
+
+O Auditor Cidadão apresenta-se como uma solução que visa facilitar a fiscalização de licitações municipais no Brasil. Um cidadão ou jornalista faz o upload do edital, contrato ou diário oficial de uma prefeitura (em PDF); o sistema indexa o conteúdo com RAG (busca semântica) e disponibiliza um agente de IA que decide sozinho quais fontes oficiais consultar para investigar 9 categorias de anomalias.
+
+Concretamente, isso quer dizer que a plataforma:
+
+* **Cruza múltiplas fontes oficiais** — PNCP, Receita Federal, CEIS/CNEP (Portal da Transparência) e consultas direcionadas à Web — sem exigir que o usuário abra uma aba para cada uma.
+* **Detecta padrões anômalos** automaticamente, com base num catálogo rigoroso de 9 categorias de irregularidade em contratações públicas, de sobrepreço a empresas sancionadas.
+* **Emite um laudo estruturado**, em streaming e tempo real, com evidências e nível de risco por anomalia — em Markdown e JSON, pronto para apoiar uma investigação humana (o sistema sinaliza padrões, não substitui uma auditoria formal).
 
 ---
 
 ## 🚀 Acesse a plataforma
 
-Faça um teste na nossa plataforma! A forma mais recomendada de conhecer o Auditor Cidadão é acessando a instância já publicada em produção, sem precisar instalar nada:
+Faça um teste na nossa plataforma! A forma mais recomendada de conhecer o Auditor Cidadão é acessando a instância já publicada, sem precisar instalar nada:
 
 **[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**
 
@@ -22,19 +30,11 @@ Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/set
 
 ---
 
-## 🎯 Objetivo do Projeto
-O Auditor Cidadão rompe o paradigma tradicional de simples validação cadastral para se tornar uma plataforma inteligente capaz de:
-
-* **Cruzar múltiplas fontes oficiais:** Dados do PNCP, Receita Federal, CEIS/CNEP (Portal da Transparência) e consultas direcionadas à Web.
-* **Detectar padrões anômalos:** Análise automatizada baseada em um catálogo rigoroso de anomalias de contratação.
-* **Emitir laudos estruturados:** Geração automática de relatórios técnicos em formato JSON e Markdown para apoiar a investigação humana.
-
----
-
 ## 🗺️ Guia de Navegação
+
 Esta documentação está dividida em 4 pilares estratégicos para facilitar a avaliação:
 
-1. **[Operacional & Reprodução](operacional/setup_local.md):** Instruções passo a passo para clonar, configurar as variáveis de ambiente e rodar o projeto localmente ou via Docker.
-2. **[Arquitetura do Sistema](arquitetura/visao_geral.md):** Desenho do pipeline de dados, o funcionamento do grafo do LangGraph, protocolo MCP e streaming via SSE.
-3. **[Engenharia de IA](ia/modelos_prompts.md):** Justificativas dos modelos de LLM escolhidos, engenharia de prompts, extração de JSON e o framework de avaliação automatizado com RAGAS.
-4. **[Governança e Ética](governanca/seguranca_guardrails.md):** Tratamento de dados sob a LGPD, mitigação de alucinações e guardrails de segurança contra injeção de prompts.
+1. **[Operacional & Reprodução](operacional/setup_local.md):** instruções passo a passo para clonar, configurar as variáveis de ambiente e rodar o projeto localmente ou via Docker.
+2. **[Arquitetura do Sistema](arquitetura/visao_geral.md):** desenho do pipeline de dados, o funcionamento do grafo do LangGraph, protocolo MCP e streaming via SSE.
+3. **[Engenharia de IA](ia/modelos_prompts.md):** justificativas dos modelos de LLM escolhidos, engenharia de prompts, extração de JSON e o framework de avaliação automatizado com RAGAS.
+4. **[Governança e Ética](governanca/seguranca_guardrails.md):** tratamento de dados sob a LGPD, mitigação de alucinações e guardrails de segurança contra injeção de prompts.

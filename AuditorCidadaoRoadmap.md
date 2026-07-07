@@ -2,8 +2,6 @@
 
 > Documento único: requisitos oficiais do case (Data Master) + status do projeto +
 > plano de entrega até 13/07/2026.
-> **Mudança de paradigma:** sair de "valida CNPJ + busca contexto" para "cruza múltiplas
-> fontes oficiais, detecta padrões anômalos e entrega laudo estruturado".
 >
 > **Última atualização:** 2026-07-05 (Bloco 4 concluído — framework de avaliação, golden dataset,
 > 3 métricas validadas, bug de produção em `gerenciadorvetorial.py` encontrado e corrigido)
