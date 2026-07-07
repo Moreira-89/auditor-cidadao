@@ -68,6 +68,21 @@
 
 
 /* ==========================================================================
+   DIAGRAMAS MERMAID
+   ========================================================================== */
+
+/* Deixado no comportamento padrão (svg encolhe para caber na coluna, sem
+   rolagem horizontal) de propósito: rolagem não existe na impressão/PDF, então
+   um diagrama "no tamanho natural + scroll" fica cortado ao exportar. Em vez
+   disso, cada diagrama define um fontSize maior no próprio frontmatter
+   (themeVariables) para continuar legível mesmo depois do encolhimento —
+   ver exemplo em docs/operacional/index.md. */
+.mermaid-diagram-rendered {
+    margin: 16px 0;
+}
+
+
+/* ==========================================================================
    EXPORTAÇÃO PARA PDF (Ctrl+P) — paleta clara só para @media print
    ========================================================================== */
 

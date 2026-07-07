@@ -18,13 +18,26 @@ theme:
 extra_css:
   - stylesheets/extra.css
 
+# A renderização automática de Mermaid embutida no Material (9.7.6) está falhando de
+# forma silenciosa e inconsistente nesta configuração — o diagrama some sem erro no
+# console. Em vez de depender do pipeline interno dele, carregamos o Mermaid e
+# renderizamos os diagramas com um script próprio (javascripts/mermaid-init.js).
+# Por isso o fence usa a classe 'mermaid-diagram' em vez de 'mermaid': isso evita que
+# o Material tente (e falhe) a própria inicialização no mesmo elemento.
+# Versão fixada em 11.16.0 (testada manualmente) em vez de "@11" (última versão) —
+# necessária a partir daqui porque alguns diagramas usam frontmatter só disponível
+# na v11 (layout: dagre, look: handDrawn, temas como "redux").
+extra_javascript:
+  - https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js
+  - javascripts/mermaid-init.js
+
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
-          class: mermaid
+          class: mermaid-diagram
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:

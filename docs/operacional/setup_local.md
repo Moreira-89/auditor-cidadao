@@ -2,12 +2,11 @@
 
 !!! tip "Prefere não instalar nada?"
     A forma mais recomendada de acessar o Auditor Cidadão é pela instância já publicada em produção:
-    **[auditor-cidadao-production.up.railway.app](https://auditor-cidadao-production.up.railway.app/)**.
+    **[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**.
     O setup local abaixo é voltado para quem quer inspecionar o código, rodar o framework de
     avaliação ou contribuir com o projeto.
 
-Passo a passo para rodar o Auditor Cidadão diretamente na sua máquina, sem Docker. Se preferir
-isolar o ambiente, veja [Docker & Deploy](docker.md).
+Passo a passo para rodar o Auditor Cidadão diretamente na sua máquina, sem Docker. Se preferir isolar o ambiente, veja [Docker & Deploy](docker.md).
 
 ## Pré-requisitos
 
@@ -20,7 +19,7 @@ isolar o ambiente, veja [Docker & Deploy](docker.md).
 ## 1. Clonar o repositório
 
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/Moreira-89/auditor-cidadao
 cd auditor-cidadao
 ```
 
@@ -48,8 +47,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Preencha o `.env` com suas chaves reais. Todos os campos e seus efeitos estão documentados em
-[Variáveis de ambiente](variaveis_ambiente.md) — os únicos realmente obrigatórios para o boot
+Preencha o `.env` com suas chaves reais. Todos os campos e seus efeitos estão documentados em [Variáveis de ambiente](variaveis_ambiente.md) — os únicos realmente obrigatórios para o boot
 funcionar são `OPENAI_API_KEY` e `PINECONE_API_KEY`.
 
 !!! warning "Nunca versione o `.env` real"

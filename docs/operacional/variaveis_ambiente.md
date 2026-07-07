@@ -1,14 +1,12 @@
 # Variáveis de ambiente
 
-Referência completa de cada chave usada pelo Auditor Cidadão. O template versionado está em
-`.env.example`, na raiz do repositório — copie para `.env` e preencha antes de rodar o projeto
-(veja [Setup local](setup_local.md)).
+Referência completa de cada chave usada pelo Auditor Cidadão. O template versionado está em `.env.example`, na raiz do repositório — copie para `.env` e preencha antes de rodar o projeto (veja [Setup local](setup_local.md)).
 
 ## LLM
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `LLM_MODEL` | Não | `openai:gpt-4o-mini` | Modelo do agente principal, no formato `provider:model-name`. Trocável para `groq:llama-3.3-70b-versatile` ou `google_genai:gemini-2.0-flash` sem mudar código — o provider precisa ter a chave correspondente preenchida e o pacote `langchain-<provider>` instalado |
+| `LLM_MODEL` | Não | `openai:gpt-4o-mini` | Modelo do agente principal, no formato `provider:model-name`. Trocável para `groq:gpt-oss-120b` ou `google_genai:gemini-2.0-flash` sem mudar código — o provider precisa ter a chave correspondente preenchida e o pacote `langchain-<provider>` instalado |
 | `LLM_TEMPERATURE` | Não | `0.1` | Temperatura do agente principal |
 | `LLM_MAX_TOKENS` | Não | `4096` | Limite de tokens de saída do agente principal |
 | `EXTRATOR_MODEL` | Não | `openai:gpt-4o-mini` | Modelo usado só para extrair o laudo estruturado (JSON) a partir do Markdown já gerado. Separado do `LLM_MODEL` para permitir trocar um sem afetar o outro |
