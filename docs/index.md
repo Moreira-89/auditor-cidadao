@@ -4,11 +4,11 @@ Seja bem-vindo à documentação oficial do **Auditor Cidadão**, uma solução 
 
 ---
 
-## 🔍 O problema
+## O problema
 
 Fiscalizar licitações municipais no Brasil exige cruzar um edital em PDF com meia dúzia de bases públicas diferentes — PNCP, Receita Federal, CEIS/CNEP — para identificar irregularidades como sobrepreço, direcionamento ou empresas sancionadas participando de uma disputa. É um trabalho manual e lento, que a maioria dos cidadãos e jornalistas não tem tempo nem conhecimento técnico para fazer sozinha. Na prática, isso significa que boa parte das licitações municipais do país nunca chega a ser auditada por ninguém fora do próprio órgão que a conduziu.
 
-## 🤖 A solução
+## A solução
 
 O Auditor Cidadão apresenta-se como uma solução que visa facilitar a fiscalização de licitações municipais no Brasil. Um cidadão ou jornalista faz o upload do edital, contrato ou diário oficial de uma prefeitura (em PDF); o sistema indexa o conteúdo com RAG (busca semântica) e disponibiliza um agente de IA que decide sozinho quais fontes oficiais consultar para investigar 9 categorias de anomalias.
 
@@ -20,7 +20,7 @@ Concretamente, isso quer dizer que a plataforma:
 
 ---
 
-## 🚀 Acesse a plataforma
+## Acesse a plataforma
 
 Faça um teste na nossa plataforma! A forma mais recomendada de conhecer o Auditor Cidadão é acessando a instância já publicada, sem precisar instalar nada:
 
@@ -30,7 +30,7 @@ Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/set
 
 ---
 
-## 🗺️ Guia de Navegação
+## Guia de Navegação
 
 Esta documentação está dividida em 4 pilares estratégicos para facilitar a avaliação:
 
