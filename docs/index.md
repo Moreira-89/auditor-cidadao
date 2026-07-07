@@ -4,18 +4,21 @@ Seja bem-vindo à documentação oficial do **Auditor Cidadão**, uma solução 
 
 Este projeto foi desenvolvido sob a trilha de *Assistência e Interação* combinada com *Automação e Extração de Conhecimento*, com foco em escalabilidade, segurança e eficiência.
 
+## Com mais detalhes, o que é o Auditor Cidadão? 
+
+Dando um significado mais completo o Auditor Cidadão é um sistema inteligente onde um cidadão ou jornalista pode fazer o upload de editais de licitação, contratos públicos e diários oficiais (em formato PDF) de uma prefeitura, e interagir com um Agente que cruza esses dados para encontrar anomalias. Ele visa trazer mais transparência e clareza na hora de realizar uma fiscalização municipal. Hoje em dia Fiscalizar licitações municipais no Brasil exige cruzar um edital em PDF com meia dúzia de bases públicas diferentes (PNCP, Receita Federal, CEIS/CNEP) — um trabalho manual, lento e que a maioria dos cidadãos e jornalistas não tem tempo ou conhecimento técnico para fazer. 
+
+O Auditor Cidadão automatiza essa varredura: recebe o edital em PDF, indexa seu conteúdo com RAG (busca semântica) e disponibiliza um agente de IA que decide sozinho quais fontes oficiais consultar para investigar 9 categorias de anomalias — de sobrepreço a empresas sancionadas — entregando um laudo estruturado com evidências e nível de risco, em streaming, em tempo real para o usuário!
+
 ---
 
 ## 🚀 Acesse a plataforma
 
-A forma mais recomendada de conhecer o Auditor Cidadão é acessando a instância já publicada em
-produção, sem precisar instalar nada:
+Faça um teste na nossa plataforma! A forma mais recomendada de conhecer o Auditor Cidadão é acessando a instância já publicada em produção, sem precisar instalar nada:
 
 **[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**
 
-Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/setup_local.md)) é
-recomendado para quem quer inspecionar o código, rodar o framework de avaliação ou contribuir com
-o projeto — não é um pré-requisito para experimentar a solução.
+Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/setup_local.md)) é recomendado para quem quer inspecionar o código, rodar o framework de avaliação ou contribuir com o projeto — não é um pré-requisito para experimentar a solução.
 
 ---
 

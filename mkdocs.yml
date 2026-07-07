@@ -10,7 +10,9 @@ theme:
     code: JetBrains Mono
   # Sem toggle claro/escuro: o frontend do Auditor Cidadão também é
   # "canvas escuro único, sem modo claro" (ver frontend/css/style.css) —
-  # a documentação segue a mesma identidade visual.
+  # a documentação segue a mesma identidade visual na tela. A exportação
+  # para PDF (Ctrl+P) usa uma paleta clara à parte, forçada via
+  # @media print em stylesheets/extra.css — ver comentário lá.
   palette:
     - scheme: slate
       primary: black
@@ -18,19 +20,6 @@ theme:
 
 extra_css:
   - stylesheets/extra.css
-
-plugins:
-  - search
-  - print-site:
-      # Gera /print_page/ combinando todo o nav, na ordem em que aparece abaixo,
-      # em um único documento — abrir essa página e "Salvar como PDF" no navegador
-      # entrega a documentação inteira num arquivo só, sem merge manual.
-      add_to_navigation: true
-      print_page_title: 'Auditor Cidadão — Documentação Completa'
-      # Mermaid é renderizado via JS antes da página carregar — funciona
-      # normalmente na /print_page/ porque o navegador executa o JS ao abrir.
-      add_table_of_contents: true
-      toc_title: 'Sumário'
 
 markdown_extensions:
   - admonition

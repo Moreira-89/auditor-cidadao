@@ -708,6 +708,16 @@ a {
     color: var(--mute);
 }
 
+.footer-link {
+    font-size: 13px;
+    color: var(--body-text);
+    transition: color var(--transition);
+}
+
+.footer-link:hover {
+    color: var(--primary);
+}
+
 
 /* ==========================================================================
    8. CHAT — LAYOUT DA PÁGINA
