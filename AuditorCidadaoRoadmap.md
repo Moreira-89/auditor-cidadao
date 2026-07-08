@@ -73,7 +73,7 @@
 | **Fase 0 — Limpeza técnica** | Logger, redundância, env vars | ✅ Concluída |
 | **Fase 1 — Engenharia de prompt e segurança** | System prompt V2, catálogo de anomalias | ✅ Concluída |
 | **Fase 2 — Async nativo + ToolNode** | `.ainvoke`, `ToolNode`, `astream_events` | ✅ Concluída |
-| **Fase 3 — Novas fontes de dados** | PNCP (12 tools ativas), CEIS/CNEP, busca web | ✅ Concluída |
+| **Fase 3 — Novas fontes de dados** | PNCP (11 tools ativas), CEIS/CNEP, busca web | ✅ Concluída |
 | **Fase 4 — Cache + Output estruturado** | Cache TTL ✅, JSON de risco ✅ | ✅ Concluída |
 | **Fase 5 — Streaming** | Tokens em tempo real no frontend | ✅ Concluída |
 | **Fase 6 — Framework de avaliação** | Golden dataset + RAGAS + aderência/anomalia | ✅ Concluída |
@@ -120,7 +120,7 @@ abuso. Coleta do nome do usuário removida de ponta a ponta (`PerguntaRequest`, 
 **Extras concluídos:**
 - Modelo em produção: **OpenAI `gpt-4o-mini`** (128k tokens), embeddings `text-embedding-3-small`
   (1536 dim), índice Pinecone recriado.
-- MCP LiciNexus expandido: 12 tools ativas (licitações, contratos, atas de RP, comparação de períodos).
+- MCP LiciNexus expandido: 11 tools ativas (licitações, contratos, atas de RP, comparação de períodos).
 - `build_graph.py` refatorado: singleton com `initialize_graph(tools)`, closure para `call_llm`,
   `recursion_limit: 50`.
 - `mcp_utils.py` com patch de schema, coerção de tipos e captura de exceções MCP.
@@ -313,7 +313,7 @@ docs/
 - [ ] `README.md` na raiz: explicação do case, arquitetura resumida, stack, `.env.example`
       completo, passo a passo local + Docker, exemplos de uso (cobre E2/E3/R3)
 - [ ] Seção de justificativa tecnológica (README ou slides): por que LangGraph vs LangChain
-      puro, por que OpenAI `gpt-4o-mini`, por que Pinecone, por que MCP (reuso de 12 tools
+      puro, por que OpenAI `gpt-4o-mini`, por que Pinecone, por que MCP (reuso de 11 tools
       PNCP), por que RAG vs fine-tuning
 - [ ] Exportar documentação como PDF para entrega à banca
 
@@ -566,6 +566,10 @@ sistema de TI por R$2 milhões).
   Hipótese não confirmada: `temperature=0.1` do agente principal (mesma configuração de
   produção) usada também na avaliação, gerando laudos ligeiramente distintos por execução.
   Testável congelando `temperature=0` só durante a avaliação, sem mudar produção.
+  **Atualização (2026-07-08):** uma rodada adicional de 3 execuções trouxe `faithfulness = 0.858`,
+  aprovado com folga — sinal encorajador, mas uma rodada só ainda não é suficiente pra declarar a
+  variância resolvida. Manter o item aberto até acumular mais execuções (ver
+  [Avaliação](docs/ia/avaliacao.md#nova-rodada-de-validacao-2026-07-08)).
 - **Auditar o repositório atrás de outros usos do padrão `[X] * N` com objeto mutável** — o bug
   de metadados do Bloco 4 foi corrigido pontualmente em `gerenciadorvetorial.py`; não houve
   varredura completa do projeto atrás do mesmo padrão em outro lugar.

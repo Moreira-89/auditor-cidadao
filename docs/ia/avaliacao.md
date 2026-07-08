@@ -80,3 +80,23 @@ Após todas as correções, em 6 execuções (3 do pipeline + 3 manuais, mesmo p
     sólida: oscila em torno do próprio limiar (hipótese não confirmada: variância herdada da
     `temperature=0.1` do agente, usada também na avaliação). Documentar isso honestamente é parte da
     metodologia — o framework serve para expor limitações, não para maquiar números.
+
+### Nova rodada de validação (2026-07-08)
+
+Uma rodada adicional de 3 execuções da `evaluation/pipeline_avaliacao.py`, mesmo protocolo, trouxe:
+
+| Métrica | Limiar | Resultado | Veredito |
+|---|---|---|---|
+| `aderencia_tools` | ≥ 0.70 | **1.000** | ✅ aprovado |
+| `faithfulness` | ≥ 0.85 | **0.858** | ✅ aprovado |
+| `context_recall` | ≥ 0.75 | **0.600** | ❌ reprovado |
+| `recall_anomalias` | ≥ 0.80 | **1.000** | ✅ aprovado |
+
+`aderencia_tools` e `recall_anomalias` seguem estáveis em `1.00`. `faithfulness` — que oscilava entre
+`0.79` e `0.88` nas 6 execuções anteriores, reprovando em 2 delas — aprovou com folga nesta rodada
+(`0.858`). É um sinal encorajador, mas uma única rodada nova ainda não é suficiente para declarar a
+instabilidade resolvida; o item continua em acompanhamento (ver Backlog V2). `context_recall`
+permanece **idêntico** às execuções anteriores (`0.60`) — reforça que a causa raiz (posição do
+trecho-alvo fora do alcance de `top_k=3`) é sistemática, não ruído pontual de uma rodada específica.
+O veredito geral segue **reprovado**, agora com uma causa ainda mais isolada: das quatro métricas, só
+`context_recall` reprova.
