@@ -321,25 +321,26 @@ Justifique o desvio do plano original: "O plano previa um único LLM-juiz caseir
 **Tempo:** ~3 min
 
 **Fala guiada:**
-Este é o slide mais importante da apresentação em termos de credibilidade técnica — não esconda o resultado reprovado, apresente com confiança. "Rodamos seis execuções no total — três do pipeline automatizado e três manuais, mesmo protocolo. Aderência de tools e recall de anomalias ficaram estáveis em 1.00, bem acima dos limiares. Faithfulness oscilou entre 0.79 e 0.88 — instável em torno do próprio limiar de 0.85. E context recall ficou em 0.60, abaixo do limiar de 0.75, na maioria das execuções — reprovado."
+Este é o slide mais importante da apresentação em termos de credibilidade técnica — não esconda o resultado reprovado, apresente com confiança. "Na rodada mais recente de validação, três métricas aprovaram com folga: aderência de tools em 1.00, recall de anomalias em 1.00, e faithfulness em 0.858 — acima do limiar de 0.85. A única métrica que reprova é context recall, em 0.60, abaixo do limiar de 0.75."
 
-Explique a causa raiz do context_recall: "De 5 casos elegíveis ao RAGAS, 2 têm o trecho-alvo posicionalmente distante no documento — fora do alcance do nosso `top_k=3`, e continuam fora mesmo testando até `top_k=50`. É uma limitação real de recuperação, não um bug — endereçável com `top_k` maior ou reranking, já mapeada como próximo passo."
+Se quiser mostrar profundidade histórica (bom sinal de rigor metodológico, não é obrigatório): "isso já foi mais instável — em seis execuções anteriores, faithfulness oscilava entre 0.79 e 0.88, reprovando em duas delas. Essa rodada mais recente aprovou com folga, o que é um sinal encorajador, mas uma rodada só ainda não é suficiente pra declarar a instabilidade resolvida — seguimos monitorando."
 
-Sobre faithfulness: "oscila em torno do próprio limiar — hipótese não confirmada de que a temperatura 0.1 do agente principal, a mesma configuração usada em produção, introduz variância nos laudos gerados. É testável isolando a temperatura só durante a avaliação, sem mudar produção."
+Explique a causa raiz do context_recall, que é a mesma de sempre e não mudou: "De 5 casos elegíveis ao RAGAS, 2 têm o trecho-alvo posicionalmente distante no documento — fora do alcance do nosso `top_k=3`, e continuam fora mesmo testando até `top_k=50`. É uma limitação real de recuperação, não um bug — endereçável com `top_k` maior ou reranking, já mapeada como próximo passo. E o fato desse número se repetir idêntico entre rodadas reforça que é uma causa sistemática, não ruído pontual."
 
-Feche com a frase: "o framework existe para expor limitações, não para maquiar números — e foi isso que ele fez."
+Feche com a frase: "o framework existe para expor limitações, não para maquiar números — e foi isso que ele fez: hoje, das quatro métricas, só uma reprova, e sabemos exatamente por quê."
 
-**Números/fatos para ter na ponta da língua (os mais importantes da apresentação inteira):**
-- **6 execuções totais** (3 pipeline + 3 manuais)
-- `aderencia_tools`: limiar **≥0.70**, resultado **1.00 estável** ✅
-- `recall_anomalias`: limiar **≥0.80**, resultado **1.00 estável** ✅
-- `faithfulness`: limiar **≥0.85**, resultado **0.79–0.88** (oscilante, amplitude 0.086, 4 aprovadas/2 reprovadas nas 6 execuções) ⚠️
-- `context_recall`: limiar **≥0.75**, resultado **0.60** em 5 das 6 execuções (uma registrou 0.90, tratada como outlier não repetido) ❌
-- Veredito geral: **reprovado**, causa isolada de `context_recall`
-- Causa raiz: **2 de 5 casos** elegíveis têm o trecho-alvo fora do alcance mesmo em `top_k=50`
+**Números/fatos para ter na ponta da língua (os mais importantes da apresentação inteira — use os da rodada mais recente):**
+- `aderencia_tools`: limiar **≥0.70**, resultado **1.000** ✅
+- `recall_anomalias`: limiar **≥0.80**, resultado **1.000** ✅
+- `faithfulness`: limiar **≥0.85**, resultado **0.858** ✅ (histórico: oscilava 0.79–0.88 em 6 execuções anteriores, com 2 reprovações — mencione só se quiser mostrar profundidade)
+- `context_recall`: limiar **≥0.75**, resultado **0.600** ❌ — **inalterado** em relação às execuções anteriores
+- Veredito geral: **reprovado**, causa isolada de `context_recall` — agora ainda mais isolada (só 1 de 4 métricas falha)
+- Causa raiz do `context_recall`: **2 de 5 casos** elegíveis têm o trecho-alvo fora do alcance mesmo em `top_k=50`
 - `caso_06` foi **excluído do cálculo de RAGAS** (afirmação negativa, métrica não tem mecanismo pra validar ausência de informação) — mantido nas demais métricas
 
 **Se perguntarem** "por que não subiram o top_k antes da apresentação?": responda que subir top_k aumenta custo de token por chamada e pode piorar faithfulness (mais contexto irrelevante pro modelo confundir) — não é troca sem custo, decisão de valor final foi adiada pra V2 com dado suficiente.
+
+**Se perguntarem** "faithfulness estava instável, por que agora está aprovado?": seja honesto — é uma rodada nova que aprovou com folga, um sinal encorajador, mas ainda cedo pra declarar resolvido com uma única rodada. O item continua em acompanhamento no backlog de V2 (hipótese da `temperature=0.1` do agente ainda não testada isoladamente).
 
 **Transição:** "Voltando pro produto — como essa resposta chega até o usuário em tempo real?"
 
@@ -487,5 +488,6 @@ Abra o espaço e deixe a banca conduzir — não tente preencher o silêncio, d�
 - **Revisão de 2026-07-08 (v1):** comparei o roteiro original com `AuditorCidadaoRoadmap.md` e enriqueci os slides 7, 8, 10, 16, 18, 20, 22 e 24 com pontos que estavam nos slides (ou no roadmap) mas não no discurso — principalmente a parte de V2/Engenharia de IA do slide 22 e o gap de controle de custo/rate limiting no slide 24.
 - **Revisão de 2026-07-08 (v2 — esta versão):** reescrita completa pra formato de "fala guiada" quase literal, com uma seção de **números/fatos exatos** por slide (pra não precisar decorar sob pressão) e um **"se perguntarem"** nos pontos mais prováveis de aprofundamento técnico. Cobertura de todos os 24 slides, incluindo referência rápida do catálogo A–I completo (slide 13) e 9 perguntas prováveis com resposta pronta (slide 24, antes só tinha 4).
 - **Revisão de 2026-07-08 (v3):** verificado direto em `app/services/lifespan.py` — `TOOLS_MCP_SELECIONADAS` tem exatamente **11** entradas, confirmando a doc técnica e o slide 10. O número "12" era um valor desatualizado, presente em 3 trechos de `AuditorCidadaoRoadmap.md` (Fase 3, Bloco 0 e seção de Bloco 5) — todos corrigidos para 11. Nenhuma outra menção a "12 tools/ferramentas" foi encontrada em `docs/` ou `README.md`. Slide 10 do `index.html` já estava correto (não precisou de alteração).
+- **Revisão de 2026-07-08 (v4):** nova rodada de 3 execuções da pipeline de avaliação trouxe resultados atualizados — `aderencia_tools 1.000`, `faithfulness 0.858` (agora aprovado, antes oscilava 0.79–0.88 com 2 reprovações em 6 execuções), `context_recall 0.600` (inalterado, segue reprovado) e `recall_anomalias 1.000`. Atualizado em `docs/ia/avaliacao.md` (nova seção "Nova rodada de validação"), `AuditorCidadaoRoadmap.md` (nota no item de backlog sobre variância de faithfulness) e no gráfico do slide 17 do `index.html` (barra e ícone de faithfulness mudaram de "instável ⚠️" para "aprovado ✓", verificado visualmente no navegador). O histórico das 6 execuções anteriores foi preservado nos três lugares — não apaguei a instabilidade documentada, só acrescentei a rodada nova como dado adicional. O veredito geral do sistema **continua reprovado**, já que `context_recall` não mudou.
 - **Pendência restante (ação sua):** **decidir sobre "Auditoria Estadual"** — o roadmap lista 5 módulos futuros, o painel do slide 22 (HTML) só tem 4 — falta esse. Decida se adiciona ao slide ou deixa só como resposta verbal.
 - Revise comigo depois: posso ajustar tempos, cortar algum "se perguntarem" se achar excessivo, aprofundar ainda mais algum bloco técnico específico, ou adicionar "Auditoria Estadual" ao HTML do slide 22.
