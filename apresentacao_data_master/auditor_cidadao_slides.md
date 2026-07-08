@@ -2,7 +2,7 @@
 **Conteúdo do Slide:**
 - Auditor Cidadão
 - IA Generativa para auditoria de licitações públicas municipais
-- [seu nome] · Data Master — Engenheiro de IA
+- Lucas M. A. Rodrigues · Data Master — Engenheiro de IA
 
 **Sugestão visual:** print da tela inicial da plataforma publicada (`frontend/index.html` — hero da landing page).
 
