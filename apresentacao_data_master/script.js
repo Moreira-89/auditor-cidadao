@@ -26,6 +26,8 @@
     // com ?motion=1 na URL (útil se o SO do apresentador tem o flag ligado).
     var forceMotion = /[?&]motion=1\b/.test(window.location.search);
     var reduced = !forceMotion && !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    // .force-motion desativa também o bloco CSS de "reduzir movimento" (ver style.css).
+    if (forceMotion) document.documentElement.classList.add('force-motion');
 
     var current = 0;
     var animating = false;
@@ -33,8 +35,6 @@
     var lenCache = new WeakMap();
 
     function clamp(n) { return Math.max(0, Math.min(total - 1, n)); }
-
-    function raf2(fn) { requestAnimationFrame(function () { requestAnimationFrame(fn); }); }
 
     function lenOf(path) {
         if (lenCache.has(path)) return lenCache.get(path);
@@ -80,49 +80,87 @@
     /* =========================================================================
        DIAGRAMAS — nós surgem em sequência, arestas são traçadas
        ========================================================================= */
+    function removePulses(dg) {
+        Array.prototype.forEach.call(dg.querySelectorAll('.dg-edge-pulse'), function (p) {
+            if (p.parentNode) p.parentNode.removeChild(p);
+        });
+    }
+
+    // Curvas de easing (concretas, para uso em estilos inline — evita depender da
+    // resolução de var() dentro de shorthands).
+    var EO = 'cubic-bezier(0.16, 1, 0.3, 1)';       // expo-out
+    var EB = 'cubic-bezier(0.34, 1.42, 0.64, 1)';   // leve overshoot
+    var EIO = 'cubic-bezier(0.65, 0, 0.35, 1)';
+
     function animateDiagram(slide) {
         if (reduced) return;
         var dg = slide.querySelector('.dg');
         if (!dg) return;
 
+        removePulses(dg); // evita acúmulo de cometas em revisitas
+
+        var SVGNS = 'http://www.w3.org/2000/svg';
         var nodes = dg.querySelectorAll('rect, polygon, text');
         var edges = dg.querySelectorAll('.dg-edge');
         var base = 240, nStep = 45;
+        var eBase = base + Math.round(nodes.length * nStep * 0.45) + 120;
+        var pulses = [];
 
-        Array.prototype.forEach.call(nodes, function (el, i) {
-            var d = base + i * nStep;
+        // PASSO 1 — estado inicial (sem transição); cria os cometas de cada aresta.
+        Array.prototype.forEach.call(nodes, function (el) {
             el.style.transition = 'none';
             el.style.opacity = '0';
             el.style.transform = 'scale(0.86) translateY(8px)';
-            raf2(function () {
-                el.style.transition = 'opacity 0.5s var(--ease-out) ' + d + 'ms, transform 0.7s var(--ease-back) ' + d + 'ms';
-                el.style.opacity = '1';
-                el.style.transform = 'none';
-            });
+        });
+        Array.prototype.forEach.call(edges, function (el) {
+            var solid = !el.classList.contains('dg-edge-dim') && !el.classList.contains('dg-edge-loop');
+            var L = lenOf(el);
+            el.style.transition = 'none';
+            el.style.opacity = '0';
+            if (solid) { el.style.strokeDasharray = L; el.style.strokeDashoffset = L; }
+
+            var pulseLen = Math.max(14, Math.round(L * 0.14));
+            var pulse = document.createElementNS(SVGNS, 'path');
+            pulse.setAttribute('d', el.getAttribute('d'));
+            pulse.setAttribute('class', 'dg-edge-pulse');
+            pulse.style.strokeDasharray = pulseLen + 'px ' + L + 'px';
+            pulse.style.setProperty('--len', L + 'px');
+            pulse.style.setProperty('--pl', pulseLen + 'px');
+            el.parentNode.insertBefore(pulse, el.nextSibling);
+            pulses.push(pulse);
         });
 
-        var eBase = base + Math.round(nodes.length * nStep * 0.45) + 120;
+        // Commit dos estados iniciais num único reflow — dispensa requestAnimationFrame
+        // (que fica congelado em abas em segundo plano); as transições passam a correr
+        // a partir do estado recém-fixado.
+        void dg.getBoundingClientRect();
+
+        // PASSO 2 — transições e cometas; o atraso de cada elemento faz o stagger.
+        Array.prototype.forEach.call(nodes, function (el, i) {
+            var d = base + i * nStep;
+            el.style.transition = 'opacity 0.5s ' + EO + ' ' + d + 'ms, transform 0.7s ' + EB + ' ' + d + 'ms';
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+        });
         Array.prototype.forEach.call(edges, function (el, i) {
             var solid = !el.classList.contains('dg-edge-dim') && !el.classList.contains('dg-edge-loop');
-            // Preserva a hierarquia visual: arestas tracejadas (secundárias) entram
-            // já esmaecidas, não em opacidade cheia.
+            // Preserva a hierarquia: arestas tracejadas (secundárias) entram esmaecidas.
             var target = el.classList.contains('dg-edge-dim') ? '0.75'
                        : el.classList.contains('dg-edge-loop') ? '0.9' : '1';
             var d = eBase + i * 90;
-            el.style.transition = 'none';
-            el.style.opacity = '0';
-            if (solid) {
-                var L = lenOf(el);
-                el.style.strokeDasharray = L;
-                el.style.strokeDashoffset = L;
-            }
-            raf2(function () {
-                el.style.transition = solid
-                    ? 'opacity 0.4s var(--ease-out) ' + d + 'ms, stroke-dashoffset 0.9s var(--ease-io) ' + d + 'ms'
-                    : 'opacity 0.6s var(--ease-out) ' + d + 'ms';
-                el.style.opacity = target;
-                if (solid) el.style.strokeDashoffset = '0';
-            });
+            el.style.transition = solid
+                ? 'opacity 0.4s ' + EO + ' ' + d + 'ms, stroke-dashoffset 0.95s ' + EIO + ' ' + d + 'ms'
+                : 'opacity 0.6s ' + EO + ' ' + d + 'ms';
+            el.style.opacity = target;
+            if (solid) el.style.strokeDashoffset = '0';
+
+            // O cometa parte junto com o desenho da linha e a lidera.
+            var pulse = pulses[i];
+            pulse.style.animationName = 'edge-comet';
+            pulse.style.animationDuration = '1s';
+            pulse.style.animationTimingFunction = EIO;
+            pulse.style.animationDelay = d + 'ms';
+            pulse.style.animationFillMode = 'both';
         });
     }
 
@@ -130,6 +168,7 @@
         if (reduced) return;
         var dg = slide.querySelector('.dg');
         if (!dg) return;
+        removePulses(dg);
         Array.prototype.forEach.call(dg.querySelectorAll('rect, polygon, text'), function (el) {
             el.style.transition = 'none';
             el.style.opacity = '0';

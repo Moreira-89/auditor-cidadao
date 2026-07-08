@@ -453,6 +453,26 @@ code {
    slide entra em cena. transform-box/origin garantem escala a partir do centro. */
 .dg rect, .dg polygon, .dg text { opacity: 0; transform-box: fill-box; transform-origin: center; }
 .dg .dg-edge { opacity: 0; }
+
+/* "Traço animado" — um cometa de luz percorre cada aresta traçando o caminho,
+   sincronizado com o desenho da linha. O elemento .dg-edge-pulse é um clone do
+   path de cada aresta, criado em runtime (script.js); --len (comprimento total)
+   e --pl (tamanho do rastro) vêm de lá, calculados via getTotalLength(). */
+.dg-edge-pulse {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 6px var(--primary));
+}
+@keyframes edge-comet {
+    0%   { stroke-dashoffset: var(--pl); opacity: 0; }
+    14%  { opacity: 1; }
+    82%  { opacity: 1; }
+    100% { stroke-dashoffset: calc(var(--len) * -1); opacity: 0; }
+}
 .dg-node { fill: var(--canvas-soft); stroke: var(--hairline); stroke-width: 1.5; }
 .dg-node-primary { stroke: var(--primary); stroke-width: 2; fill: rgba(0, 217, 146, 0.06); }
 .dg-node-pill { fill: var(--canvas-soft-2); }
@@ -748,12 +768,21 @@ code {
 /* ==========================================================================
    28. ACESSIBILIDADE — MOVIMENTO REDUZIDO
    ========================================================================== */
+/* Regras escopadas com :root:not(.force-motion) para que o override ?motion=1
+   (que adiciona .force-motion) consiga reativar as animações mesmo quando o SO
+   está com "reduzir movimento" ligado. */
 @media (prefers-reduced-motion: reduce) {
-    .slide, [data-reveal], .deck-progress-fill { transition-duration: 0.001ms !important; }
-    .slide { filter: none !important; transform: none !important; }
-    [data-reveal] { filter: none !important; transform: none !important; }
-    .dg rect, .dg polygon, .dg text, .dg .dg-edge { opacity: 1 !important; }
-    .chart-bar { animation: none !important; transform: scaleX(1) !important; }
-    .chart-thresh { animation: none !important; opacity: 0.7 !important; transform: none !important; }
-    .status-dot.is-live, .stream-caret { animation: none !important; }
+    :root:not(.force-motion) .slide,
+    :root:not(.force-motion) [data-reveal],
+    :root:not(.force-motion) .deck-progress-fill { transition-duration: 0.001ms !important; }
+    :root:not(.force-motion) .slide { filter: none !important; transform: none !important; }
+    :root:not(.force-motion) [data-reveal] { filter: none !important; transform: none !important; }
+    :root:not(.force-motion) .dg rect,
+    :root:not(.force-motion) .dg polygon,
+    :root:not(.force-motion) .dg text,
+    :root:not(.force-motion) .dg .dg-edge { opacity: 1 !important; }
+    :root:not(.force-motion) .chart-bar { animation: none !important; transform: scaleX(1) !important; }
+    :root:not(.force-motion) .chart-thresh { animation: none !important; opacity: 0.7 !important; transform: none !important; }
+    :root:not(.force-motion) .status-dot.is-live,
+    :root:not(.force-motion) .stream-caret { animation: none !important; }
 }
