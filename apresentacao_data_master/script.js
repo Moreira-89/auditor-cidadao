@@ -370,11 +370,22 @@
         if (previous != null && previous !== current) {
             deactivate(slides[previous]);
         }
-        activate(slides[current], myGen);
 
-        if (progressFill) {
-            progressFill.style.transform = 'scaleX(' + ((current + 1) / total) + ')';
-        }
+        // CSS transitions só animam quando existe um frame anterior já pintado
+        // para interpolar a partir dele. Na primeiríssima chamada (abertura do
+        // deck, ou um reload em qualquer slide) isso ainda não aconteceu — sem
+        // este atraso de dois frames, o navegador pula direto para o estado
+        // final e a coreografia inteira (reveals, diagramas, hero) não anima.
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (myGen !== gen) return;
+                activate(slides[current], myGen);
+                if (progressFill) {
+                    progressFill.style.transform = 'scaleX(' + ((current + 1) / total) + ')';
+                }
+            });
+        });
+
         if (counterCur) {
             counterCur.textContent = ('0' + (current + 1)).slice(-2);
         }
