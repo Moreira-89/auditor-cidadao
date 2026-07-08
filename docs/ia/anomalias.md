@@ -80,9 +80,3 @@ verificada. Reforços e novas integrações para ampliar essa cobertura estão m
 | G — Reincidência | Histórico PNCP | ✅ |
 | H — Sanção vigente | CEIS/CNEP | ✅ |
 | I — Incompatibilidade | Receita Federal (CNAE) | ✅ |
-
-!!! info "Requisitos cobertos por este pilar"
-    | Requisito | O que esta seção resolve |
-    |---|---|
-    | **T1** — Como o modelo resolve o problema | O catálogo que define o que é auditado |
-    | **T6** — Limitações (cobertura parcial) | Tabela de cobertura real por anomalia |

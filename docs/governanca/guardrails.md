@@ -71,9 +71,3 @@ ser checadas manualmente.
   `{"error": ...}` para o LLM decidir como reagir, em vez de derrubar o turno.
 - **Rede de segurança global** — um handler de exceção em `main.py` captura qualquer erro não
   tratado e responde 500 sem vazar stack trace ao cliente.
-
-!!! info "Requisitos cobertos por este pilar"
-    | Requisito | O que esta seção resolve |
-    |---|---|
-    | **T6** — Ética, privacidade e responsabilidade | Anti-injeção, anti-alucinação, isolamento de erros |
-    | **E5** — Decisões e trade-offs | Escape de todos os campos, distinção verificado × não-verificado |

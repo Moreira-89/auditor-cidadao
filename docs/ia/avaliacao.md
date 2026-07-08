@@ -80,9 +80,3 @@ Após todas as correções, em 6 execuções (3 do pipeline + 3 manuais, mesmo p
     sólida: oscila em torno do próprio limiar (hipótese não confirmada: variância herdada da
     `temperature=0.1` do agente, usada também na avaliação). Documentar isso honestamente é parte da
     metodologia — o framework serve para expor limitações, não para maquiar números.
-
-!!! info "Requisitos cobertos por este pilar"
-    | Requisito | O que esta seção resolve |
-    |---|---|
-    | **T4** — Estratégia de modelos + avaliação de desempenho | Método de avaliação e resultados |
-    | **E5** — Decisões e trade-offs | RAGAS × juiz caseiro, exclusão do caso_06, troca do juiz |

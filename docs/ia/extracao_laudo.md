@@ -74,9 +74,3 @@ compromete a resposta principal.
     uma tool de auditoria no turno — gera falso positivo (ex.: "verifica esse CNPJ pra mim" chama
     uma tool, mas não é um laudo completo). A decisão final foi delegar ao próprio LLM extrator, via
     o critério explícito do `PROMPT_EXTRATOR`, em vez de uma heurística fixa no código.
-
-!!! info "Requisitos cobertos por este pilar"
-    | Requisito | O que esta seção resolve |
-    |---|---|
-    | **T2** — Prompts + orquestração (respostas controladas) | Extrator com critério explícito |
-    | **E5** — Decisões e trade-offs | Buffer-then-commit e as heurísticas descartadas |

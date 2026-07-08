@@ -75,9 +75,3 @@ frontend e backend em dois serviços — ver [Operacional](../operacional/index.
 ### Módulos futuros da plataforma
 Auditor de contratos (aditivos suspeitos), monitor de fornecedores por município, alertas
 automáticos, auditoria estadual e uma API pública de laudos para jornalistas e ONGs.
-
-!!! info "Requisitos cobertos por este pilar"
-    | Requisito | O que esta seção resolve |
-    |---|---|
-    | **T6** — Responsabilidade e limitações | Princípio "indício, não veredito" + limitações honestas |
-    | **E6** — Próximos passos | Backlog V2 completo |

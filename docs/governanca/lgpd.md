@@ -48,8 +48,3 @@ O `PerguntaRequest.lista_cnpjs` tem um `field_validator` que corta a lista em 10
 matematicamente inválidos (via `validate-docbr`), logando tentativas de exceder o limite. Além de
 controlar custo de token, isso limita quanto um cliente adulterado pode empurrar de dado numa única
 requisição.
-
-!!! info "Requisitos cobertos por este pilar"
-    | Requisito | O que esta seção resolve |
-    |---|---|
-    | **T6** — Ética, privacidade e responsabilidade (LGPD) | Minimização de dados, retenção deliberada |
