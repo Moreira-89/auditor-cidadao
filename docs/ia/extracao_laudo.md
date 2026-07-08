@@ -1,0 +1,76 @@
+# Extração do Laudo Estruturado
+
+O agente entrega o laudo em duas formas: o **Markdown** que aparece no chat em streaming, e um
+**JSON estruturado** que o frontend usa para desenhar os cards de anomalia e de risco. Esta página
+explica como o JSON é extraído do Markdown e as decisões de engenharia por trás disso.
+
+## O schema (`RespostaLaudo`)
+
+O formato do JSON é um schema Pydantic em `app/models/laudo.py`:
+
+- **`RespostaLaudo`** — o envelope. Tem um único campo, `laudo`, que é `LaudoEstruturado` **ou
+  `None`**. `None` sinaliza que o texto não era um laudo (ex.: resposta conversacional).
+- **`LaudoEstruturado`** — `cnpjs_analisados`, `anomalias`, `nivel_risco_geral`, `resumo_executivo`,
+  `recomendacoes`.
+- **`Anomalia`** — `codigo` (uma letra `A`–`I` do [catálogo](anomalias.md)), `descricao`,
+  `evidencias` e `nivel_risco` (`BAIXO`/`MÉDIO`/`ALTO`/`CRÍTICO`).
+
+Os textos em `Field(description=...)` não são só documentação — o próprio LLM extrator os lê para
+saber o que preencher em cada campo.
+
+## Como a extração acontece
+
+Depois que o laudo em Markdown já foi transmitido ao usuário, `run_agent`
+(`app/services/ai_engine.py`) faz uma **segunda chamada ao LLM** — o *extrator* — que recebe o
+`PROMPT_EXTRATOR` como `SystemMessage` e o texto do laudo como `HumanMessage`, e devolve o
+`RespostaLaudo` via `with_structured_output`. O extrator roda a `temperature=0.0` (extração é
+tarefa determinística, não criativa) e é uma instância dedicada, criada no `lifespan` e recuperada
+via `get_extrator()`.
+
+```mermaid
+---
+config:
+  layout: dagre
+  theme: redux-dark
+  look: handDrawn
+  fontFamily: '''Source Code Pro Variable'', monospace'
+  themeVariables:
+    fontFamily: '''Source Code Pro Variable'', monospace'
+    fontSize: '30px'
+---
+flowchart TB
+    STREAM["Streaming do laudo<br>(Markdown, ao usuário)"] --> BUFFER["buffer_temporario<br>acumula o texto final"]
+    BUFFER --> EXTRATOR["2ª chamada LLM (extrator)<br>temperature 0.0"]
+    EXTRATOR --> DECISAO{"É laudo completo?"}
+    DECISAO -->|"sim"| JSON["laudo_estruturado (JSON)<br>→ cards no frontend"]
+    DECISAO -->|"não"| NULL["laudo: null<br>(resposta conversacional)"]
+```
+
+Se `resultado.laudo` não for `None`, um evento SSE `laudo_estruturado` é emitido. A extração fica
+isolada num `try/except` próprio: se falhar, emite um `laudo_estruturado_erro` mas **não** derruba o
+evento `done` — o Markdown já foi entregue com sucesso, então a falha na versão estruturada não
+compromete a resposta principal.
+
+## Decisões de engenharia (trade-offs)
+
+!!! note "Buffer-then-commit: por que o laudo não é montado direto no streaming"
+    Acumular o texto direto no evento `on_chat_model_stream` seria mais simples, mas contaminaria o
+    laudo com texto de rodadas intermediárias do agente — o modelo pode emitir conteúdo *antes* de
+    os `tool_calls` daquela mensagem aparecerem completos no chunk. A solução acumula em
+    `buffer_temporario` e só confirma no `laudo_completo` quando `on_chat_model_end` garante que
+    aquela mensagem **não teve** `tool_calls`. É a resposta para "como vocês garantem que o JSON
+    reflete só a resposta final, sem ruído de raciocínio intermediário?".
+
+!!! note "Schema define forma, prompt define comportamento"
+    `with_structured_output` garante que a saída *valida* contra o schema — mas não decide sozinho
+    *quando* usar `laudo: null`. Sem instrução explícita, o modelo tentava preencher um laudo mesmo
+    em respostas conversacionais. Foi preciso um `SystemMessage` dedicado (o `PROMPT_EXTRATOR`) com
+    o critério de decisão explícito. É um exemplo prático de que o schema Pydantic sozinho não basta
+    — o comportamento vem do prompt (T2).
+
+!!! note "Por que não uma heurística de texto ou de tool chamada"
+    Duas alternativas mais baratas foram testadas e descartadas: (1) detectar o laudo por um marcador
+    no Markdown — quebra assim que o formato do `SYSTEM_PROMPT` muda; (2) decidir pela presença de
+    uma tool de auditoria no turno — gera falso positivo (ex.: "verifica esse CNPJ pra mim" chama
+    uma tool, mas não é um laudo completo). A decisão final foi delegar ao próprio LLM extrator, via
+    o critério explícito do `PROMPT_EXTRATOR`, em vez de uma heurística fixa no código.

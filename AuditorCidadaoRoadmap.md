@@ -2,8 +2,6 @@
 
 > Documento único: requisitos oficiais do case (Data Master) + status do projeto +
 > plano de entrega até 13/07/2026.
-> **Mudança de paradigma:** sair de "valida CNPJ + busca contexto" para "cruza múltiplas
-> fontes oficiais, detecta padrões anômalos e entrega laudo estruturado".
 >
 > **Última atualização:** 2026-07-05 (Bloco 4 concluído — framework de avaliação, golden dataset,
 > 3 métricas validadas, bug de produção em `gerenciadorvetorial.py` encontrado e corrigido)
@@ -368,6 +366,34 @@ docs/
 # 🚫 Backlog V2 — Fora do Escopo desta Entrega
 
 > Candidatas naturais para a próxima versão. Boa resposta para "quais são os próximos passos?".
+
+### Avaliar modelos alternativos de LLM (benchmark contra o `gpt-4o-mini` atual)
+O `gpt-4o-mini` foi escolhido para a V1 pelo custo-benefício (agente chamado a cada turno de cada
+usuário, tarefa não exige raciocínio de fronteira — ver [T1](docs/ia/modelos_prompts.md)). Fica
+como candidato de V2 rodar o golden dataset (`evaluation/`) contra outros modelos para comparar
+custo, latência e qualidade do laudo antes de trocar o padrão de produção:
+
+- **Sabiá-3 / Sabiá-4 (Maritaca AI)** — principal modelo comercial puramente brasileiro, treinado
+  especificamente para jargão jurídico e documentos institucionais do país, além de exames
+  nacionais complexos (OAB, ENADE). Desempenho em português comparável a modelos globais de ponta,
+  com suporte a function calling e leitura de arquivos via API — candidato natural por já ser
+  otimizado para o domínio jurídico-institucional brasileiro que o Auditor Cidadão audita.
+- **OpenAI o1 / o3-mini** — diferente do `gpt-4o-mini` (rápido, custo-benefício), a linha `o` usa
+  cadeias de pensamento avançadas para resolver problemas passo a passo — potencialmente melhor
+  para destrinchar decretos e encontrar "pegadinhas" em editais complexos.
+- **DeepSeek-R1** — modelo open-source de raciocínio lógico que rivaliza com a linha `o` da OpenAI,
+  com capacidade de interpretação de texto complexo a um custo de API extremamente baixo.
+- **Claude 3.5 Sonnet / Claude 3.5 Opus (Anthropic)** — o Sonnet é amplamente considerado um dos
+  melhores modelos do mercado para análise contratual e escrita jurídica de alta qualidade em
+  português, pela interpretação sutil de nuances textuais e tom formal.
+- **Google Gemini 1.5 Pro / Gemini 2.0 Flash** — janela de contexto colossal (1–2 milhões de
+  tokens), permitindo em tese carregar o edital inteiro junto com a Lei 14.133/21 completa e outras
+  instruções normativas na mesma conversa, sem depender de RAG para o corpo legal.
+
+**Antes de trocar qualquer modelo em produção:** rodar o mesmo protocolo de avaliação já usado no
+Bloco 4 (aderência de tools, recall de anomalias, RAGAS) contra o golden dataset, para comparar
+maçã com maçã — não basta impressão subjetiva de qualidade, o framework de avaliação existe
+justamente para essa comparação (ver [Avaliação](docs/ia/avaliacao.md)).
 
 ### Fase 7 — Indexação Automática via PNCP + Migração de Metadata
 Elimina o upload manual: o agente busca, baixa e indexa o PDF a partir de uma conversa.
