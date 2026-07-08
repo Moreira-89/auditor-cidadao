@@ -53,6 +53,7 @@ nav:
       - Protocolo MCP: arquitetura/protocolo_mcp.md
   - Engenharia de IA:
       - Modelos e prompts: ia/modelos_prompts.md
+      - Uso de dados e RAG: ia/rag_dados.md
       - Extração de laudo: ia/extracao_laudo.md
       - Avaliação (RAGAS): ia/avaliacao.md
       - Catálogo de anomalias: ia/anomalias.md

@@ -21,19 +21,30 @@ config:
   fontFamily: '''Source Code Pro Variable'', monospace'
   themeVariables:
     fontFamily: '''Source Code Pro Variable'', monospace'
-    fontSize: '32px'
+    fontSize: 25px
 ---
 flowchart LR
-    ENTRADA(["Pergunta do usuário"]) --> LLM["call_llm"]
-    LLM -->|"tem tool_calls?"| ROUTER{"router"}
-    ROUTER -->|"sim"| TOOLS["tool_node"]
-    ROUTER -->|"não"| FIM(["__end__ → SSE"])
-    TOOLS -->|"resultado da ferramenta"| LLM
+    ENTRADA(["Pergunta do usuário"]) ==> LLM["call_llm"]
+    LLM -- tem tool_calls? --> ROUTER{"router"}
+    ROUTER -- sim --> TOOLS["tool_node"]
+    ROUTER -- não --> FIM(["__end__ → SSE"])
+    TOOLS -- resultado da ferramenta --> LLM
 ```
 
 Este é só o ciclo de decisão — o desenho completo dos dois pipelines ponta a ponta (upload de
 edital e conversa, incluindo as ferramentas e o streaming) está em
 [Fluxo de Dados](fluxo_dados.md).
+
+!!! note "Essa estrutura de dois nós é propositalmente simples — e já tem expansão planejada"
+    Hoje o grafo é o padrão ReAct mínimo: um único `call_llm` decidindo tudo e um único `tool_node`
+    executando qualquer ferramenta. Isso funciona bem no tamanho atual, mas fica difícil de ler
+    num diagrama conforme mais ferramentas e mais micro-programas Python (processamento
+    determinístico fora do ciclo de decisão do LLM — pequenas automações, análises que não
+    precisam passar pelo modelo) entrarem no fluxo. O roadmap já prevê separar esse ciclo em nós
+    dedicados — por exemplo, um nó só de decisão/orquestração, outro só de geração final, mais
+    nós de processamento determinístico à parte. Não é correção de bug: o buffer-then-commit (ver
+    abaixo) já garante a extração correta do laudo independente da topologia do grafo — é uma
+    melhoria de manutenibilidade e clareza planejada para a V2.
 
 ## O estado do grafo (`AgentState`)
 
@@ -43,6 +54,19 @@ sobrescreve), `estado` e `municipio` (contexto geográfico, injetado automaticam
 declaram `InjectedState("estado")`/`InjectedState("municipio")`). Esses dois últimos precisam
 existir no `AgentState` mesmo não fazendo parte da conversa em si — é assim que o LangGraph sabe de
 onde tirar o valor para a tool.
+
+!!! note "`estado`/`municipio` têm vida útil planejada até a V2"
+    Essas duas chaves existem porque, hoje, o usuário informa manualmente o estado e o município ao
+    indexar um edital, e esse par é o metadado usado para filtrar a busca no Pinecone (ver
+    [Uso de Dados e RAG](../ia/rag_dados.md)). O roadmap já prevê, num futuro não tão distante, a
+    indexação automática via PNCP (sem upload manual) e, junto dela, uma migração do schema de
+    metadado do Pinecone de `municipio`/`estado` para **`cnpjs`** (lista extraída automaticamente do
+    edital). Quando isso
+    acontecer, o `AgentState` deixa de carregar `estado`/`municipio` e passa a carregar `cnpjs`,
+    já que é esse o novo campo que as tools precisarão injetar via `InjectedState`. Essa mudança
+    também é o que viabiliza a tool `buscar_historico_empresa` planejada para a V2 (cruzamento de
+    um CNPJ entre editais de municípios diferentes já indexados) — hoje impossível, porque a busca
+    é isolada por município.
 
 ## Ferramentas disponíveis ao agente
 
@@ -63,7 +87,8 @@ devolvem `{"error": ...}` estruturado para o LLM decidir como reagir, em vez de 
     todas as modalidades de contratação de um órgão pode levar minutos sob o rate limit do PNCP, e
     o streaming SSE não emite nenhum evento durante a execução de uma tool — arriscando ser
     encerrado por timeout de proxy antes de terminar. Documentado como limitação conhecida em vez
-    de arriscar quebrar o streaming em produção.
+    de arriscar quebrar o streaming em produção — ainda estamos avaliando como reativá-la de forma
+    segura (ex.: heartbeats periódicos no SSE ou uma varredura de escopo mais restrito).
 
 ## Streaming: por que o laudo não é preenchido direto no stream
 
@@ -80,7 +105,7 @@ LLM (temperatura 0, com um `SystemMessage` próprio) extrai então o JSON estrut
 Markdown já finalizado.
 
 !!! note "Histórico interrompido no meio de uma tool_call"
-    Se a conexão cair durante a execução de uma ferramenta (ex.: usuário fecha a aba), o
+    Se o usuário interromper a execução de uma ferramenta, o
     `InMemorySaver` fica com uma `AIMessage` cujos `tool_calls` nunca foram respondidos — e a
     OpenAI rejeita qualquer mensagem nova nessa thread com `400` enquanto isso não for corrigido.
     `_curar_tool_calls_pendentes()` detecta esse estado no início do próximo turno e injeta
@@ -89,10 +114,8 @@ Markdown já finalizado.
 
 ## Limitações conhecidas desta arquitetura
 
-- **Grafo com apenas dois nós.** Hoje é o padrão ReAct mínimo (`call_llm` ↔ `tool_node`).
-  Funciona bem no tamanho atual, mas fica difícil de ler num diagrama à medida que mais lógica
-  determinística entrar no fluxo — separar em nós dedicados (decisão vs. geração final) é uma
-  melhoria de manutenibilidade planejada, não uma correção de bug.
+- **Grafo com apenas dois nós** — ver a expansão planejada logo acima, em
+  [O ciclo de decisão do agente](#o-ciclo-de-decisao-do-agente).
 - **`buffer_temporario` assume execução sequencial.** Se uma versão futura introduzir
   paralelismo real entre sub-agentes, um buffer único global passaria a misturar conteúdo de
   streams concorrentes — nesse cenário, a migração seria para um dicionário de buffers indexado

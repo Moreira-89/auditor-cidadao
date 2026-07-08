@@ -57,16 +57,7 @@ Pontos que vale destacar:
 - **Variáveis de ambiente** são cadastradas diretamente no painel do Railway (mesmas chaves de
   [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas.
 
-!!! info "Requisitos cobertos por este pilar"
-    | Requisito | O que esta seção resolve |
-    |---|---|
-    | **E1** — Projeto funcional, empacotado e reprodutível | [Setup local](setup_local.md) e [Docker & Deploy](docker.md) |
-    | **E3** — Instruções de execução | [Setup local](setup_local.md) |
-    | **R1** — Reproduzível em outra máquina | [Docker & Deploy](docker.md) |
-    | **R2** — Scripts de setup/execução no Git | `Dockerfile`, `.env.example`, `requirements.txt` (raiz do repo) |
-    | **R3** — Instruções claras de configuração | [Variáveis de ambiente](variaveis_ambiente.md) |
-
-## Acesse essa páginas para saber mais
+## Acesse essas páginas para saber mais
 
 - **[Setup local](setup_local.md)** — clonar o repositório, criar o ambiente virtual, instalar
   dependências e subir a aplicação com `uvicorn`.

@@ -10,7 +10,7 @@ Fiscalizar licitações municipais no Brasil exige cruzar um edital em PDF com m
 
 ## A solução
 
-O Auditor Cidadão apresenta-se como uma solução que visa facilitar a fiscalização de licitações municipais no Brasil. Um cidadão ou jornalista faz o upload do edital, contrato ou diário oficial de uma prefeitura (em PDF); o sistema indexa o conteúdo com RAG (busca semântica) e disponibiliza um agente de IA que decide sozinho quais fontes oficiais consultar para investigar 9 categorias de anomalias.
+O Auditor Cidadão automatiza essa varredura, tornando a fiscalização acessível a qualquer cidadão ou jornalista — sem exigir conhecimento técnico ou horas de trabalho manual. Basta fazer o upload do edital, contrato ou diário oficial de uma prefeitura (em PDF); o sistema indexa o conteúdo com RAG (busca semântica) e disponibiliza um agente de IA que decide sozinho quais fontes oficiais consultar para investigar 9 categorias de anomalias.
 
 Concretamente, isso quer dizer que a plataforma:
 
@@ -34,7 +34,7 @@ Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/set
 
 Esta documentação está dividida em 4 pilares estratégicos para facilitar a avaliação:
 
-1. **[Operacional & Reprodução](operacional/setup_local.md):** instruções passo a passo para clonar, configurar as variáveis de ambiente e rodar o projeto localmente ou via Docker.
+1. **[Operacional & Reprodução](operacional/index.md):** instruções passo a passo para clonar, configurar as variáveis de ambiente e rodar o projeto localmente ou via Docker.
 2. **[Arquitetura do Sistema](arquitetura/visao_geral.md):** desenho do pipeline de dados, o funcionamento do grafo do LangGraph, protocolo MCP e streaming via SSE.
 3. **[Engenharia de IA](ia/modelos_prompts.md):** justificativas dos modelos de LLM escolhidos, engenharia de prompts, extração de JSON e o framework de avaliação automatizado com RAGAS.
-4. **[Governança e Ética](governanca/seguranca_guardrails.md):** tratamento de dados sob a LGPD, mitigação de alucinações e guardrails de segurança contra injeção de prompts.
+4. **[Governança e Ética](governanca/lgpd.md):** tratamento de dados sob a LGPD, mitigação de alucinações e guardrails de segurança contra injeção de prompts.
