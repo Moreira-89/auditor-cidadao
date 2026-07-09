@@ -7,7 +7,7 @@ assets/external/
 avaliacao_log.json
 testes_locais/
 .claude/*
-apresentacao_data_master/*
+apresentacao_data_master
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
