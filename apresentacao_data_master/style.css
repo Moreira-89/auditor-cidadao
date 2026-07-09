@@ -507,6 +507,48 @@ code {
 
 
 /* ==========================================================================
+   13b. SLIDE 23 — ICEBERG (VISÃO DE LONGO PRAZO)
+   Reusa a linguagem visual dos outros diagramas (.dg, .dg-node, .dg-edge) —
+   a ponta visível herda o destaque verde de "nó primário" (existe, roda em
+   produção); a massa submersa usa o tracejado já associado a "conceitual,
+   ainda não construído" no resto do deck (mesmo padrão de .dg-edge-dim).
+   ========================================================================== */
+.iceberg-wrap { width: 100%; max-width: 720px; margin: 0 auto; }
+.dg-iceberg { filter: drop-shadow(0 16px 46px rgba(0, 0, 0, 0.4)); }
+
+.iceberg-tip { fill: rgba(0, 217, 146, 0.1); }
+
+.iceberg-body {
+    fill: rgba(255, 255, 255, 0.02);
+    stroke: var(--hairline);
+    stroke-dasharray: 6 5;
+    opacity: 0.92;
+}
+
+.iceberg-waterline { stroke: var(--primary); stroke-width: 2.5; opacity: 0.85; }
+
+.iceberg-tip-label { fill: var(--ink-strong); font-weight: 600; }
+.iceberg-future-label { fill: var(--mute); }
+
+.iceberg-more {
+    fill: var(--mute);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-style: italic;
+    text-anchor: middle;
+}
+
+.iceberg-caption {
+    max-width: 620px;
+    margin: clamp(20px, 2.6vw, 32px) auto 0;
+    font-size: clamp(14px, 1.35vw, 17px);
+    line-height: 1.6;
+    color: var(--body-text);
+    text-align: center;
+}
+
+
+/* ==========================================================================
    14. SLIDE 10 — PIPELINE MCP
    ========================================================================== */
 .pipeline { display: flex; flex-direction: column; gap: 8px; }
@@ -701,8 +743,24 @@ code {
 .module-row { display: flex; align-items: center; gap: 16px; background: var(--canvas-soft); border: 1px solid var(--hairline); border-radius: var(--radius-md); padding: 14px 18px; }
 .module-row .material-symbols-outlined { font-size: 24px; color: var(--primary); flex: none; }
 .module-row div { display: flex; flex-direction: column; gap: 2px; }
-.module-name { font-size: clamp(14px, 1.3vw, 16.5px); color: var(--ink-strong); font-weight: 600; }
+.module-name { font-size: clamp(14px, 1.3vw, 16.5px); color: var(--ink-strong); font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .module-desc { font-size: clamp(12px, 1.05vw, 13.5px); color: var(--mute); }
+
+/* Selo "plano futuro" — reusa a linguagem de tracejado já usada nos diagramas
+   (arestas dg-edge-dim) para sinalizar "conceitual, ainda não construído". */
+.module-row-future { border-style: dashed; border-color: var(--hairline); opacity: 0.92; }
+.module-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--mute);
+    background: var(--canvas-soft-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-pill);
+    padding: 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
 
 
 /* ==========================================================================

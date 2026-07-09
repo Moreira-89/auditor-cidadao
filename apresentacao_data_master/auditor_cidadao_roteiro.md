@@ -1,5 +1,5 @@
 # Auditor Cidadão — Roteiro de Fala (versão detalhada)
-> 24 slides · ~48-50 min de fala + ~15 min de perguntas ≈ 1h05
+> 25 slides · ~50-52 min de fala + ~15 min de perguntas ≈ 1h07
 > Uso em conjunto com `auditor_cidadao_slides.md` (mesma numeração e títulos)
 > Esta versão é deliberadamente mais longa que uma "nota de direção de palco" — cada slide traz
 > uma fala guiada quase literal, os números exatos pra não precisar decorar, e um "se perguntarem"
@@ -434,24 +434,42 @@ Se quiser reforçar ainda mais a maturidade técnica — bom gancho pra pergunta
 - 4 bullets do slide: `context_recall`/`top_k` · `PostgresSaver` · Fase 7 (indexação automática + migração de metadado) · golden dataset 30+ casos
 - Tool nova viabilizada pela Fase 7: **`buscar_historico_empresa`** (cruzamento cross-município por CNPJ)
 - Dado já capturado e hoje descartado: **`capital_social`, CNAEs secundários, quadro societário (QSA)** via BrasilAPI
-- Módulos futuros no painel: **Auditor de Contratos, Monitor de Fornecedores, Alertas Automáticos, API Pública**
-- ⚠️ O roadmap tem um **5º módulo não presente no painel do slide**: **Auditoria Estadual** (expansão pra contratos estaduais) — decida se cita verbalmente ou se pede pra eu adicionar ao HTML
+- Módulos futuros no painel (agora 5): **Auditor de Contratos, Monitor de Fornecedores, Alertas Automáticos, Auditoria Estadual** (marcada com o selo "plano futuro" — é a mais distante do escopo atual), **API Pública**
 
-**Transição:** "Fechando com uma síntese curta do que foi entregue."
+**Transição:** "Esse painel de módulos, na verdade, é só um recorte de uma visão bem maior — deixa eu mostrar."
 
 ---
 
-## Slide 23 - Conclusão
+## Slide 23 - Visão de longo prazo: o ecossistema
+**Tempo:** ~1-2 min
+
+**Fala guiada:**
+Este é o slide de fechamento de visão — fala com mais energia e convicção pessoal aqui, é diferente do tom técnico dos slides anteriores. "O Auditor Cidadão não é o produto final — é a ponta visível de um iceberg. O que está em produção hoje, funcionando de ponta a ponta, é só uma fração do que pretendo construir. Por baixo da superfície está um ecossistema inteiro de fiscalização pública: um Auditor de Contratos, que estende a análise pra fase de execução; um Monitor de Fornecedores; Alertas Automáticos; uma expansão futura pra Auditoria Estadual; e uma API pública pra jornalistas, ONGs e sistemas de transparência consumirem esse laudo como serviço."
+
+Feche com o compromisso pessoal, é o que dá peso a esse slide: "esse é o horizonte que já guiou boa parte das decisões técnicas que vocês viram até aqui — arquitetura pensada pra crescer, não pra ficar presa a essa única aplicação. Os meus próximos projetos vão ser dedicados a expandir esse ecossistema."
+
+**Números/fatos para ter na ponta da língua:**
+- Metáfora: **Auditor Cidadão = ponta do iceberg**; ecossistema completo = massa submersa
+- 5 módulos do ecossistema (mesmos do painel do slide 22): **Auditor de Contratos, Monitor de Fornecedores, Alertas Automáticos, Auditoria Estadual, API Pública**
+- Mensagem central: arquitetura da V1 já **pensada pra crescer** em ecossistema, não é um projeto isolado
+
+**Se perguntarem** "isso é só uma ideia, ou já tem plano concreto?": responda que os módulos mais próximos (Auditor de Contratos, Monitor de Fornecedores) reaproveitam peças de engenharia que já existem hoje — cite de novo a tool `buscar_historico_empresa` do slide 22 como exemplo de algo que já está desenhado, não é só intenção vaga.
+
+**Transição:** "Fechando com uma síntese curta do que foi entregue na V1."
+
+---
+
+## Slide 24 - Conclusão
 **Tempo:** ~1 min
 
 **Fala guiada:**
-Fechamento curto e direto — não repita tudo. "Entrego uma ferramenta que já funciona hoje, ponta a ponta, reproduzível e documentada. Uma arquitetura de agente com ferramentas, RAG e guardrails de segurança reais. Uma avaliação com resultados honestos — inclusive onde reprovou. E sei exatamente onde ela ainda falha, com um plano concreto pra cada uma dessas falhas." Abra pra perguntas.
+Fechamento curto e direto — não repita tudo. "Entrego uma ferramenta que já funciona hoje, ponta a ponta, reproduzível e documentada. Uma arquitetura de agente com ferramentas, RAG e guardrails de segurança reais. Uma avaliação com resultados honestos — inclusive onde reprovou. E sei exatamente onde ela ainda falha, com um plano concreto pra cada uma dessas falhas — e uma visão clara de até onde isso pode chegar." Abra pra perguntas.
 
 **Transição:** "Fico à disposição para perguntas."
 
 ---
 
-## Slide 24 - Perguntas
+## Slide 25 - Perguntas
 **Tempo:** ~15 min de perguntas
 
 **Fala guiada:**
@@ -483,11 +501,11 @@ Abra o espaço e deixe a banca conduzir — não tente preencher o silêncio, d�
 
 ## Notas finais (não fazem parte do roteiro em si)
 
-- **24 slides** é o número pensado para 1h — dá ~1,8 min médio por slide de conteúdo, com folga real para os slides mais técnicos (9, 12, 17) e ~15 min reservados para perguntas.
+- **25 slides** (após a adição do slide 23 de visão de longo prazo) — dá ~1,8 min médio por slide de conteúdo, com folga real para os slides mais técnicos (9, 12, 17) e ~15 min reservados para perguntas.
 - O slide 17 (resultados da avaliação) é o que mais separa esse projeto de uma apresentação genérica — não tenha pressa nele.
 - **Revisão de 2026-07-08 (v1):** comparei o roteiro original com `AuditorCidadaoRoadmap.md` e enriqueci os slides 7, 8, 10, 16, 18, 20, 22 e 24 com pontos que estavam nos slides (ou no roadmap) mas não no discurso — principalmente a parte de V2/Engenharia de IA do slide 22 e o gap de controle de custo/rate limiting no slide 24.
 - **Revisão de 2026-07-08 (v2 — esta versão):** reescrita completa pra formato de "fala guiada" quase literal, com uma seção de **números/fatos exatos** por slide (pra não precisar decorar sob pressão) e um **"se perguntarem"** nos pontos mais prováveis de aprofundamento técnico. Cobertura de todos os 24 slides, incluindo referência rápida do catálogo A–I completo (slide 13) e 9 perguntas prováveis com resposta pronta (slide 24, antes só tinha 4).
 - **Revisão de 2026-07-08 (v3):** verificado direto em `app/services/lifespan.py` — `TOOLS_MCP_SELECIONADAS` tem exatamente **11** entradas, confirmando a doc técnica e o slide 10. O número "12" era um valor desatualizado, presente em 3 trechos de `AuditorCidadaoRoadmap.md` (Fase 3, Bloco 0 e seção de Bloco 5) — todos corrigidos para 11. Nenhuma outra menção a "12 tools/ferramentas" foi encontrada em `docs/` ou `README.md`. Slide 10 do `index.html` já estava correto (não precisou de alteração).
 - **Revisão de 2026-07-08 (v4):** nova rodada de 3 execuções da pipeline de avaliação trouxe resultados atualizados — `aderencia_tools 1.000`, `faithfulness 0.858` (agora aprovado, antes oscilava 0.79–0.88 com 2 reprovações em 6 execuções), `context_recall 0.600` (inalterado, segue reprovado) e `recall_anomalias 1.000`. Atualizado em `docs/ia/avaliacao.md` (nova seção "Nova rodada de validação"), `AuditorCidadaoRoadmap.md` (nota no item de backlog sobre variância de faithfulness) e no gráfico do slide 17 do `index.html` (barra e ícone de faithfulness mudaram de "instável ⚠️" para "aprovado ✓", verificado visualmente no navegador). O histórico das 6 execuções anteriores foi preservado nos três lugares — não apaguei a instabilidade documentada, só acrescentei a rodada nova como dado adicional. O veredito geral do sistema **continua reprovado**, já que `context_recall` não mudou.
-- **Pendência restante (ação sua):** **decidir sobre "Auditoria Estadual"** — o roadmap lista 5 módulos futuros, o painel do slide 22 (HTML) só tem 4 — falta esse. Decida se adiciona ao slide ou deixa só como resposta verbal.
-- Revise comigo depois: posso ajustar tempos, cortar algum "se perguntarem" se achar excessivo, aprofundar ainda mais algum bloco técnico específico, ou adicionar "Auditoria Estadual" ao HTML do slide 22.
+- **Revisão de 2026-07-08 (v5):** resolvida a pendência do "Auditoria Estadual" — adicionado ao painel de módulos do slide 22 (HTML), com o selo visual "plano futuro" (borda tracejada, mesma linguagem usada nos diagramas pra sinalizar "conceitual, ainda não construído"). Além disso, criado um **slide novo** — o 23, "Visão de longo prazo: o ecossistema" — com uma ilustração de iceberg (ponta visível = Auditor Cidadão em produção hoje; massa submersa tracejada = os 5 módulos futuros do ecossistema) e uma fala de fechamento sobre a visão de produto de longo prazo. Isso empurrou Conclusão de 23→24 e Perguntas de 24→25; a apresentação passou de 24 para **25 slides**. Verificado no navegador: renumeração sem quebra (contador dinâmico do deck lê `25` corretamente), novo slide renderiza sem erros de console, módulo com selo "plano futuro" legível.
+- Revise comigo depois: posso ajustar tempos, cortar algum "se perguntarem" se achar excessivo, ou aprofundar ainda mais algum bloco técnico específico.
