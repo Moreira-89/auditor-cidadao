@@ -3,8 +3,8 @@
 > Documento único: requisitos oficiais do case (Data Master) + status do projeto +
 > plano de entrega até 13/07/2026.
 >
-> **Última atualização:** 2026-07-05 (Bloco 4 concluído — framework de avaliação, golden dataset,
-> 3 métricas validadas, bug de produção em `gerenciadorvetorial.py` encontrado e corrigido)
+> **Última atualização:** 2026-07-08 (Bloco 5 concluído — documentação final publicada via MkDocs
+> Material em `/docs`, cobrindo E2–E6 e T5/T6)
 
 ---
 
@@ -56,12 +56,12 @@
 | T2 | ✅ Forte | Só consolidar na apresentação |
 | T3 | ✅ | Articular que os dados são editais públicos + bases governamentais |
 | T4 | ✅ | Framework de avaliação concluído (Bloco 4): 3 métricas, critérios documentados, validado com dado real |
-| T5 | ⚠️ | Falta diagrama de arquitetura e doc de trade-offs consolidado → Bloco 5 |
-| T6 | ⚠️ **GAP** | Falta seção explícita de ética/LGPD/limitações → Bloco 5 |
+| T5 | ✅ | Diagramas Mermaid (ciclo do agente, fluxo de dados, protocolo MCP) em `docs/arquitetura/` (Bloco 5) |
+| T6 | ✅ | `docs/governanca/` (LGPD, guardrails, limitações) publicado (Bloco 5) |
 | E1 | ✅ | Dockerfile + lifespan + frontend prontos |
-| E2/E3/R3 | ⚠️ | README completo ainda não existe → Bloco 5 |
-| E4 | ❌ | Sem diagrama → Bloco 5 |
-| E5 | ⚠️ | Decisões espalhadas em comentários → consolidar → Bloco 5 |
+| E2/E3/R3 | ✅ | `docs/operacional/` (setup local, Docker, variáveis de ambiente) + README (Bloco 5) |
+| E4 | ✅ | Diagramas Mermaid em `docs/arquitetura/` (Bloco 5) |
+| E5 | ✅ | Decisões e trade-offs consolidados em `docs/ia/` e `docs/arquitetura/` (Bloco 5) |
 | E6 | ✅ | Este roadmap cobre isso (seção Backlog V2) |
 
 ---
@@ -279,87 +279,25 @@ principal (mesma configuração de produção), usada também durante a avaliaç
 correspondente no Backlog V2. Veredito geral (`aprovacao["geral"]`) reprovado na maioria das
 6 execuções, por causa de `context_recall`.
 
----
-
-# 📚 BLOCO 5 — Documentação Final (paralelo aos blocos 2–4)
-
-> Escrever a documentação de cada feature no mesmo dia em que ela é implementada — não deixar
-> acumular. Esta seção cobre diretamente E2, E3, E4, E5 e o GAP-3 (T6).
-
-### Estrutura `/docs` (MkDocs Material)
-```
-docs/
-├── index.md           # Visão geral, problema, solução, stack
-├── arquitetura.md      # Diagrama Mermaid + fluxo de dados (E4/T5)
-├── etica.md             # LGPD, anti-alucinação, anti-injection, limitações (T6)
-├── tools.md            # Catálogo de tools: parâmetros, exemplos, limitações
-├── anomalias.md        # Catálogo A–I com exemplo real por anomalia
-├── avaliacao.md         # Metodologia LLM-as-Judge + resultados (T4)
-├── deploy.md            # Docker + Railway + variáveis de ambiente
-└── contribuindo.md      # Como rodar localmente
-```
-
-- [ ] `arquitetura.md`: diagrama mostrando `Upload PDF → pdfplumber → chunking → Pinecone` e
-      `Pergunta → LangGraph (call_llm ↔ ToolNode) → MCP/Receita/CGU/Tavily/Pinecone → SSE`
-- [ ] `etica.md` — cobrir explicitamente:
-  - **Privacidade/LGPD:** dados públicos (CNPJ, PNCP, editais); nome do usuário não é mais
-    coletado (já implementado); retenção indefinida de editais no Pinecone é decisão deliberada
-    (sem dado pessoal sensível envolvido), pensada para viabilizar cruzamento histórico na V2
-  - **Anti-alucinação:** regra "nunca invente dados", hierarquia de evidências, score conservador
-  - **Anti-injection:** escape XML em todos os campos (já implementado), tags de isolamento
-  - **Limitações:** dependência de APIs externas, cobertura parcial de anomalias, necessidade
-    de revisão humana
-  - **Responsabilidade:** o laudo é indício, não decisão final — sempre recomenda checagem manual
-- [ ] `README.md` na raiz: explicação do case, arquitetura resumida, stack, `.env.example`
-      completo, passo a passo local + Docker, exemplos de uso (cobre E2/E3/R3)
-- [ ] Seção de justificativa tecnológica (README ou slides): por que LangGraph vs LangChain
-      puro, por que OpenAI `gpt-4o-mini`, por que Pinecone, por que MCP (reuso de 11 tools
-      PNCP), por que RAG vs fine-tuning
-- [ ] Exportar documentação como PDF para entrega à banca
-
-### Apontamentos do Bloco 2 a documentar (decisões e trade-offs — E5)
-- **Buffer-then-commit no streaming:** por que `laudo_completo` não é preenchido direto no
-  `on_chat_model_stream` — decidir "isso é resposta final?" chunk a chunk é frágil, porque o
-  modelo pode emitir texto antes do `tool_calls` aparecer completo no chunk. A correção
-  espera o `on_chat_model_end` (mensagem inteira) para confirmar a ausência de `tool_calls`
-  antes de mover o conteúdo do `buffer_temporario` para `laudo_completo`. Boa resposta para
-  "como vocês garantem que o JSON reflete só a resposta final, sem ruído de raciocínio
-  intermediário do agente?".
-- **Schema define forma, prompt define comportamento:** `with_structured_output` (via
-  `RespostaLaudo`) só garante que a saída *valida* contra o schema — não decide sozinho
-  *quando* usar `laudo: null`. Isso exigiu um `SystemMessage` dedicado ao extrator, com o
-  critério de decisão explícito. Vale citar como exemplo prático de prompt engineering (T2).
-- **Por que não usar heurística por texto (regex/marcador no Markdown) nem por tool
-  chamada:** ambas testadas e descartadas — a primeira quebra se o `SYSTEM_PROMPT` mudar de
-  formato; a segunda gera falso positivo em consultas pontuais (ex.: "verifica esse CNPJ
-  pra mim" chama uma tool de auditoria mas não é um laudo completo). A solução final delega
-  a decisão para o próprio LLM extrator via `SystemMessage`, e não para uma heurística fixa
-  no código.
-
-### Apontamentos do Bloco 4 a documentar (decisões e trade-offs — E5)
-- **RAGAS em vez do `avaliar.py`/`JulgamentoLLM` originalmente planejado:** o roadmap previa um
-  único LLM-juiz caseiro julgando 4 métricas (`relevancia`, `fidelidade`, `aderencia_tools`,
-  `deteccao_anomalia` booleana). A implementação final usa RAGAS (biblioteca validada pela
-  comunidade) para `faithfulness`/`context_recall`, mantém `aderencia_tools` como comparação
-  determinística sem LLM (mais confiável que julgamento subjetivo para esse caso), e
-  `recall_anomalias` como fração (não booleano), reaproveitando o mesmo extrator estruturado
-  já usado em produção. Decisão consciente de engenharia, não desvio por falta de tempo — vale
-  como boa resposta para "por que a implementação diverge do plano original?" (T4/E5).
-- **Bug de metadados como exemplo de "bug de avaliação que era, na verdade, bug de produção":**
-  o `gerenciadorvetorial.py` é compartilhado entre o pipeline de teste e o fluxo real de
-  indexação de editais — uma investigação que começou puramente sobre instabilidade de métrica
-  terminou revelando que usuários reais recebiam sempre o último chunk do documento como
-  contexto, independente da pergunta. Boa resposta prática para "como o framework de avaliação
-  ajudou a encontrar problemas reais do sistema, não só medir números?" (T4).
-- **Exclusão do `caso_06` do cálculo de RAGAS:** `context_recall` não tem mecanismo para validar
-  uma afirmação negativa ("o edital não traz X") contra chunks recuperados — limitação da
-  métrica, não do sistema. Excluído via campo próprio no golden dataset em vez de reescrever o
-  gabarito, preservando o caso para as demais métricas.
-- **Juiz do RAGAS trocado de `gpt-4o-mini` para `gpt-4o`:** o mini dava notas inconsistentes
-  para o mesmo contexto recuperado entre execuções (comprovado com contexto byte-a-byte
-  idêntico e nota diferente). Custo maior do `gpt-4o` só incide em CI/avaliação manual — esse
-  modelo nunca é chamado por um usuário real (ver Backlog V2 para plano de retestar o mini após
-  estabilizar o dado de entrada).
+**Bloco 5 — Documentação Final:** site de documentação técnica publicado com MkDocs Material
+(`mkdocs.yml`) em `/docs`, organizado em quatro pilares em vez da estrutura flat originalmente
+planejada — `operacional/` (visão geral, setup local, Docker & deploy, variáveis de ambiente),
+`arquitetura/` (visão geral do ciclo do agente, fluxo de dados ponta a ponta, protocolo MCP),
+`ia/` (modelos e prompts, uso de dados e RAG, extração de laudo, avaliação RAGAS, catálogo de
+anomalias) e `governanca/` (LGPD e privacidade, guardrails, limitações conhecidas), somando ~1.230
+linhas de Markdown. Cobre os requisitos T5 (arquitetura com agentes) e T6 (ética/privacidade) do
+case, além dos entregáveis E2–E6 (explicação do case, instruções de execução, diagrama de
+arquitetura, decisões/trade-offs, próximos passos). Diagramas do ciclo de decisão do agente e do
+fluxo de dados renderizados em Mermaid — com uma configuração própria (`javascripts/mermaid-init.js`,
+versão fixada em `11.16.0`) porque a renderização automática embutida no Material 9.7.6 falhava
+silenciosamente. `docs/governanca/limitacoes.md` documenta honestamente as lacunas da V1 (cobertura
+parcial do catálogo de anomalias, `top_k=3`, `InMemorySaver` volátil, ausência de autenticação/rate
+limiting, dependência de APIs externas, tool de PNCP desativada), reafirmando o princípio de que o
+sistema sinaliza padrões para investigação humana e nunca emite veredito final. Trade-offs técnicos
+dos Blocos 2 e 4 (buffer-then-commit do streaming, RAGAS em vez do juiz caseiro originalmente
+planejado, bug de metadados do Pinecone, exclusão do `caso_06` do RAGAS, troca do juiz para
+`gpt-4o`) consolidados como notas explicativas dentro das páginas de arquitetura e avaliação, em
+vez de ficarem só espalhados em comentários de código.
 
 ---
 
@@ -604,9 +542,9 @@ não acusa nem emite sentenças. Framing explícito no `SYSTEM_PROMPT`, na docum
 | 2 | ~~`float(None)` em `dependencies.py` se env vars faltarem~~ | Resolvido | ✅ Defaults adicionados |
 | 3 | ~~Cache MCP nunca expira entradas antigas~~ | Resolvido | ✅ Migrado para `cachetools.TTLCache` |
 | 4 | Tavily: cota gratuita de 1.000 req/mês | Baixo | Monitorar; pay-as-you-go se necessário |
-| 5 | PNCP rate limits não documentados | Baixo | Cache TTL 24h mitiga. Parcial: comportamento do WAF já documentado como comentário em `consulta_pncp.py:44-53`, mas ainda não em doc formal (`docs/` não existe) |
+| 5 | ~~PNCP rate limits não documentados~~ | Resolvido | ✅ Cache TTL 24h mitiga; comportamento do WAF documentado em `docs/arquitetura/protocolo_mcp.md` (Bloco 5) |
 | 6 | ~~`npm notice` nos logs do container~~ | Resolvido | ✅ `ENV NO_UPDATE_NOTIFIER=1` presente em `Dockerfile:8` |
-| 7 | `.env.docker` não usa aspas | Baixo | Ainda sem aspas nos valores; sem doc em `deploy.md` (pasta `docs/` ainda não existe) |
+| 7 | `.env.docker` não usa aspas | Baixo | Ainda sem aspas nos valores; `docs/operacional/docker.md` (Bloco 5) documenta o arquivo, mas não cobre essa convenção específica |
 | 8 | ~~Subprocess MCP sem shutdown explícito~~ | Resolvido | ✅ Falso positivo — lib já fecha sessão por chamada |
 | 9 | `TAMANHO_MAXIMO_CONTEUDO=2000` em `app/services/busca_web.py:12` (migrado de `filtragem_resultados_web.py` no Bloco 3) quase não trunca na prática | Baixo | Valor ainda não revisado — pendente antes da apresentação |
 | 10 | ~~Cobertura de `try/except` inconsistente fora das tools nativas~~ | Resolvido | ✅ Handler global de exceção em `main.py`, try/except em torno do upsert no Pinecone em `root_upload.py` e da conexão MCP no startup em `lifespan.py`. `busca_web.py`/`consulta_receita_federal.py` mantidos sem try/except de propósito — já seguem o padrão "levanta exceção nativa, chamador em `tools.py` traduz" |
