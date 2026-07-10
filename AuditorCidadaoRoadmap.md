@@ -304,6 +304,116 @@ vez de ficarem só espalhados em comentários de código.
 # 🚫 Backlog V2 — Fora do Escopo desta Entrega
 
 > Candidatas naturais para a próxima versão. Boa resposta para "quais são os próximos passos?".
+> Reorganizado em julho/2026 por tema (antes era uma lista plana em ordem de descoberta).
+> Itens marcados 🆕 foram identificados em revisão posterior ao Bloco 5, ainda não estavam
+> documentados nesta seção.
+
+## A. Segurança, custo e escalabilidade
+
+Agrupa tudo que trata do sistema aguentar produção real com múltiplos usuários simultâneos —
+o ponto que a banca mais tende a questionar (T6).
+
+### Controle de custo e limite de uso (gap identificado, ainda sem solução)
+Hoje não existe nenhum limite de uso: sem autenticação e sem quota por sessão/dia, um usuário
+pode conversar — e gastar tokens da OpenAI — indefinidamente. É um ponto real de exposição a
+custo não controlado e uma pergunta provável da banca sobre escalabilidade (T6). Ainda não
+decidido; opções a avaliar na V2 antes de qualquer deploy público sem controle de acesso:
+- Rate limiting por sessão/IP (ex.: N mensagens/hora)
+- Quota diária por `thread_id`/usuário, bloqueando ao atingir o limite
+- Timeout/expiração de conversa (encerrar thread após N turnos ou X minutos de inatividade)
+- Autenticação mínima (mesmo que só um token de acesso) como pré-requisito para qualquer
+  limite por usuário funcionar de fato — **`thread_id` sozinho não serve como identificador de
+  limite**: é gerado e descartável pelo próprio client (visível via DevTools), então rate limit
+  baseado só nele não impõe custo real ao abuso.
+
+### 🆕 Workers e escalonamento horizontal (uvicorn/Railway)
+Hoje a aplicação roda com o padrão implícito de 1 worker (`--workers` do uvicorn nunca foi
+configurado). Isso não é um bug — é o motivo pelo qual não há corrida entre processos hoje —,
+mas é uma lacuna de documentação/decisão que a banca pode perguntar direto ("como isso escala
+horizontalmente?"). Dois pontos a resolver juntos antes de aumentar workers/instâncias:
+- Configurar explicitamente `--workers N` (ou múltiplas instâncias no Railway) exige revisar
+  todo componente hoje assumido como singleton por processo — especialmente qualquer scheduler
+  ou job periódico que vier a ser criado (ex.: rotina de expiração de namespace do Pinecone,
+  ver item de Persistência abaixo): com N workers, cada processo instanciaria seu próprio job,
+  rodando a mesma limpeza em paralelo. Solução mais simples: tirar esse tipo de job de dentro do
+  processo da aplicação (ex.: Cron Job nativo do Railway rodando como serviço separado) em vez
+  de usar um scheduler in-process.
+- Documentar a decisão atual (1 worker, suficiente para o volume do MVP) como escolha
+  consciente, não omissão — evita a lacuna virar pergunta sem resposta pronta na apresentação.
+
+### Persistência
+| Componente | V1 (atual) | V2 (alvo) |
+|---|---|---|
+| Histórico de conversas | `InMemorySaver` (RAM), sem TTL/eviction | **`PostgresSaver` descartado por decisão consciente** — ferramenta é de uso pontual (usuário entra, consulta, sai), não faz sentido persistir histórico de chat como em um produto tipo ChatGPT. Mantém-se `InMemorySaver`, mas com mecanismo de **eviction/TTL por thread** a implementar (hoje o dict cresce indefinidamente até o processo reiniciar — comportamento equivalente ao que o cache de tools tinha antes do Bloco 0, corrigido com `cachetools.TTLCache`; aplicar o mesmo padrão aqui) |
+| Cache de tools | Dict/`TTLCache` em memória | Redis com TTL nativo, compartilhado entre instâncias — só relevante se a V2 realmente escalar para múltiplos workers/instâncias (ver item acima) |
+
+### Namespace de indexação por `thread_id` em produção
+Hoje todo usuário indexa no mesmo namespace, isolado só por filtro de metadado
+(`estado`+`municipio`) — dois usuários indexando ao mesmo tempo podem, em tese, disputar entre
+si a mesma barreira de consistência usada na avaliação. Isolar por `thread_id` resolve, mas
+introduz um problema de ciclo de vida novo (quando apagar o namespace de uma sessão encerrada).
+`beforeunload`/`visibilitychange` no frontend não é confiável sozinho (não dispara em crash,
+perda de rede, ou boa parte do mobile) — precisaria de uma rotina de expiração no backend como
+rede de segurança, no mesmo espírito do TTL já aplicado ao cache de tools.
+
+> **Importante não confundir os dois TTLs acima:** o `InMemorySaver` guarda o *estado da
+> conversa* (RAM do processo, some sozinho se o servidor reiniciar); o Pinecone guarda os
+> *vetores do edital indexado* (serviço externo, **não** é afetado por restart do Railway).
+> São dois ciclos de vida independentes — reiniciar a aplicação não limpa o Pinecone, e o
+> Pinecone não sabe quando uma sessão de chat "acabou" sem um mecanismo de expiração próprio.
+
+---
+
+## B. Produto e experiência do usuário
+
+### 🆕 Relatório automático pós-indexação
+Hoje o laudo (resumo executivo ou completo) só é gerado mediante interação explícita do
+usuário com o modelo. Para o usuário leigo, que muitas vezes não sabe o que perguntar depois
+de subir o edital, isso é fricção desnecessária. Proposta: ao concluir a indexação, o sistema
+gera automaticamente um relatório inicial, acompanhado de sugestões de perguntas
+contextualizadas — torna a ferramenta mais intuitiva sem exigir que o usuário saiba formular a
+pergunta certa. **Trade-off a documentar:** isso dispara uma chamada de LLM (e possivelmente a
+segunda chamada de extração estruturada) em toda indexação, mesmo sem o usuário pedir — conversa
+diretamente com o item "Controle de custo e limite de uso" acima; se implementado, o rate
+limiting deixa de ser só sobre o chat e passa a cobrir também o upload.
+
+### Módulos futuros da plataforma
+| Módulo | Descrição |
+|---|---|
+| Auditor de Contratos | Aditivos suspeitos e prorrogações irregulares pós-licitação |
+| Monitor de Fornecedores | Dashboard por município: contratos, sanções, vínculos |
+| Alertas Automáticos | Notifica quando fornecedor sancionado vence licitação monitorada |
+| Auditoria Estadual | Expansão para contratos estaduais |
+| API Pública | Laudos como API para jornalistas, ONGs, sistemas de transparência |
+
+**Princípio fundamental da plataforma:** o sistema sinaliza padrões para investigação humana —
+não acusa nem emite sentenças. Framing explícito no `SYSTEM_PROMPT`, na documentação e na
+apresentação.
+
+---
+
+## C. Arquitetura do grafo e streaming
+
+### Separação de nodes no grafo (decisão de tool vs. geração de resposta)
+Hoje o grafo é o padrão ReAct simples: um único node `agent` chamado em loop até parar de
+emitir `tool_calls`, seguido de `tools` → volta pro `agent`. Funciona, mas fica difícil de
+ler num diagrama à medida que mais lógica Python (pequenas automações, análises fora de
+tools) for entrando no fluxo. Separar em nodes dedicados (ex.: um node de
+decisão/orquestração e um node de geração final, mais nodes de processamento determinístico
+fora do ciclo de decisão do LLM) melhora legibilidade e reduz rodadas de LLM desnecessárias
+conforme o número de tools/automações cresce na V2. Não é correção de bug — o
+buffer-then-commit do Bloco 2 já resolve a extração correta do laudo independente da
+topologia do grafo — é uma melhoria de manutenibilidade e clareza arquitetural.
+
+### Buffer por `run_id` (streaming paralelo)
+O `buffer_temporario` do Bloco 2 assume execução sequencial (uma chamada de LLM por vez no
+grafo). Se a V2 introduzir paralelismo real (ex.: `Send` do LangGraph disparando sub-agentes
+simultâneos), um buffer único global passa a misturar conteúdo de streams concorrentes —
+nesse cenário, migrar para um dicionário de buffers indexado por `evento["run_id"]`.
+
+---
+
+## D. Modelo, avaliação e qualidade
 
 ### Avaliar modelos alternativos de LLM (benchmark contra o `gpt-4o-mini` atual)
 O `gpt-4o-mini` foi escolhido para a V1 pelo custo-benefício (agente chamado a cada turno de cada
@@ -332,6 +442,41 @@ custo, latência e qualidade do laudo antes de trocar o padrão de produção:
 Bloco 4 (aderência de tools, recall de anomalias, RAGAS) contra o golden dataset, para comparar
 maçã com maçã — não basta impressão subjetiva de qualidade, o framework de avaliação existe
 justamente para essa comparação (ver [Avaliação](docs/ia/avaliacao.md)).
+
+### Qualidade
+- **Busca semântica com `top_k` maior (hoje 3), já configurável via `TOP_K_EDITAL`** (env var,
+  default 3, não exposta à tool que o LLM chama — só o código controla). Diagnóstico real feito
+  no Bloco 4: de 5 casos com `context_recall` ruim, 2 (`caso_04b`, `caso_08`) são recuperáveis
+  com `top_k` maior (posições 9 e 2 no ranking) — subir pra ~10 resolveria esses. Os outros 2
+  (`caso_02`, `caso_04a`) **não aparecem nem em `top_k=50`** — limitação genuína de posição no
+  documento (chunk-alvo no apêndice/muito distante), que só reranking ou chunking diferente
+  resolveria. Decisão de valor final adiada — subir `top_k` em produção aumenta custo de token
+  por chamada e pode piorar `faithfulness` (mais contexto irrelevante pro LLM confundir), não é
+  troca sem custo.
+- Expansão do golden dataset para 30+ casos cobrindo as 9 categorias
+- **Reavaliar `AVALIADOR_MODEL` de volta para `gpt-4o-mini`** como otimização de custo de
+  CI/avaliação recorrente (não afeta usuário final — esse modelo só roda quando o time executa
+  o golden dataset). Adiado para depois da entrega: o `gpt-4o-mini` mostrou ruído de julgamento
+  mesmo com dado de entrada correto (nota variando para o mesmo contexto recuperado); trocar de
+  volta exige revalidar estabilidade em 3+ rodadas antes de confiar no resultado.
+- **Investigar variância residual de `faithfulness`** — prioridade elevada após 6 execuções
+  totais mostrarem oscilação de `0.79` a `0.88` (amplitude `0.086`), com 2 das 6 reprovando o
+  limiar de `0.85` mesmo com o juiz `gpt-4o` e o bug de metadados já corrigido — não é mais
+  ruído desprezível, é a métrica mais próxima de aprovação consistente e a mais fácil de destravar.
+  Hipótese não confirmada: `temperature=0.1` do agente principal (mesma configuração de
+  produção) usada também na avaliação, gerando laudos ligeiramente distintos por execução.
+  Testável congelando `temperature=0` só durante a avaliação, sem mudar produção.
+  **Atualização (2026-07-08):** uma rodada adicional de 3 execuções trouxe `faithfulness = 0.858`,
+  aprovado com folga — sinal encorajador, mas uma rodada só ainda não é suficiente pra declarar a
+  variância resolvida. Manter o item aberto até acumular mais execuções (ver
+  [Avaliação](docs/ia/avaliacao.md#nova-rodada-de-validacao-2026-07-08)).
+- **Auditar o repositório atrás de outros usos do padrão `[X] * N` com objeto mutável** — o bug
+  de metadados do Bloco 4 foi corrigido pontualmente em `gerenciadorvetorial.py`; não houve
+  varredura completa do projeto atrás do mesmo padrão em outro lugar.
+
+---
+
+## E. Novas fontes de dados e catálogo de anomalias
 
 ### Fase 7 — Indexação Automática via PNCP + Migração de Metadata
 Elimina o upload manual: o agente busca, baixa e indexa o PDF a partir de uma conversa.
@@ -365,6 +510,11 @@ explicitamente na seção de ética (T6) como parte da visão de produto.
 ### `consultar_preco_referencia` (Painel de Preços / Compras.gov)
 Habilitaria detecção de sobrepreço (Anomalia A). Endpoint instável — verificar disponibilidade
 antes de implementar.
+
+### `consultar_dados_municipio` (API IBGE)
+IDH, PIB per capita, população, IDEB — contextualiza o valor de uma contratação com a
+capacidade fiscal real do município (ex.: prefeitura com PIB per capita de R$8.000 contratando
+sistema de TI por R$2 milhões).
 
 ### Novos cruzamentos para o catálogo de anomalias (pesquisa de mercado, 2026-07-04)
 > Dicas coletadas comparando o projeto com ferramentas de monitoramento público existentes,
@@ -427,16 +577,9 @@ segue é reexpor dado que já está sendo buscado, não integrar uma fonte nova.
   mídia nacional): ajuste de template de query na tool `buscar_informacao_web` já existente.
   Esforço **baixo**.
 
-### Controle de custo e limite de uso (gap identificado, ainda sem solução)
-Hoje não existe nenhum limite de uso: sem autenticação e sem quota por sessão/dia, um usuário
-pode conversar — e gastar tokens da OpenAI — indefinidamente. É um ponto real de exposição a
-custo não controlado e uma pergunta provável da banca sobre escalabilidade (T6). Ainda não
-decidido; opções a avaliar na V2 antes de qualquer deploy público sem controle de acesso:
-- Rate limiting por sessão/IP (ex.: N mensagens/hora)
-- Quota diária por `thread_id`/usuário, bloqueando ao atingir o limite
-- Timeout/expiração de conversa (encerrar thread após N turnos ou X minutos de inatividade)
-- Autenticação mínima (mesmo que só um token de acesso) como pré-requisito para qualquer
-  limite por usuário funcionar de fato
+---
+
+## F. Débito técnico adiado do Bloco 1
 
 ### Melhorias identificadas no Bloco 1, adiadas conscientemente pelo prazo
 - **Resumo por resultado da busca web via modelo pequeno:** em vez do filtro/truncamento
@@ -453,86 +596,6 @@ decidido; opções a avaliar na V2 antes de qualquer deploy público sem control
   pronto, mas ele mistura informação de várias fontes sem vínculo por URL (quebra
   rastreabilidade) e é gerado em inglês mesmo com query em português — mantido fora do V1.
 
-### Separação de nodes no grafo (decisão de tool vs. geração de resposta)
-Hoje o grafo é o padrão ReAct simples: um único node `agent` chamado em loop até parar de
-emitir `tool_calls`, seguido de `tools` → volta pro `agent`. Funciona, mas fica difícil de
-ler num diagrama à medida que mais lógica Python (pequenas automações, análises fora de
-tools) for entrando no fluxo. Separar em nodes dedicados (ex.: um node de
-decisão/orquestração e um node de geração final, mais nodes de processamento determinístico
-fora do ciclo de decisão do LLM) melhora legibilidade e reduz rodadas de LLM desnecessárias
-conforme o número de tools/automações cresce na V2. Não é correção de bug — o
-buffer-then-commit do Bloco 2 já resolve a extração correta do laudo independente da
-topologia do grafo — é uma melhoria de manutenibilidade e clareza arquitetural.
-
-### Buffer por `run_id` (streaming paralelo)
-O `buffer_temporario` do Bloco 2 assume execução sequencial (uma chamada de LLM por vez no
-grafo). Se a V2 introduzir paralelismo real (ex.: `Send` do LangGraph disparando sub-agentes
-simultâneos), um buffer único global passa a misturar conteúdo de streams concorrentes —
-nesse cenário, migrar para um dicionário de buffers indexado por `evento["run_id"]`.
-
-### `consultar_dados_municipio` (API IBGE)
-IDH, PIB per capita, população, IDEB — contextualiza o valor de uma contratação com a
-capacidade fiscal real do município (ex.: prefeitura com PIB per capita de R$8.000 contratando
-sistema de TI por R$2 milhões).
-
-### Persistência
-| Componente | V1 (atual) | V2 (alvo) |
-|---|---|---|
-| Histórico de conversas | `InMemorySaver` (RAM) | `PostgresSaver` (PostgreSQL) |
-| Cache de tools | Dict/`TTLCache` em memória | Redis com TTL nativo, compartilhado entre instâncias |
-
-### Qualidade
-- **Busca semântica com `top_k` maior (hoje 3), já configurável via `TOP_K_EDITAL`** (env var,
-  default 3, não exposta à tool que o LLM chama — só o código controla). Diagnóstico real feito
-  no Bloco 4: de 5 casos com `context_recall` ruim, 2 (`caso_04b`, `caso_08`) são recuperáveis
-  com `top_k` maior (posições 9 e 2 no ranking) — subir pra ~10 resolveria esses. Os outros 2
-  (`caso_02`, `caso_04a`) **não aparecem nem em `top_k=50`** — limitação genuína de posição no
-  documento (chunk-alvo no apêndice/muito distante), que só reranking ou chunking diferente
-  resolveria. Decisão de valor final adiada — subir `top_k` em produção aumenta custo de token
-  por chamada e pode piorar `faithfulness` (mais contexto irrelevante pro LLM confundir), não é
-  troca sem custo.
-- Expansão do golden dataset para 30+ casos cobrindo as 9 categorias
-- **Reavaliar `AVALIADOR_MODEL` de volta para `gpt-4o-mini`** como otimização de custo de
-  CI/avaliação recorrente (não afeta usuário final — esse modelo só roda quando o time executa
-  o golden dataset). Adiado para depois da entrega: o `gpt-4o-mini` mostrou ruído de julgamento
-  mesmo com dado de entrada correto (nota variando para o mesmo contexto recuperado); trocar de
-  volta exige revalidar estabilidade em 3+ rodadas antes de confiar no resultado.
-- **Investigar variância residual de `faithfulness`** — prioridade elevada após 6 execuções
-  totais mostrarem oscilação de `0.79` a `0.88` (amplitude `0.086`), com 2 das 6 reprovando o
-  limiar de `0.85` mesmo com o juiz `gpt-4o` e o bug de metadados já corrigido — não é mais
-  ruído desprezível, é a métrica mais próxima de aprovação consistente e a mais fácil de destravar.
-  Hipótese não confirmada: `temperature=0.1` do agente principal (mesma configuração de
-  produção) usada também na avaliação, gerando laudos ligeiramente distintos por execução.
-  Testável congelando `temperature=0` só durante a avaliação, sem mudar produção.
-  **Atualização (2026-07-08):** uma rodada adicional de 3 execuções trouxe `faithfulness = 0.858`,
-  aprovado com folga — sinal encorajador, mas uma rodada só ainda não é suficiente pra declarar a
-  variância resolvida. Manter o item aberto até acumular mais execuções (ver
-  [Avaliação](docs/ia/avaliacao.md#nova-rodada-de-validacao-2026-07-08)).
-- **Auditar o repositório atrás de outros usos do padrão `[X] * N` com objeto mutável** — o bug
-  de metadados do Bloco 4 foi corrigido pontualmente em `gerenciadorvetorial.py`; não houve
-  varredura completa do projeto atrás do mesmo padrão em outro lugar.
-- **Namespace de indexação por `thread_id` em produção:** hoje todo usuário indexa no mesmo
-  namespace, isolado só por filtro de metadado (`estado`+`municipio`) — dois usuários indexando
-  ao mesmo tempo podem, em tese, disputar entre si a mesma barreira de consistência usada na
-  avaliação. Isolar por `thread_id` resolve, mas introduz um problema de ciclo de vida novo
-  (quando apagar o namespace de uma sessão encerrada). `beforeunload`/`visibilitychange` no
-  frontend não é confiável sozinho (não dispara em crash, perda de rede, ou boa parte do mobile)
-  — precisaria de uma rotina de expiração no backend como rede de segurança, no mesmo espírito
-  do TTL já aplicado ao cache de tools.
-
-### Módulos futuros da plataforma
-| Módulo | Descrição |
-|---|---|
-| Auditor de Contratos | Aditivos suspeitos e prorrogações irregulares pós-licitação |
-| Monitor de Fornecedores | Dashboard por município: contratos, sanções, vínculos |
-| Alertas Automáticos | Notifica quando fornecedor sancionado vence licitação monitorada |
-| Auditoria Estadual | Expansão para contratos estaduais |
-| API Pública | Laudos como API para jornalistas, ONGs, sistemas de transparência |
-
-**Princípio fundamental da plataforma:** o sistema sinaliza padrões para investigação humana —
-não acusa nem emite sentenças. Framing explícito no `SYSTEM_PROMPT`, na documentação e na apresentação.
-
----
 
 ## Pendências Técnicas Conhecidas (em aberto)
 
