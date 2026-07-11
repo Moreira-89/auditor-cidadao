@@ -8,6 +8,7 @@ avaliacao_log.json
 testes_locais/
 .claude/*
 apresentacao_data_master
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
