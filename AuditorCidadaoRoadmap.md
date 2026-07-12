@@ -2,7 +2,9 @@
 
 > Documento único: requisitos oficiais do case (Data Master) + status do projeto + plano de entrega até 13/07/2026.
 >
-> **Última atualização:** 2026-07-12 (Backlog V2: novo item B — reestruturação seguindo os padrões oficiais do LangGraph/LangChain — e novo item em E — revisão de concisão do `SYSTEM_PROMPT`)
+> **Última atualização:** 2026-07-12 (Backlog V2: novo item B — reestruturação seguindo os padrões oficiais do LangGraph/LangChain —, novo item em E — revisão de concisão do `SYSTEM_PROMPT` — e decisão documentada sobre cookie `httpOnly` assinado como identificador de sessão/quota na seção A)
+>
+> **Sobre a entrega:** o projeto, no estado atual, já é entregável — a entrega é feita via um arquivo `.txt` com dois links (repositório GitHub e site de documentação MkDocs publicado), **sem** envio de projeto ou documentação zipados. Por isso, nada neste roadmap tem prazo enquanto bloqueio de entrega: os itens do Backlog V2 (incluindo os "próximos passos" do E6) podem ser implementados aos poucos, em commits feitos em dias seguintes, sem pressa e sem afetar o que já foi entregue.
 
 ---
 
@@ -134,6 +136,8 @@ Critérios mínimos de aprovação definidos e aplicados automaticamente (`aprov
 > Candidatas naturais para a próxima versão. Boa resposta para "quais são os próximos passos?".
 > Reorganizado em julho/2026 por tema (antes era uma lista plana em ordem de descoberta).
 > Itens marcados 🆕 foram identificados em revisão posterior ao Bloco 5, ainda não estavam documentados nesta seção.
+>
+> **Nenhum item abaixo bloqueia a entrega.** A entrega já pode ser feita hoje, no estado atual do projeto (`.txt` com os dois links — repositório GitHub e documentação MkDocs publicada). Esta seção é o material de resposta para "quais são os próximos passos?" (E6) e uma lista de trabalho para depois da entrega — pode ser implementada aos poucos, em commits nos dias seguintes, sem prazo.
 
 ## A. Segurança, custo e escalabilidade
 
@@ -145,6 +149,7 @@ Hoje não existe nenhum limite de uso: sem autenticação e sem quota por sessã
 - Quota diária por `thread_id`/usuário, bloqueando ao atingir o limite
 - Timeout/expiração de conversa (encerrar thread após N turnos ou X minutos de inatividade)
 - Autenticação mínima (mesmo que só um token de acesso) como pré-requisito para qualquer limite por usuário funcionar de fato — **`thread_id` sozinho não serve como identificador de limite**: é gerado e descartável pelo próprio client (visível via DevTools), então rate limit baseado só nele não impõe custo real ao abuso.
+- **Decisão: cookie `httpOnly` assinado como identificador de sessão/quota.** Resolve manipulação (o usuário não edita o valor via DevTools), mas resolve só metade do problema — não impede reset: limpar cookies, aba anônima ou outro navegador geram uma sessão nova e, portanto, uma quota nova. Aceitável para o escopo do MVP (não protege contra atacante sofisticado, só eleva o custo do abuso casual), mas é uma limitação a documentar explicitamente, porque é exatamente o tipo de pergunta que a banca faz em seguida ("e se o usuário limpar o cookie?"). Fingerprinting e Proof-of-Work (PoW) resolveriam o reset, mas são esforço desproporcional ao problema real do escopo atual — descartados conscientemente, não por omissão.
 
 ### 🆕 Workers e escalonamento horizontal (uvicorn/Railway)
 Hoje a aplicação roda com o padrão implícito de 1 worker (`--workers` do uvicorn nunca foi configurado). Isso não é um bug — é o motivo pelo qual não há corrida entre processos hoje —, mas é uma lacuna de documentação/decisão que a banca pode perguntar direto ("como isso escala horizontalmente?"). Dois pontos a resolver juntos antes de aumentar workers/instâncias:
