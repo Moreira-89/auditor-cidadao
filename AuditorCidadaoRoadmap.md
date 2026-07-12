@@ -154,7 +154,7 @@ Hoje a aplicação roda com o padrão implícito de 1 worker (`--workers` do uvi
 ### Persistência
 | Componente | V1 (atual) | V2 (alvo) |
 |---|---|---|
-| Histórico de conversas | `InMemorySaver` (RAM), sem TTL/eviction | **`PostgresSaver` descartado por decisão consciente** — ferramenta é de uso pontual (usuário entra, consulta, sai), não faz sentido persistir histórico de chat como em um produto tipo ChatGPT. Mantém-se `InMemorySaver`, mas com mecanismo de **eviction/TTL por thread** a implementar (hoje o dict cresce indefinidamente até o processo reiniciar — comportamento equivalente ao que o cache de tools tinha antes do Bloco 0, corrigido com `cachetools.TTLCache`; aplicar o mesmo padrão aqui) |
+| Histórico de conversas | `InMemorySaver` (RAM), sem TTL/eviction | Mantém-se `InMemorySaver`, mas com mecanismo de **eviction/TTL por thread** a implementar (hoje o dict cresce indefinidamente até o processo reiniciar — comportamento equivalente ao que o cache de tools tinha antes do Bloco 0, corrigido com `cachetools.TTLCache`; aplicar o mesmo padrão aqui) |
 | Cache de tools | Dict/`TTLCache` em memória | Redis com TTL nativo, compartilhado entre instâncias — só relevante se a V2 realmente escalar para múltiplos workers/instâncias (ver item acima) |
 
 ### Namespace de indexação por `thread_id` em produção
