@@ -2,7 +2,7 @@
 
 > Documento único: requisitos oficiais do case (Data Master) + status do projeto + plano de entrega até 13/07/2026.
 >
-> **Última atualização:** 2026-07-08 (Bloco 5 concluído — documentação final publicada via MkDocs Material em `/docs`, cobrindo E2–E6 e T5/T6)
+> **Última atualização:** 2026-07-12 (Backlog V2: novo item B — reestruturação seguindo os padrões oficiais do LangGraph/LangChain — e novo item em E — revisão de concisão do `SYSTEM_PROMPT`)
 
 ---
 
@@ -164,7 +164,24 @@ Hoje todo usuário indexa no mesmo namespace, isolado só por filtro de metadado
 
 ---
 
-## B. Produto e experiência do usuário
+## B. 🆕 Reestruturação seguindo os padrões oficiais do LangGraph/LangChain
+
+O agente foi construído acompanhando um tutorial que explica o funcionamento *por baixo do capô* — ótimo para entender os mecanismos (grafo de estados, checkpointer, tool calling), mas o próprio autor do material recomendou, ao final, revisitar a documentação oficial do LangGraph/LangChain antes de ir para produção, já que a biblioteca já resolve nativamente boa parte do que foi implementado manualmente. Vale uma auditoria dedicada comparando o projeto com os padrões recomendados — não é correção de bug (o sistema funciona e passou pela avaliação do Bloco 4), é dívida técnica de idiomaticidade: código mais verboso do que precisaria ser, e potencialmente mais difícil de manter conforme a V2 cresce em nodes/tools.
+
+**Candidato mais claro, já identificado nesta revisão:** `app/services/build_graph.py` reimplementa manualmente o ciclo ReAct (`call_llm` → `router` condicional → `tool_node` → volta pro `call_llm`) que o LangGraph já oferece pronto via `langgraph.prebuilt.create_react_agent` — a lib cobre o mesmo loop, incluindo o roteamento por `tool_calls`, com uma fração das linhas hoje escritas à mão. Precisa avaliar se `create_react_agent` comporta as customizações que o projeto já depende (`InjectedState` para `estado`/`municipio` nas tools, checkpointer `InMemorySaver`, `bind_tools` com parâmetros de config) antes de migrar — se comportar, é a maior redução de código do item.
+
+**Outros pontos a auditar contra a documentação oficial:**
+- Padrão de definição de tools (`@tool` com `Annotated`/`Field` em `app/services/tools.py`) vs. formas alternativas recomendadas atualmente pelo LangChain para tools async com múltiplos parâmetros e `InjectedState`.
+- Extração de output estruturado do laudo (Bloco 2, segunda chamada LLM com `with_structured_output`) vs. padrões oficiais de structured output dentro de um node do LangGraph, incluindo se a extração poderia virar parte do próprio grafo em vez de uma chamada externa a ele.
+- Uso do checkpointer (`InMemorySaver`) e do padrão singleton (`initialize_graph`/`get_graph` em `build_graph.py`) vs. formas recomendadas de gerenciar ciclo de vida do grafo numa aplicação FastAPI (relaciona-se com o item de `PostgresSaver` na seção de Persistência acima).
+- Streaming via `astream_events()` e o buffer-then-commit do laudo (Bloco 2) vs. mecanismos nativos do LangGraph para streaming de eventos por node/run — ver também o item de "Buffer por `run_id`" na seção de arquitetura abaixo, que pode ficar mais simples se resolvido com a abstração certa da lib em vez de um dicionário manual.
+- Integração MCP (`langchain-mcp-adapters` em `lifespan.py`) vs. o padrão oficial mais atual de registro de tools externas no LangGraph.
+
+**Como conduzir:** revisão indicada **antes** do item C (arquitetura do grafo e streaming) — faz sentido resolver primeiro a idiomaticidade da base (grafo, tools, checkpointer) para não redesenhar a separação de nodes duas vezes. Comparar cada ponto acima com a documentação oficial (LangGraph e LangChain), decidir migrar ou manter por caso, e rodar o golden dataset do Bloco 4 (`evaluation/`) contra a versão refatorada para garantir que nenhuma métrica regride antes de substituir o código em produção.
+
+---
+
+## C. Produto e experiência do usuário
 
 ### 🆕 Relatório automático pós-indexação
 Hoje o laudo (resumo executivo ou completo) só é gerado mediante interação explícita do usuário com o modelo. Para o usuário leigo, que muitas vezes não sabe o que perguntar depois de subir o edital, isso é fricção desnecessária. Proposta: ao concluir a indexação, o sistema gera automaticamente um relatório inicial, acompanhado de sugestões de perguntas contextualizadas — torna a ferramenta mais intuitiva sem exigir que o usuário saiba formular a pergunta certa. **Trade-off a documentar:** isso dispara uma chamada de LLM (e possivelmente a segunda chamada de extração estruturada) em toda indexação, mesmo sem o usuário pedir — conversa diretamente com o item "Controle de custo e limite de uso" acima; se implementado, o rate limiting deixa de ser só sobre o chat e passa a cobrir também o upload.
@@ -182,7 +199,7 @@ Hoje o laudo (resumo executivo ou completo) só é gerado mediante interação e
 
 ---
 
-## C. Arquitetura do grafo e streaming
+## D. Arquitetura do grafo e streaming
 
 ### Separação de nodes no grafo (decisão de tool vs. geração de resposta)
 Hoje o grafo é o padrão ReAct simples: um único node `agent` chamado em loop até parar de emitir `tool_calls`, seguido de `tools` → volta pro `agent`. Funciona, mas fica difícil de ler num diagrama à medida que mais lógica Python (pequenas automações, análises fora de tools) for entrando no fluxo. Separar em nodes dedicados (ex.: um node de decisão/orquestração e um node de geração final, mais nodes de processamento determinístico fora do ciclo de decisão do LLM) melhora legibilidade e reduz rodadas de LLM desnecessárias conforme o número de tools/automações cresce na V2. Não é correção de bug — o buffer-then-commit do Bloco 2 já resolve a extração correta do laudo independente da topologia do grafo — é uma melhoria de manutenibilidade e clareza arquitetural.
@@ -192,7 +209,7 @@ O `buffer_temporario` do Bloco 2 assume execução sequencial (uma chamada de LL
 
 ---
 
-## D. Modelo, avaliação e qualidade
+## E. Modelo, avaliação e qualidade
 
 ### Avaliar modelos alternativos de LLM (benchmark contra o `gpt-4o-mini` atual)
 O `gpt-4o-mini` foi escolhido para a V1 pelo custo-benefício (agente chamado a cada turno de cada usuário, tarefa não exige raciocínio de fronteira — ver [T1](docs/ia/modelos_prompts.md)). Fica como candidato de V2 rodar o golden dataset (`evaluation/`) contra outros modelos para comparar custo, latência e qualidade do laudo antes de trocar o padrão de produção:
@@ -205,6 +222,13 @@ O `gpt-4o-mini` foi escolhido para a V1 pelo custo-benefício (agente chamado a 
 
 **Antes de trocar qualquer modelo em produção:** rodar o mesmo protocolo de avaliação já usado no Bloco 4 (aderência de tools, recall de anomalias, RAGAS) contra o golden dataset, para comparar maçã com maçã — não basta impressão subjetiva de qualidade, o framework de avaliação existe justamente para essa comparação (ver [Avaliação](docs/ia/avaliacao.md)).
 
+### 🆕 Revisão de concisão do `SYSTEM_PROMPT`
+`app/core/prompt.py` concentra os quatro prompts do projeto (337 linhas ao todo); o `SYSTEM_PROMPT` sozinho tem cerca de 190 linhas, com regras escritas em prosa longa (ex.: seções "COMPORTAMENTO QUANDO NÃO HÁ ANOMALIAS" e "REGRAS DE SEGURANÇA") que provavelmente podem virar instruções mais diretas sem perder precisão. Já se beneficia da deduplicação feita no Bloco 4 (`CATALOGO_ANOMALIAS` como constante única reusada em `SYSTEM_PROMPT` e `PROMPT_EXTRATOR`), mas o restante do texto nunca passou por uma revisão de concisão dedicada — foi crescendo organicamente a cada bloco (regra anti-vocabulário-emprestado do Bloco 1, critério de decisão do laudo do Bloco 2, regras de filtragem geográfica do PNCP, etc.), sem uma passada de volta para cortar redundância.
+
+**Por que importa:** o `SYSTEM_PROMPT` é enviado por inteiro a cada primeiro turno de cada conversa — enxugá-lo reduz tokens de entrada e, portanto, custo por conversa (conecta com o item "Controle de custo e limite de uso" da seção A). Também facilita manutenção: um prompt mais enxuto é mais rápido de revisar quando uma nova anomalia ou regra for adicionada.
+
+**Como conduzir:** revisar seção a seção em busca de instruções redundantes ou verbosas demais para o que comunicam, cortando sem perder nenhum critério de decisão (score, hierarquia de evidências e regras de segurança são inegociáveis). Depois de qualquer corte, rodar o golden dataset do Bloco 4 (`evaluation/`) contra a versão enxuta antes de substituir em produção — mesma disciplina já usada para validar mudanças no grafo e nos modelos, garantindo que a redução de tokens não derrube `aderencia_tools`, `recall_anomalias` ou `faithfulness`. Pode ser conduzida junto com o item B (padrões do LangChain), já que a forma de declarar prompts (`ChatPromptTemplate` vs. f-string simples hoje usado) também está no escopo daquela revisão.
+
 ### Qualidade
 - **Busca semântica com `top_k` maior (hoje 3), já configurável via `TOP_K_EDITAL`** (env var, default 3, não exposta à tool que o LLM chama — só o código controla). Diagnóstico real feito no Bloco 4: de 5 casos com `context_recall` ruim, 2 (`caso_04b`, `caso_08`) são recuperáveis com `top_k` maior (posições 9 e 2 no ranking) — subir pra ~10 resolveria esses. Os outros 2 (`caso_02`, `caso_04a`) **não aparecem nem em `top_k=50`** — limitação genuína de posição no documento (chunk-alvo no apêndice/muito distante), que só reranking ou chunking diferente resolveria. Decisão de valor final adiada — subir `top_k` em produção aumenta custo de token por chamada e pode piorar `faithfulness` (mais contexto irrelevante pro LLM confundir), não é troca sem custo.
 - Expansão do golden dataset para 30+ casos cobrindo as 9 categorias
@@ -214,7 +238,7 @@ O `gpt-4o-mini` foi escolhido para a V1 pelo custo-benefício (agente chamado a 
 
 ---
 
-## E. Novas fontes de dados e catálogo de anomalias
+## F. Novas fontes de dados e catálogo de anomalias
 
 ### Fase 7 — Indexação Automática via PNCP + Migração de Metadados
 Elimina o upload manual: o agente busca, baixa e indexa o PDF a partir de uma conversa. Junto com essa migração, o schema de metadados do Pinecone muda de `municipio`/`estado` (informados manualmente) para **`cnpjs` (lista extraída automaticamente)** — o mesmo padrão já usado hoje (metadados replicados em todos os chunks do documento), só trocando o campo.
@@ -260,7 +284,7 @@ IDH, PIB per capita, população, IDEB — contextualiza o valor de uma contrata
 
 ---
 
-## F. Débito técnico adiado do Bloco 1
+## G. Débito técnico adiado do Bloco 1
 
 ### Melhorias identificadas no Bloco 1, adiadas conscientemente pelo prazo
 - **Resumo por resultado da busca web via modelo pequeno:** em vez do filtro/truncamento simples usado no V1, resumir cada resultado da Tavily individualmente (um por chamada, preservando o vínculo com a URL de origem) com um modelo pequeno/gratuito antes de devolver ao `gpt-4o-mini`. Melhora rastreabilidade e reduz tokens, mas adiciona uma segunda chamada de rede/provider dentro da tool — descartado no V1 por custo de engenharia e latência dado o prazo, documentar como trade-off no Bloco 5.
