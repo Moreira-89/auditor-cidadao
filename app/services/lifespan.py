@@ -17,10 +17,16 @@ import os
 import shutil
 import sys
 from contextlib import asynccontextmanager
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 
 from fastapi import FastAPI
 
-from app.core.dependencies import EXTRATOR_MODEL, EXTRATOR_TEMPERATURE, retornar_cliente_llm
+from app.core.dependencies import (
+    DB_URI,
+    EXTRATOR_MODEL,
+    EXTRATOR_TEMPERATURE,
+    retornar_cliente_llm,
+)
 from app.core.logging_config import logger
 from app.services.build_graph import initialize_graph
 from app.services.tools import TOOLS
@@ -129,12 +135,6 @@ async def lifespan(app: FastAPI):
         "Total de ferramentas disponíveis para o agente: %d", len(todas_as_tools)
     )
 
-    # Constrói e armazena o grafo com todas as tools combinadas
-    initialize_graph(todas_as_tools)
-    logger.info(
-        "Grafo inicializado com sucesso. Servidor pronto para receber requests."
-    )
-
     # Instancia o modelo extrator (temperatura 0 para saída determinística),
     # usado no processo de extração de informações.
     global _extrator_instance
@@ -144,10 +144,20 @@ async def lifespan(app: FastAPI):
     )
     logger.info("Modelo extrator inicializado com sucesso.")
 
-    # O yield separa startup do shutdown.
-    yield
+    # A conexão com o Redis só existe dentro deste "with" — por isso o grafo (que guarda o
+    # checkpointer) só pode ser construído aqui dentro, e o app também só pode rodar (yield)
+    # aqui dentro. Quando o "with" fecha (shutdown), a conexão é encerrada automaticamente.
+    async with AsyncRedisSaver.from_conn_string(DB_URI) as checkpointer:
+        # Constrói e armazena o grafo com todas as tools combinadas
+        initialize_graph(tools=todas_as_tools, checkpointer=checkpointer)
+        logger.info(
+            "Grafo inicializado com sucesso (checkpointer Redis). Servidor pronto para receber requests."
+        )
 
-    # Nenhum cleanup explícito de mcp_client é necessário: como cada chamada MCP já
-    # abre e fecha sua própria sessão/subprocess internamente, não há recurso persistente
-    # para liberar aqui.
-    logger.info("Servidor encerrado com sucesso.")
+        # O yield separa startup do shutdown — o app roda aqui, ainda dentro do "with".
+        yield
+
+        # Nenhum cleanup explícito de mcp_client é necessário: como cada chamada MCP já
+        # abre e fecha sua própria sessão/subprocess internamente, não há recurso persistente
+        # para liberar aqui.
+        logger.info("Servidor encerrado com sucesso.")

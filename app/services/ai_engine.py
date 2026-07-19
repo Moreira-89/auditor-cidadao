@@ -115,7 +115,7 @@ async def run_agent(
     config = {"configurable": {"thread_id": thread_id}}
     grafo = get_graph()
 
-    # Consulta o grafo SINGLETON para verificar se esta thread já tem histórico salvo no InMemorySaver
+    # Consulta o grafo SINGLETON para verificar se esta thread já tem histórico salvo no checkpointer
     state = grafo.get_state(config)
 
     # Se um turno anterior foi interrompido no meio de tool_calls, corrige o histórico
@@ -150,7 +150,7 @@ async def run_agent(
         mensagens_entrada = [system_message, human_message]
 
     try:
-        # `estado` e `municipio` são repassados em TODOS os turnos porque o InMemorySaver não persiste
+        # `estado` e `municipio` são repassados em TODOS os turnos porque o checkpointer não persiste
         # chaves arbitrárias entre invocações — o InjectedState da tool precisa lê-los do estado ativo
         laudo_completo = ""
         # Acumula os chunks da mensagem do LLM em andamento; só é somado a laudo_completo em

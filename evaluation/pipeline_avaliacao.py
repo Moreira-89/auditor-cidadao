@@ -41,6 +41,8 @@ from app.core.logging_config import logger
 from app.core.prompt import PROMPT_DINAMICO, PROMPT_EXTRATOR, SYSTEM_PROMPT
 from app.models.laudo import RespostaLaudo
 from app.services.ai_engine import escape_xml
+from langgraph.checkpoint.memory import InMemorySaver
+
 from app.services.build_graph import build_graph
 from app.services.tools import TOOLS
 from app.utils.func_extrair_texto_pdf import extrair_texto_pdf
@@ -222,7 +224,9 @@ async def main(salvar_json: bool = True):
     # por "id" sem precisar de um loop de busca a cada iteração.
     golden_dataset_por_id = {caso["id"]: caso for caso in golden_dataset}
 
-    grafo = build_graph(TOOLS)
+    # InMemorySaver basta aqui: cada run da avaliação é isolado e efêmero, sem necessidade
+    # de persistir o histórico entre processos como faz o Redis em produção (lifespan.py).
+    grafo = build_graph(TOOLS, checkpointer=InMemorySaver())
 
     # Réplica do extrator de app/services/ai_engine.py (RespostaLaudo via
     # with_structured_output): não depende de estado entre chamadas, só da configuração

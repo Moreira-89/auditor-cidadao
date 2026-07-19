@@ -35,6 +35,10 @@ AVALIADOR_MODEL = os.getenv("AVALIADOR_MODEL", "openai:gpt-4o-mini")
 # Temperatura 0 por padrão: saída determinística é o comportamento esperado para avaliação.
 AVALIADOR_TEMPERATURE = float(os.getenv("AVALIADOR_TEMPERATURE", "0.0"))
 
+# URI de conexão do Redis, usado pelo AsyncRedisSaver como checkpointer do grafo — guarda o
+# histórico de conversa por thread_id de forma persistente e compartilhada entre workers.
+DB_URI = os.getenv("DB_URI", "redis://localhost:6379")
+
 
 # GerenciadorVetorial instanciado uma única vez no import (Singleton):
 # carrega o modelo de embedding e conecta ao Pinecone — custoso demais para recriar por requisição.
