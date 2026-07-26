@@ -17,14 +17,14 @@ import os
 import shutil
 import sys
 from contextlib import asynccontextmanager
-from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 
 from fastapi import FastAPI
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 
 from app.core.dependencies import (
-    DB_URI,
     EXTRATOR_MODEL,
     EXTRATOR_TEMPERATURE,
+    REDIS_URI,
     retornar_cliente_llm,
 )
 from app.core.logging_config import logger
@@ -147,7 +147,10 @@ async def lifespan(app: FastAPI):
     # A conexão com o Redis só existe dentro deste "with" — por isso o grafo (que guarda o
     # checkpointer) só pode ser construído aqui dentro, e o app também só pode rodar (yield)
     # aqui dentro. Quando o "with" fecha (shutdown), a conexão é encerrada automaticamente.
-    async with AsyncRedisSaver.from_conn_string(DB_URI) as checkpointer:
+    async with AsyncRedisSaver.from_conn_string(redis_url=REDIS_URI) as checkpointer:
+
+        await checkpointer.asetup()
+
         # Constrói e armazena o grafo com todas as tools combinadas
         initialize_graph(tools=todas_as_tools, checkpointer=checkpointer)
         logger.info(

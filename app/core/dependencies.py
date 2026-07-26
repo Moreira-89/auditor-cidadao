@@ -37,7 +37,7 @@ AVALIADOR_TEMPERATURE = float(os.getenv("AVALIADOR_TEMPERATURE", "0.0"))
 
 # URI de conexão do Redis, usado pelo AsyncRedisSaver como checkpointer do grafo — guarda o
 # histórico de conversa por thread_id de forma persistente e compartilhada entre workers.
-DB_URI = os.getenv("DB_URI", "redis://localhost:6379")
+REDIS_URI = os.getenv("REDIS_URI", "redis://localhost:6379")
 
 
 # GerenciadorVetorial instanciado uma única vez no import (Singleton):

@@ -21,6 +21,7 @@ from datetime import date
 from typing import AsyncGenerator
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 
 from app.core.logging_config import logger
 from app.core.prompt import (
@@ -40,7 +41,9 @@ def escape_xml(texto: str) -> str:
     return texto.replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _curar_tool_calls_pendentes(grafo, state, config: dict, thread_id: str) -> None:
+async def _curar_tool_calls_pendentes(
+    grafo, state, config: RunnableConfig, thread_id: str
+) -> None:
     """
     Corrige um histórico deixado inconsistente por um turno anterior interrompido
     (ex.: usuário clicou em "parar a geração" no meio de uma rodada de tool_calls).
@@ -90,7 +93,7 @@ def _curar_tool_calls_pendentes(grafo, state, config: dict, thread_id: str) -> N
         )
         for tc in pendentes
     ]
-    grafo.update_state(config, {"messages": respostas_sinteticas})
+    await grafo.aupdate_state(config, {"messages": respostas_sinteticas})
 
 
 async def run_agent(
@@ -112,15 +115,15 @@ async def run_agent(
     if not thread_id:
         thread_id = str(uuid.uuid4())
 
-    config = {"configurable": {"thread_id": thread_id}}
+    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
     grafo = get_graph()
 
     # Consulta o grafo SINGLETON para verificar se esta thread já tem histórico salvo no checkpointer
-    state = grafo.get_state(config)
+    state = await grafo.aget_state(config)
 
     # Se um turno anterior foi interrompido no meio de tool_calls, corrige o histórico
     # antes de prosseguir — senão a chamada abaixo à LLM falha com 400 da OpenAI.
-    _curar_tool_calls_pendentes(grafo, state, config, thread_id)
+    await _curar_tool_calls_pendentes(grafo, state, config, thread_id)
 
     conversa_iniciada = len(state.values.get("messages", [])) > 0
 
@@ -176,14 +179,14 @@ async def run_agent(
             # Emite cada fragmento de texto gerado pela LLM; ignora chunks que são apenas tool_calls.
             # getattr com default None evita AttributeError em chunks intermediários que, dependendo da versão do langchain-core, podem não expor o atributo`tool_calls`.
             elif tipo_evento == "on_chat_model_stream":
-                chunk = evento["data"]["chunk"]
-                if chunk.content and not getattr(chunk, "tool_calls", None):
+                chunk = evento["data"].get("chunk")
+                if chunk is not None and chunk.content and not getattr(chunk, "tool_calls", None):
                     buffer_temporario += chunk.content
                     yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
 
             elif tipo_evento == "on_chat_model_end":
                 # Mensagem completa — agora sabemos com certeza se ela tinha tool_calls
-                mensagem_final = evento["data"]["output"]
+                mensagem_final = evento["data"].get("output")
                 if not getattr(mensagem_final, "tool_calls", None):
                     # Não tinha tool_calls → era resposta final de verdade, confirma no acumulador real
                     laudo_completo += buffer_temporario
