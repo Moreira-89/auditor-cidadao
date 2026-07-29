@@ -4,6 +4,7 @@ uvicorn==0.49.0
 python-multipart==0.0.9
 mkdocs==1.6.1
 mkdocs-material==9.7.6
+itsdangerous==2.2.0
 
 # IA Orquestração
 langchain-groq==1.1.2
@@ -16,6 +17,7 @@ langchain-core>=1.4.7
 ragas==0.3.9
 langchain-community==0.3.31
 langgraph-checkpoint-redis==0.5.1
+redis==7.4.1
 
 # Processamento e Vetores
 pdfplumber==0.11.9

@@ -17,11 +17,13 @@ intermediário do agente não contamina o laudo estruturado.
 
 import json
 import uuid
-from datetime import date
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import StateSnapshot
 
 from app.core.logging_config import logger
 from app.core.prompt import (
@@ -42,7 +44,10 @@ def escape_xml(texto: str) -> str:
 
 
 async def _curar_tool_calls_pendentes(
-    grafo, state, config: RunnableConfig, thread_id: str
+    grafo: CompiledStateGraph,
+    state: StateSnapshot,
+    config: RunnableConfig,
+    thread_id: str,
 ) -> None:
     """
     Corrige um histórico deixado inconsistente por um turno anterior interrompido
@@ -140,7 +145,7 @@ async def run_agent(
             else "Nenhum CNPJ encontrado no documento."
         )
         system_message = SystemMessage(content=SYSTEM_PROMPT)
-        data_hoje = date.today().strftime("%Y%m%d")
+        data_hoje = datetime.now(UTC).date().strftime("%Y%m%d")
         human_message = HumanMessage(
             content=PROMPT_DINAMICO.format(
                 pergunta_usuario=pergunta_usuario,
@@ -180,7 +185,11 @@ async def run_agent(
             # getattr com default None evita AttributeError em chunks intermediários que, dependendo da versão do langchain-core, podem não expor o atributo`tool_calls`.
             elif tipo_evento == "on_chat_model_stream":
                 chunk = evento["data"].get("chunk")
-                if chunk is not None and chunk.content and not getattr(chunk, "tool_calls", None):
+                if (
+                    chunk is not None
+                    and chunk.content
+                    and not getattr(chunk, "tool_calls", None)
+                ):
                     buffer_temporario += chunk.content
                     yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
 
@@ -205,21 +214,20 @@ async def run_agent(
         try:
             extrator_estruturado = get_extrator().with_structured_output(RespostaLaudo)
             resultado = await extrator_estruturado.ainvoke(
-                [SystemMessage(content=PROMPT_EXTRATOR), HumanMessage(content=laudo_completo)]
+                [
+                    SystemMessage(content=PROMPT_EXTRATOR),
+                    HumanMessage(content=laudo_completo),
+                ]
             )
             if resultado.laudo is not None:
                 yield f"data: {json.dumps({'type': 'laudo_estruturado', 'content': resultado.laudo.model_dump()})}\n\n"
-        except Exception:
-            logger.exception(
-                "Erro ao extrair laudo estruturado | thread=%s", thread_id
-            )
+        except Exception:  # noqa: BLE001
+            logger.exception("Erro ao extrair laudo estruturado | thread=%s", thread_id)
             yield f"data: {json.dumps({'type': 'laudo_estruturado_erro', 'content': 'Não foi possível gerar a versão estruturada do laudo.'})}\n\n"
 
         # Sinaliza ao frontend que o streaming terminou normalmente
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
-    except Exception:
-        # Sem isso, uma exceção aqui dentro derruba o generator sem avisar o frontend,
-        # que ficaria esperando tokens indefinidamente.
+    except Exception:  # noqa: BLE001
         logger.exception("Erro durante o streaming do agente | thread=%s", thread_id)
         yield f"data: {json.dumps({'type': 'error', 'content': 'Ocorreu um erro ao processar sua pergunta. Tente novamente.'})}\n\n"

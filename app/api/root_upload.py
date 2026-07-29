@@ -11,10 +11,12 @@ com o código HTTP certo (415 tipo inválido, 413 grande demais, 422 PDF ilegív
 
 import asyncio
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
+from app.api.dependencies_http import get_client_id
 from app.core.dependencies import gerenciador
 from app.core.logging_config import logger
+from app.services.rate_limiter import RateLimiter
 from app.utils.func_extrair_cnpj import extrair_cnpj
 from app.utils.func_extrair_texto_pdf import ErroExtracaoPDF, extrair_texto_pdf
 
@@ -22,19 +24,27 @@ from app.utils.func_extrair_texto_pdf import ErroExtracaoPDF, extrair_texto_pdf
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
 
-@router.post("/")
+@router.post(
+    "/",
+    # Upload dispara indexação no Pinecone (custo de embeddings) — limite mais
+    # apertado que o de conversa, já que um usuário legítimo sobe poucos editais
+    # por dia. Janela de 86400s = 24h.
+    dependencies=[Depends(RateLimiter(limit=5, window_seconds=86400, prefixo="quota_upload"))],
+)
 async def upload_edital(
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008
     estado: str = Form(...),
     municipio: str = Form(...),
+    client_id: str = Depends(get_client_id),
 ):
     """Recebe um edital em PDF, extrai o texto, indexa no banco vetorial e retorna os CNPJs encontrados."""
 
     logger.info(
-        "Upload recebido | arquivo=%s | estado=%s | municipio=%s",
+        "Upload recebido | arquivo=%s | estado=%s | municipio=%s | client_id=%s",
         file.filename,
         estado,
         municipio,
+        client_id,
     )
 
     # Rejeita qualquer arquivo que não seja PDF antes de processá-lo
@@ -69,8 +79,10 @@ async def upload_edital(
     )
 
     # Abre o PDF em memória (sem salvar em disco) e extrai o texto de cada página
+    # file.filename pode vir None do FastAPI, então usamos um nome padrão nesse caso
+    nome_arquivo = file.filename or "arquivo.pdf"
     try:
-        texto, num_paginas = extrair_texto_pdf(conteudo_bytes, file.filename)
+        texto, num_paginas = extrair_texto_pdf(conteudo_bytes, nome_arquivo)
     except ErroExtracaoPDF:
         raise HTTPException(
             status_code=422,
@@ -97,7 +109,7 @@ async def upload_edital(
                 "arquivo": file.filename,
             },
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 — qualquer falha aqui vira um 502 amigável pro frontend
         logger.exception("Falha ao indexar edital no Pinecone | arquivo=%s", file.filename)
         raise HTTPException(
             status_code=502,

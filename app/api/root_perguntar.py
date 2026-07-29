@@ -8,27 +8,39 @@ pronta. Aqui é só a "borda" HTTP: a lógica de verdade mora em run_agent
 (app/services/ai_engine.py).
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from app.api.dependencies_http import get_client_id
 from app.core.logging_config import logger
 from app.models.pergunta_request import PerguntaRequest
 from app.services.ai_engine import run_agent
+from app.services.rate_limiter import RateLimiter
 
 # Roteador com prefixo "/conversar-com-auditor" — agrupa os endpoints de interação com o agente
 router = APIRouter(prefix="/conversar-com-auditor", tags=["Conversar sobre o edital"])
 
 
-@router.post("/")
-async def executar_pergunta(request: PerguntaRequest):
+@router.post(
+    "/",
+    # Conversa é o uso principal da aplicação — limite mais generoso que o de
+    # upload, mas ainda existe para conter um cliente em loop/abuso gerando custo
+    # de LLM sem limite. Janela de 86400s = 24h.
+    dependencies=[Depends(RateLimiter(limit=50, window_seconds=86400, prefixo="quota_chat"))],
+)
+async def executar_pergunta(
+    request: PerguntaRequest,
+    client_id: str = Depends(get_client_id),
+):
     """Recebe a pergunta do usuário e retorna a resposta do agente de auditoria via streaming."""
 
     logger.info(
-        "Pergunta recebida | thread=%s | estado=%s | municipio=%s | cnpjs=%s",
+        "Pergunta recebida | thread=%s | estado=%s | municipio=%s | cnpjs=%s | client_id=%s",
         request.thread_id,
         request.estado,
         request.municipio,
         request.lista_cnpjs,
+        client_id,
     )
     logger.info(
         "Texto da pergunta | chars=%d | preview=%s",
