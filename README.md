@@ -4,6 +4,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.137-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![LangGraph](https://img.shields.io/badge/LangGraph-agentic-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
+**[🚀 Testar a aplicação](https://auditor-cidadao-production.up.railway.app/)** · **[📚 Documentação técnica](https://moreira-89.github.io/auditor-cidadao/)**
+
 </div>
 
 ## 📋 O caso
@@ -19,6 +21,11 @@ laudo estruturado com evidências e nível de risco, em streaming, em tempo real
 
 O sistema **sinaliza padrões para investigação humana — não acusa nem substitui uma auditoria formal.**
 
+> 📚 Este README é um resumo de apresentação. Para a documentação técnica completa (arquitetura,
+> fluxo de dados, avaliação, LGPD, guardrails), veja **[moreira-89.github.io/auditor-cidadao](https://moreira-89.github.io/auditor-cidadao/)**
+> (fonte em [`docs/`](./docs/index.md)). Para testar sem instalar nada, acesse a aplicação publicada
+> em **[auditor-cidadao-production.up.railway.app](https://auditor-cidadao-production.up.railway.app/)**.
+
 ---
 
 ## ✨ Funcionalidades
@@ -33,8 +40,9 @@ O sistema **sinaliza padrões para investigação humana — não acusa nem subs
 | 📋 | **Dados de licitação (PNCP)** | 11 ferramentas MCP para histórico de contratos, fornecedores e atas de preço |
 | 🌐 | **Busca web complementar** | Contexto adicional (notícias, registros públicos) quando as fontes oficiais não bastam |
 | ⚡ | **Streaming em tempo real** | Resposta exibida token a token via Server-Sent Events (SSE) |
-| 🔄 | **Memória conversacional** | O agente mantém contexto entre turnos via `thread_id` |
+| 🔄 | **Memória conversacional** | O agente mantém contexto entre turnos via `thread_id`, persistido em Redis |
 | 🛡️ | **Proteção contra Prompt Injection** | Detecta e neutraliza tentativas de manipulação embutidas nos documentos |
+| 🚦 | **Rate limiting** | Limita requisições por cliente (cookie assinado + Redis) para conter custo de uso indevido |
 | 📊 | **Laudo estruturado** | Markdown + JSON com Resumo Executivo, anomalias classificadas e Score de Risco |
 
 ---
@@ -85,8 +93,9 @@ ao final, o laudo estruturado em JSON.
 ## 🤖 Loop agêntico e ferramentas
 
 O núcleo do sistema é um `StateGraph` do LangGraph com dois nós — `call_llm` e `ToolNode` — que se
-alternam até o modelo parar de solicitar ferramentas. `InMemorySaver` persiste o histórico por
-`thread_id`, permitindo conversas multi-turno.
+alternam até o modelo parar de solicitar ferramentas. `AsyncRedisSaver` (Redis) persiste o histórico
+por `thread_id`, permitindo conversas multi-turno mesmo entre restarts do servidor — o histórico
+expira automaticamente após um período configurável de inatividade (`TTL_CHECKPOINT_MINUTOS`).
 
 | Ferramenta nativa | Fonte | O que verifica |
 |---|---|---|
@@ -149,18 +158,20 @@ agente. Camadas de defesa aplicadas:
 | Categoria | Tecnologia |
 |---|---|
 | Framework web | [FastAPI](https://fastapi.tiangolo.com/) + Uvicorn |
-| Orquestração agêntica | [LangGraph](https://langchain-ai.github.io/langgraph/) (`ToolNode`, `StateGraph`, `InMemorySaver`) |
+| Orquestração agêntica | [LangGraph](https://langchain-ai.github.io/langgraph/) (`ToolNode`, `StateGraph`, `AsyncRedisSaver`) |
 | Framework de LLM | [LangChain](https://python.langchain.com/) |
 | LLM (padrão) | OpenAI `gpt-4o-mini` — trocável via `LLM_MODEL` (Groq Llama 3.3, Google Gemini) |
 | Embeddings | OpenAI `text-embedding-3-small` |
 | Banco vetorial | [Pinecone](https://www.pinecone.io/) |
+| Persistência / rate limiting | [Redis](https://redis.io/) — histórico de conversa (`langgraph-checkpoint-redis`) e contagem de requisições por cliente |
 | Dados de licitação | [PNCP](https://pncp.gov.br/) via MCP (`@licinexusbr/mcp`, Node.js 20 LTS) |
 | Busca web | [Tavily](https://tavily.com/) |
 | Sanções / cadastro | Portal da Transparência (CEIS/CNEP) + BrasilAPI (Receita Federal) |
 | HTTP assíncrono | [httpx](https://www.python-httpx.org/) |
 | Extração de PDF | [pdfplumber](https://github.com/jsvine/pdfplumber) |
 | Validação de dados | [Pydantic V2](https://docs.pydantic.dev/) + [validate-docbr](https://pypi.org/project/validate-docbr/) |
-| Cache | [cachetools](https://pypi.org/project/cachetools/) (TTL, em memória) |
+| Cache | [cachetools](https://pypi.org/project/cachetools/) (TTL, em memória, para as tools) |
+| Avaliação automatizada | [RAGAS](https://docs.ragas.io/) — golden dataset + pipeline de métricas (`evaluation/`) |
 
 Versões exatas em [`requirements.txt`](./requirements.txt).
 
@@ -181,13 +192,18 @@ auditor-cidadao/
 │   ├── css/style.css
 │   └── js/chat.js
 │
+├── evaluation/                  # Framework de avaliação automatizada (RAGAS)
+│   ├── golden_dataset.json       # Casos curados (gabarito) para o pipeline
+│   └── pipeline_avaliacao.py     # Roda o agente ponta a ponta e mede as métricas
+│
 └── app/
     ├── api/                     # Rotas HTTP (FastAPI Routers)
     │   ├── root_upload.py         # POST /upload/
-    │   └── root_perguntar.py      # POST /conversar-com-auditor/
+    │   ├── root_perguntar.py      # POST /conversar-com-auditor/
+    │   └── dependencies_http.py   # get_client_id() — identifica o cliente via cookie assinado
     │
     ├── core/                    # Configuração e prompt do agente
-    │   ├── dependencies.py        # Config do LLM + singleton do GerenciadorVetorial
+    │   ├── dependencies.py        # Config do LLM/Redis + singleton do GerenciadorVetorial
     │   ├── prompt.py               # SYSTEM_PROMPT, PROMPT_DINAMICO, TOOL_STATUS_MAP
     │   └── logging_config.py
     │
@@ -206,11 +222,13 @@ auditor-cidadao/
     │   ├── gerenciadorvetorial.py    # Pipeline RAG: chunking → embeddings → Pinecone
     │   ├── build_graph.py            # Compilação do StateGraph
     │   ├── ai_engine.py              # run_agent() + streaming SSE
-    │   └── lifespan.py               # Startup: conecta o MCP e monta as tools
+    │   ├── rate_limiter.py           # Limita requisições por cliente (Redis + script Lua)
+    │   └── lifespan.py               # Startup: conecta o MCP, Redis e monta as tools
     │
     └── utils/
         ├── func_extrair_cnpj.py      # Extração de CNPJs via regex + validate-docbr
         ├── cache_mcp.py               # Cache TTL compartilhado entre as tools
+        ├── cookie_manager.py          # Gera/valida o cookie assinado de identificação
         └── mcp_utils.py               # Compatibilidade de schema entre LLM e MCP
 ```
 
@@ -222,6 +240,8 @@ auditor-cidadao/
 
 - **Python 3.12+**
 - **Node.js 20 LTS** (necessário para as tools de PNCP via MCP)
+- **Redis** acessível (local, Docker ou gerenciado) — persiste o histórico de conversa e alimenta o
+  rate limiter; sem ele **o boot da aplicação falha**
 - Chave de API: [OpenAI](https://platform.openai.com/) (obrigatória — embeddings), [Pinecone](https://app.pinecone.io/) (obrigatória), [Tavily](https://tavily.com/) e [Portal da Transparência/CGU](https://api.portaldatransparencia.gov.br/swagger-ui.html) (necessárias para as respectivas tools). Groq e Google são opcionais, só se for trocar o LLM padrão.
 
 ### Passo a passo
@@ -242,11 +262,14 @@ pip install -r requirements.txt
 # 4. Confirme que o Node.js 20 está instalado (necessário para as tools de PNCP)
 node --version
 
-# 5. Configure as variáveis de ambiente
+# 5. Suba um Redis local (histórico de conversa + rate limiting)
+docker run -d --name redis-auditor -p 6379:6379 redis:latest
+
+# 6. Configure as variáveis de ambiente
 cp .env.example .env
 # edite o .env preenchendo suas chaves — ver seção abaixo
 
-# 6. Suba o servidor
+# 7. Suba o servidor
 uvicorn main:app --reload
 ```
 
@@ -280,10 +303,20 @@ GOOGLE_API_KEY=...     # Só se LLM_MODEL/EXTRATOR_MODEL usar "google_genai:..."
 PINECONE_API_KEY=...   # Obrigatória — banco vetorial
 TAVILY_API_KEY=...     # Obrigatória — tool buscar_informacao_web
 CGU_API_KEY=...        # Obrigatória — tool consultar_sancoes_empresa (CEIS/CNEP)
+
+# ── Redis (checkpointer + rate limiting) ────────────────────────
+REDIS_URI=redis://localhost:6379   # Obrigatória — sem Redis acessível, o boot falha
+TTL_CHECKPOINT_MINUTOS=1440        # Minutos de inatividade até o histórico expirar (24h)
+
+# ── Segurança: cookie de identificação de cliente ───────────────
+COOKIE_SECRET_KEY=...   # Assina o cookie do rate limiter — defina sempre em produção
+AMBIENTE_PRODUCAO=True  # False em dev local (http://localhost, sem TLS)
 ```
 
 > `OPENAI_API_KEY` é obrigatória mesmo trocando o LLM principal, pois os embeddings usam sempre
-> `text-embedding-3-small` da OpenAI.
+> `text-embedding-3-small` da OpenAI. Template completo (todas as variáveis, incluindo as
+> opcionais) em [`.env.example`](./.env.example) e detalhado em
+> [`docs/operacional/variaveis_ambiente.md`](./docs/operacional/variaveis_ambiente.md).
 
 ---
 
@@ -356,14 +389,19 @@ de deixar a conexão pendurada. Consulte o schema completo do laudo estruturado 
 
 ```bash
 docker build -t auditor-cidadao .
-docker run -p 8000:8000 --env-file .env auditor-cidadao
+
+# Redis não vem embutido na imagem — precisa de um container à parte
+docker run -d --name redis-auditor -p 6379:6379 redis:latest
+docker run -p 8000:8000 --env-file .env --add-host=host.docker.internal:host-gateway auditor-cidadao
 ```
 
 - **Base:** `python:3.12-slim`, com Node.js 20 LTS instalado via NodeSource (necessário para as
   tools de PNCP via MCP).
 - **Porta exposta:** `8000` · **Inicialização:** `uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}`.
+- Redis é um serviço externo à imagem — se `REDIS_URI` no `.env` apontar para `localhost`, ajuste
+  para `host.docker.internal` (ou coloque os containers na mesma rede Docker).
 - As variáveis de ambiente **não** são copiadas para dentro da imagem — passe-as em runtime via
-  `--env-file` (local) ou pelo painel de variáveis da plataforma de deploy (Railway/Render).
+  `--env-file` (local) ou pelo painel de variáveis da plataforma de deploy (Railway).
 
 ---
 
@@ -375,10 +413,13 @@ docker run -p 8000:8000 --env-file .env auditor-cidadao
   no agente. A varredura completa de um órgão pode levar minutos sob o rate limit do PNCP, o que
   arriscaria interromper o streaming SSE em produção antes de terminar. Reativação planejada após
   adicionar paginação incremental ou heartbeats periódicos no stream.
-- **Persistência em memória:** o histórico de conversas (`InMemorySaver`) e o cache das tools
-  (`cachetools`) são mantidos em RAM — perdidos a cada reinício do processo. Aceitável para o estágio
-  atual (MVP); migração para armazenamento persistente é o próximo passo natural.
-- **Framework de avaliação automatizada** (golden dataset + LLM-as-judge) ainda não implementado.
+- **Rate limiting por cookie, não por identidade real:** `/upload/` (5/dia) e
+  `/conversar-com-auditor/` (50/dia) são limitados por um cookie assinado, não por conta de usuário —
+  o projeto não tem autenticação. Limpar cookies, aba anônima ou trocar de navegador geram uma quota
+  nova; autenticação mínima para resistir a esse reset é o próximo passo natural.
+- **Cache de tools em memória** (`cachetools`) é por processo, perdido a cada reinício — aceitável no
+  volume atual, mas não se beneficia de múltiplos workers/instâncias (diferente do histórico de
+  conversa, já em Redis).
 - **Cobertura de anomalias:** o catálogo (A–I) depende da disponibilidade das APIs públicas
   consultadas; quando uma fonte está indisponível, o agente registra a lacuna explicitamente em vez
   de presumir conformidade.
