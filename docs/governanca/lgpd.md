@@ -17,6 +17,35 @@ o que **deixou de ser** coletado, e as decisões deliberadas de retenção.
 Todos os dados processados são de **pessoa jurídica** e de **acesso público** — não há coleta de
 dado pessoal sensível de pessoa física no fluxo principal.
 
+## Retenção do histórico de conversa: expira por inatividade, não fica indefinido
+
+O histórico de uma conversa (`thread_id`, guardado no Redis via `AsyncRedisSaver`) expira
+automaticamente após `TTL_CHECKPOINT_MINUTOS` minutos sem nenhuma leitura ou escrita nessa thread —
+1440 minutos (24h) por padrão. Cada interação renova a contagem, então uma conversa em uso nunca é
+apagada no meio; só threads abandonadas são limpas. Isso é uma prática de minimização de dados: o
+sistema não acumula histórico de conversa indefinidamente sem necessidade, diferente da retenção
+deliberadamente indeterminada do conteúdo dos editais no Pinecone (ver seção abaixo, que tem um
+racional de retenção diferente e documentado à parte).
+
+## O cookie de sessão é um identificador pseudônimo, não dado pessoal identificável
+
+Desde a introdução do rate limiting (ver [Limitações conhecidas](limitacoes.md)), o navegador do
+usuário recebe um cookie httpOnly (`auditor_client_id`, ver `app/utils/cookie_manager.py`) contendo
+um UUID gerado aleatoriamente — sem relação com nome, e-mail, CPF ou qualquer outro dado que
+identifique a pessoa diretamente. Ele existe só para contar requisições por navegador dentro de uma
+janela de tempo (5/dia em `/upload/`, 50/dia em `/conversar-com-auditor/`) e expira em 30 dias.
+
+Vale registrar por transparência, mesmo sendo um identificador de baixo risco:
+
+- **Não é rastreamento entre sessões de navegação nem perfilamento** — o único uso é contagem de
+  quota; nenhum outro dado é associado ao `client_id` (não há histórico de perguntas vinculado a
+  ele, por exemplo — isso é associado ao `thread_id`, gerado à parte pelo frontend).
+- **`httpOnly` e assinado** — JavaScript no navegador não lê o valor, e o servidor rejeita qualquer
+  cookie adulterado (ver `verificar_cookie()`), então não há como um terceiro forjar a identidade de
+  outro cliente através dele.
+- **O usuário controla a retenção** — limpar cookies do navegador invalida o identificador
+  imediatamente (efeito colateral: reseta a quota também, ver limitação correspondente).
+
 ## O nome do usuário deixou de ser coletado
 
 Uma decisão explícita de minimização de dados: a coleta do nome do usuário foi **removida de ponta a

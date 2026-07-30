@@ -14,6 +14,7 @@ Passo a passo para rodar o Auditor Cidadão diretamente na sua máquina, sem Doc
 |---|---|---|
 | Python | 3.12+ | Runtime da aplicação FastAPI |
 | Node.js | 20 LTS | O agente carrega as 11 ferramentas do PNCP via MCP, que sobe um subprocesso `npx @licinexusbr/mcp` — **sem Node.js instalado, o boot da aplicação falha ao conectar no MCP** |
+| Redis | — | Persiste o histórico de conversa (`AsyncRedisSaver`) e conta requisições do rate limiter — **sem um Redis acessível, o boot também falha**. Não vem embutido no `Dockerfile`; ver o passo 4.1 abaixo |
 | Chaves de API | — | OpenAI (obrigatória), Pinecone (obrigatória), CGU e Tavily (obrigatórias para as tools nativas de sanções e busca web) — ver [Variáveis de ambiente](variaveis_ambiente.md) |
 
 ## 1. Clonar o repositório
@@ -47,11 +48,25 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Preencha o `.env` com suas chaves reais. Todos os campos e seus efeitos estão documentados em [Variáveis de ambiente](variaveis_ambiente.md) — os únicos realmente obrigatórios para o boot
-funcionar são `OPENAI_API_KEY` e `PINECONE_API_KEY`.
+Preencha o `.env` com suas chaves reais. Todos os campos e seus efeitos estão documentados em [Variáveis de ambiente](variaveis_ambiente.md) — os obrigatórios para o boot
+funcionar são `OPENAI_API_KEY`, `PINECONE_API_KEY` e um `REDIS_URI` que aponte para um Redis de
+verdade (ver 4.1 abaixo). Em dev local, confira também que `AMBIENTE_PRODUCAO=False` — com `True`
+(o default), o cookie de sessão usado pelo rate limiter não persiste em `http://localhost` sem TLS.
 
 !!! warning "Nunca versione o `.env` real"
     Ele já está listado no `.gitignore`. Só `.env.example` (sem chaves reais) deve ir para o Git.
+
+### 4.1. Subir um Redis local
+
+Sem Docker instalado, dá para baixar o Redis nativamente (`apt`, `brew`, etc.) e rodar `redis-server`.
+Com Docker, é mais simples:
+
+```bash
+docker run -d --name redis-auditor -p 6379:6379 redis:latest
+```
+
+Isso sobe um Redis em `redis://localhost:6379` — que já é o default de `REDIS_URI` se você não
+sobrescrever no `.env`.
 
 ## 5. Subir a aplicação
 

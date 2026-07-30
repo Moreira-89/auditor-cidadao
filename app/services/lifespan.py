@@ -26,6 +26,7 @@ from app.core.dependencies import (
     EXTRATOR_MODEL,
     EXTRATOR_TEMPERATURE,
     REDIS_URI,
+    TTL_CHECKPOINT_MINUTOS,
     retornar_cliente_llm,
 )
 from app.core.logging_config import logger
@@ -154,11 +155,17 @@ async def lifespan(app: FastAPI):
     inicializar_rate_limiter(redis_rate_limiter)
     logger.info("Rate limiter inicializado com client Redis dedicado.")
 
+    # Expira o histórico de conversa (checkpoints do grafo) após TTL_CHECKPOINT_MINUTOS
+    # minutos de INATIVIDADE — refresh_on_read=True faz cada leitura renovar o TTL, então
+    # uma conversa ativa nunca expira no meio; só threads abandonadas são limpas.
+    ttl_config = {"default_ttl": TTL_CHECKPOINT_MINUTOS, "refresh_on_read": True}
+
     # A conexão com o Redis só existe dentro deste "with" — por isso o grafo (que guarda o
     # checkpointer) só pode ser construído aqui dentro, e o app também só pode rodar (yield)
     # aqui dentro. Quando o "with" fecha (shutdown), a conexão é encerrada automaticamente.
-    async with AsyncRedisSaver.from_conn_string(redis_url=REDIS_URI) as checkpointer:
-
+    async with AsyncRedisSaver.from_conn_string(
+        redis_url=REDIS_URI, ttl=ttl_config
+    ) as checkpointer:
         await checkpointer.asetup()
 
         # Constrói e armazena o grafo com todas as tools combinadas

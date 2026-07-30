@@ -40,6 +40,13 @@ AVALIADOR_TEMPERATURE = float(os.getenv("AVALIADOR_TEMPERATURE", "0.0"))
 # histórico de conversa por thread_id de forma persistente e compartilhada entre workers.
 REDIS_URI = os.getenv("REDIS_URI", "redis://localhost:6379")
 
+
+# Minutos de INATIVIDADE até um checkpoint (histórico de conversa) expirar no Redis
+# — não é um TTL fixo desde a criação: cada leitura renova a contagem (ver
+# refresh_on_read em app/services/lifespan.py), então uma conversa em uso nunca
+# expira no meio, só threads abandonadas são limpas. Default 1440 min = 24h.
+TTL_CHECKPOINT_MINUTOS = int(os.getenv("TTL_CHECKPOINT_MINUTOS", "1440"))
+
 # Diferencia ambiente de produção (Railway, servido via HTTPS) de desenvolvimento
 # local (uvicorn em http://localhost, sem TLS). Hoje o único uso é decidir a flag
 # `secure` do cookie de sessão (ver app/api/dependencies_http.py) — um cookie

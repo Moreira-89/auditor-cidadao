@@ -12,7 +12,19 @@ __pycache__/
 .git/
 .gitignore
 
-# Arquivos de teste e desenvolvimento
+# Documentação (MkDocs) — hospedada separadamente no GitHub Pages, não precisa
+# estar dentro da imagem que só serve a API + frontend estático.
+docs/
+mkdocs.yml
+site/
+README.md
+AuditorCidadaoRoadmap.md
+apresentacao_data_master/
+
+# Avaliação (RAGAS) e testes locais — ferramental de desenvolvimento, não faz
+# parte do runtime da API (evaluation/pipeline_avaliacao.py roda fora do container).
+evaluation/
+testes_locais/
 test_mcp_connection.py
 *.ipynb
 
@@ -20,6 +32,8 @@ test_mcp_connection.py
 Dockerfile
 .dockerignore
 
-# IDEs
+# IDEs e ferramentas de desenvolvimento
 .vscode/
 .idea/
+.claude/
+.ruff_cache/
