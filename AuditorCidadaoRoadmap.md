@@ -2,7 +2,7 @@
 
 > Documento único: requisitos oficiais do case (Data Master) + status do projeto + plano de entrega até 13/07/2026.
 >
-> **Última atualização:** 2026-07-14 (Revisão de consistência: decisão de checkpointer atualizada de "InMemorySaver + TTL manual" para `RedisSaver` na Seção A → Persistência, com a troca agora conduzida isolada e **antes** da migração para `create_agent` da Seção B — não mais junto com ela; referências a `PostgresSaver` corrigidas para `RedisSaver` na Seção B e nas Pendências Técnicas). Anterior: Seção B enriquecida com a pré-validação oficial LangChain/LangGraph 1.x — correção `create_react_agent`→`create_agent`, `ToolRuntime`, `timeout`/`max_retries`, middleware, rebuild de `StructuredTool`; apontamentos de avaliação abertos distribuídos na Seção E e nas Pendências Técnicas. Anterior a isso: 2026-07-13 (Backlog V2: três ideias de pesquisa avançada priorizadas — pipeline de extração robusto e guardrails estritos em E, GraphRAG como evolução do item QSA em F)
+> **Última atualização:** 2026-07-31 (Nova Seção H no Backlog V2: migração do front-end vanilla JS para React/Next.js via static export, servido pelo FastAPI a partir da pasta `out/` — sem servidor Node em produção. Cobre mecanismo de build, compatibilidade com o streaming SSE/upload/combobox atuais, riscos e sequência de execução recomendada). Anterior: 2026-07-14 (Revisão de consistência: decisão de checkpointer atualizada de "InMemorySaver + TTL manual" para `RedisSaver` na Seção A → Persistência, com a troca agora conduzida isolada e **antes** da migração para `create_agent` da Seção B — não mais junto com ela; referências a `PostgresSaver` corrigidas para `RedisSaver` na Seção B e nas Pendências Técnicas). Anterior: Seção B enriquecida com a pré-validação oficial LangChain/LangGraph 1.x — correção `create_react_agent`→`create_agent`, `ToolRuntime`, `timeout`/`max_retries`, middleware, rebuild de `StructuredTool`; apontamentos de avaliação abertos distribuídos na Seção E e nas Pendências Técnicas. Anterior a isso: 2026-07-13 (Backlog V2: três ideias de pesquisa avançada priorizadas — pipeline de extração robusto e guardrails estritos em E, GraphRAG como evolução do item QSA em F)
 >
 > **Sobre a entrega:** o projeto, no estado atual, já é entregável — a entrega é feita via um arquivo `.txt` com dois links (repositório GitHub e site de documentação MkDocs publicado), **sem** envio de projeto ou documentação zipados. Por isso, nada neste roadmap tem prazo enquanto bloqueio de entrega: os itens do Backlog V2 (incluindo os "próximos passos" do E6) podem ser implementados aos poucos, em commits feitos em dias seguintes, sem pressa e sem afetar o que já foi entregue.
 
@@ -323,6 +323,54 @@ IDH, PIB per capita, população, IDEB — contextualiza o valor de uma contrata
 - **Resumo por resultado da busca web via modelo pequeno:** em vez do filtro/truncamento simples usado no V1, resumir cada resultado da Tavily individualmente (um por chamada, preservando o vínculo com a URL de origem) com um modelo pequeno/gratuito antes de devolver ao `gpt-4o-mini`. Melhora rastreabilidade e reduz tokens, mas adiciona uma segunda chamada de rede/provider dentro da tool — descartado no V1 por custo de engenharia e latência dado o prazo, documentar como trade-off no Bloco 5.
 - **Estender `asyncio.gather` às demais tools nativas** (`consultar_receita_federal`, `buscar_contexto_edital`) sempre que fizerem múltiplas chamadas independentes — hoje só `consultar_sancoes_empresa` paraleliza porque é a única com duas fontes simultâneas. Documentar como decisão consciente no Bloco 5, não como pendência crítica.
 - **`include_answer` da Tavily avaliado e descartado:** a API oferece um resumo sintetizado pronto, mas ele mistura informação de várias fontes sem vínculo por URL (quebra rastreabilidade) e é gerado em inglês mesmo com query em português — mantido fora do V1.
+
+---
+
+## H. 🆕 Migração do front-end para React/Next.js (static export)
+
+Hoje o front-end (`front-end/`) é HTML/CSS/JS vanilla servido como estático pelo FastAPI — combobox de estado/município, upload de edital com drag-and-drop, streaming SSE consumido via `fetch` + `ReadableStream`, renderização de Markdown com `marked`/`DOMPurify`, animação de hero com GSAP. Funcional e já em produção (Fase 8), mas a evolução da interface (novos estados de laudo, mais componentes de UI, gerenciamento de estado mais rico) fica cara de manter em JS puro conforme a V2 cresce. Proposta: migrar para React via Next.js, mantendo a mesma topologia de deploy — sem subir um servidor Node em produção.
+
+**Por que isso não é prioridade sobre os itens A–G:** não mapeia a nenhum requisito formal do case (T1–T6, E1–E6) — é manutenibilidade de interface, não critério de avaliação da banca. Compete pelo mesmo tempo que o item de maior risco já identificado (Seção A, "Controle de custo e limite de uso" — Risco **Alto**, ausência de autenticação/rate limiting). Não bloqueia nem é bloqueado por nenhum outro item deste backlog; pode ser conduzido em paralelo, em commits próprios, sem prazo — mesmo espírito de "sem pressa" já registrado na nota do topo deste documento.
+
+### Mecanismo de build (decisão validada)
+
+Sem servidor Node em produção. O fluxo é:
+
+1. `next.config.js` com `output: 'export'` — gera a pasta `out/` com HTML/CSS/JS pré-renderizados no `next build`, sem necessidade de runtime Node para servir.
+2. Build roda **localmente** (ou, no futuro, num passo de CI), nunca dentro do container de produção.
+3. Só a pasta `out/` é versionada e enviada — os arquivos de desenvolvimento do Next (`node_modules`, `.next`, fontes `.tsx`) ficam fora do deploy.
+4. FastAPI passa a servir `out/` via `StaticFiles` no lugar do `front-end/` atual — mesma rota, mesmo container, mesmo domínio (sem CORS a configurar).
+
+⚠️ **Atenção ao `.gitignore`:** o template padrão do Next ignora `/out` por padrão. É preciso remover essa entrada explicitamente, ou o `out/` nunca é versionado e o deploy fica com o front-end desatualizado sem nenhum erro visível.
+
+**Nota sobre Node.js no `Dockerfile`:** o Node 20 já presente na imagem (`Dockerfile`) é para o runtime dos MCP servers (`langchain-mcp-adapters`), não tem relação com este item — são dois usos de Node completamente independentes (build-time local vs. runtime de produção) e não competem entre si. Se o build do front-end for automatizado via CI/CD no futuro, usar um estágio Docker `node:20` **separado** (multi-stage), copiando só o `out/` resultante para a imagem final — nunca compilar o Next na mesma camada que roda o backend, para não inflar a imagem de produção com dependências de build.
+
+### Compatibilidade confirmada com o que já existe
+
+| Mecanismo atual | Migra sem risco? | Observação |
+|---|---|---|
+| Streaming SSE (`fetch` + `ReadableStream`, parsing manual de linhas `data:` com buffer de `leftover`) | ✅ Sim | É Web API padrão do navegador, agnóstica de framework — vira um hook (`useEffect` + `AbortController`) num Client Component. Nenhum ganho nem perda de desempenho: a lógica é a mesma, só muda onde mora. |
+| Upload de PDF (drag-and-drop, `file-info`, validação de tamanho client-side) | ✅ Sim | Migração direta para estado de componente (`useState`), sem mudança de comportamento. |
+| Combobox de estado/município (fetch à API do IBGE, cache em memória) | ✅ Sim | Cache vira `useRef`/estado do componente em vez de objeto de módulo. |
+| Renderização de Markdown (`marked` + `DOMPurify`, sanitização antes do `innerHTML`) | ✅ Sim, com decisão a tomar | Hoje carregados via CDN com SRI (proteção documentada contra CDN comprometido). Manter como `<script>` com SRI ou migrar para `npm install` são opções válidas — migrar para pacote NPM **perde a garantia de SRI** como está documentada hoje; é troca de trade-off, não upgrade automático, e deve ser registrada como tal se adotada. |
+| Animação de hero (GSAP, `home.js`) | ✅ Sim | Seletores por `id` viram `ref`; timeline do GSAP é reaproveitável quase sem alteração. |
+
+### Riscos e limitações
+
+- **Nenhum recurso que dependa de servidor Node em runtime pode ser usado** (SSR, ISR, Server Actions, Route Handlers do App Router) — `output: 'export'` desabilita tudo isso por definição. Não é um risco deste projeto especificamente (o front-end é 100% client-side hoje), mas é uma restrição a documentar para quem for mexer depois, para não introduzir sem querer um recurso incompatível com static export.
+- **Build manual sem CI, por enquanto:** se alguém esquecer de rodar `next build` antes de commitar uma mudança de front-end, o `out/` fica desatualizado silenciosamente — o deploy sobe sem erro, só serve conteúdo antigo. Mitigação simples: um `README` no `front-end/` (ou hook de pre-commit) lembrando o passo, até que valha a pena automatizar via CI.
+- **Ganho de desempenho é marginal a nulo, ganho real é de manutenibilidade:** o front-end atual, vanilla e estático, já é o cenário mais rápido possível (sem hidratação, sem bundle de framework). O motivo de migrar é produtividade de desenvolvimento e organização de componentes conforme a V2 cresce, não velocidade de carregamento — importante alinhar essa expectativa antes de justificar o esforço internamente ou na apresentação.
+
+### Sequência recomendada de execução
+
+1. Scaffolding do projeto Next (App Router, `output: 'export'` já configurado desde o commit inicial).
+2. Portar página a página (`chat.html` → rota `/chat`, `index.html` → rota `/`), reaproveitando a estrutura de componentes visíveis no HTML atual (nav, modal de upload, combobox, área de chat).
+3. Portar `chat.js` para hooks — começar pelo streaming SSE (parte mais sensível), validando lado a lado com o comportamento atual antes de seguir.
+4. Portar `home.js` (animação GSAP) por último — é cosmético, não bloqueia nenhuma funcionalidade.
+5. Rodar `next build`, validar `out/` servido localmente pelo FastAPI (`StaticFiles`), só então substituir o `front-end/` atual e ajustar o `.gitignore`.
+6. Atualizar `docs/operacional/` (Bloco 5) com o novo passo de build manual antes do deploy — reprodutibilidade (R2/R3) exige que isso fique documentado, mesmo não sendo requisito formal do case.
+
+---
 
 ## Pendências Técnicas Conhecidas (em aberto)
 
