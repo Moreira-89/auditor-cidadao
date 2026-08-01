@@ -1,0 +1,35 @@
+name: Publicar documentação (MkDocs)
+
+# Substitui o "mkdocs gh-deploy" manual: dispara sozinho quando algo em docs/
+# ou na configuração do site muda na main, e publica o resultado na branch
+# gh-pages sem depender de ninguém lembrar de rodar o comando localmente.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar MkDocs e o tema Material
+        run: pip install mkdocs==1.6.1 mkdocs-material==9.7.6
+
+      - name: Publicar em gh-pages
+        run: mkdocs gh-deploy --force
