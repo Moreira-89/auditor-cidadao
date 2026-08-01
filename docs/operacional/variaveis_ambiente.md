@@ -40,7 +40,9 @@ Referência completa de cada chave usada pelo Auditor Cidadão. O template versi
 !!! note "Redis não vem embutido no container"
     O `Dockerfile` não instala Redis — é um serviço externo à aplicação (container separado
     localmente, add-on gerenciado no Railway). Ver [Setup local](setup_local.md) para como subir um
-    Redis local rapidamente.
+    Redis local rapidamente, e [Docker & Deploy](docker.md#deploy-em-producao-railway) para o passo
+    a passo de provisionar o add-on no Railway (esquecer `REDIS_URI` lá gera um crash-loop
+    característico no boot, documentado nessa página).
 
 ## Segurança: cookie de identificação de cliente
 

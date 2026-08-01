@@ -46,7 +46,30 @@ injeta `PORT` automaticamente; localmente, cai no padrão `8000`.
 
 ## Deploy em produção (Railway)
 
-O Railway builda a mesma imagem a partir do `Dockerfile` do repositório — não há configuração de
-deploy divergente do ambiente local. As variáveis de ambiente são cadastradas diretamente no painel
-do Railway (mesmas chaves de [Variáveis de ambiente](variaveis_ambiente.md)), e a plataforma injeta
-`PORT` dinamicamente.
+O Railway builda a mesma imagem a partir do `Dockerfile` do repositório — a aplicação em si não tem
+configuração de deploy divergente do ambiente local. As variáveis de ambiente são cadastradas
+diretamente no painel do Railway (mesmas chaves de [Variáveis de ambiente](variaveis_ambiente.md)),
+e a plataforma injeta `PORT` dinamicamente.
+
+Uma peça, porém, **não** vem pronta: o Redis. Diferente do ambiente local (onde você mesmo sobe um
+container, ver acima), em produção é preciso provisionar o serviço explicitamente:
+
+1. No projeto do Railway, **"+ New" → "Database" → "Add Redis"** — sobe um serviço Redis gerenciado
+   dentro do mesmo projeto.
+2. No serviço da API, defina `REDIS_URI` apontando para esse Redis. O jeito robusto é referenciar a
+   variável do outro serviço em vez de colar a URL fixa: `REDIS_URI=${{Redis.REDIS_URL}}` (o nome
+   `Redis` precisa bater com o nome do serviço que aparece no painel).
+
+!!! danger "Sintoma de esquecer esse passo: crash-loop no boot"
+    Sem `REDIS_URI` definida, a aplicação cai no default `redis://localhost:6379` — que dentro do
+    container do Railway não tem nada escutando. O resultado é um loop de reinício a cada poucos
+    segundos, com esse erro nos logs:
+
+    ```
+    redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed
+    ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to
+    localhost:6379.
+    ```
+
+    Se aparecer isso, o Redis do projeto não existe ou `REDIS_URI` não está configurada no serviço
+    da API — não é um bug de código.
