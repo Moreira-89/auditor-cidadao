@@ -47,6 +47,10 @@ registros de outras origens (ex.: futura indexação automática) não são afet
 [Retenção de editais no Pinecone](../governanca/lgpd.md#retencao-de-editais-no-pinecone) para o
 racional por trás dessa política.
 
+Em caso de falha (ex.: `PINECONE_API_KEY` expirada, índice renomeado), o script encerra com
+`sys.exit(1)` em vez de terminar silenciosamente — assim uma execução com erro aparece como falha
+no painel de cron do Railway, em vez de "succeeded", sem depender de checar o log manualmente.
+
 !!! note "Por que 2000 caracteres e 200 de overlap?"
     São os valores padrão escolhidos na implementação — **não foram empiricamente ajustados** neste
     projeto, e é importante ser transparente sobre isso. O racional geral por trás desses números:

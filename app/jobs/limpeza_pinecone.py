@@ -13,6 +13,7 @@ testes_locais/limpar_banco.py.
 """
 
 import os
+import sys
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
@@ -29,7 +30,7 @@ def limpar_registros_expirados() -> None:
     api_key = os.getenv("PINECONE_API_KEY")
     if not api_key:
         print("❌ PINECONE_API_KEY não encontrada no .env")
-        return
+        sys.exit(1)
 
     # Quantos dias um registro de upload de usuário pode ficar indexado antes
     # de ser considerado expirado. Default de 7 dias cobre o caso comum de
@@ -62,6 +63,7 @@ def limpar_registros_expirados() -> None:
         print("✅ Limpeza concluída sem erros.")
     except Exception as e:
         print(f"❌ Erro ao limpar o banco: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
