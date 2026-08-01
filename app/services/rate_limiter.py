@@ -37,14 +37,16 @@ from app.core.logging_config import logger
 #
 # Lógica:
 # 1. Lê o valor atual do contador (pode não existir ainda — primeira requisição).
-# 2. Se já existe E já atingiu o limite, BLOQUEIA (retorna 0) sem incrementar —
+# 2. Se já existe E já atingiu o limite, BLOQUEIA (retorna -1) sem incrementar —
 #    assim o contador não continua subindo indefinidamente enquanto o cliente
 #    insiste dentro da mesma janela.
 # 3. Caso contrário, incrementa o contador (INCR cria a chave com valor 1 se ela
 #    não existir) e, SÓ na primeira requisição da janela (count == 1), define o
 #    TTL. O Redis apaga a chave sozinho quando o TTL expira, o que reinicia a
 #    contagem — não precisamos limpar nada manualmente.
-# 4. Retorna 1 (permitido).
+# 4. Retorna o valor do contador após o incremento (permitido), para o Python
+#    poder logar quanto da cota já foi consumido sem precisar de um segundo
+#    round-trip ao Redis (GET) só para isso.
 _SCRIPT_RATE_LIMIT = """
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
@@ -53,13 +55,13 @@ local window = tonumber(ARGV[2])
 local current = redis.call('GET', key)
 
 if current and tonumber(current) >= limit then
-    return 0
+    return -1
 else
     local count = redis.call('INCR', key)
     if count == 1 then
         redis.call('EXPIRE', key, window)
     end
-    return 1
+    return count
 end
 """
 
@@ -140,9 +142,9 @@ class RateLimiter:
         script = get_rate_limiter()
         # keys=[...] vira KEYS no Lua, args=[...] vira ARGV — a ordem de args deve
         # bater exatamente com a ordem em que o script lê ARGV[1] e ARGV[2]
-        permitido = await script(keys=[chave_redis], args=[self.limit, self.window_seconds])
+        contador = await script(keys=[chave_redis], args=[self.limit, self.window_seconds])
 
-        if not permitido:
+        if contador == -1:
             logger.warning(
                 "Rate limit excedido | prefixo=%s | client_id=%s | limite=%d req / %ds",
                 self.prefixo,
@@ -162,4 +164,16 @@ class RateLimiter:
                     f"Limite de {self.limit} requisições a cada {self.window_seconds} "
                     "segundos excedido. Tente novamente em instantes."
                 ),
+            )
+        else:
+            # Log de consumo de cota (não de erro) — sem isso, a única evidência de
+            # que o rate limiter está ativo era o warning de bloqueio, que só
+            # aparece quando alguém já estourou o limite.
+            logger.info(
+                "Cota consumida | prefixo=%s | client_id=%s | uso=%d/%d req (janela %ds)",
+                self.prefixo,
+                client_id,
+                contador,
+                self.limit,
+                self.window_seconds,
             )

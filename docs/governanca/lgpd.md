@@ -55,15 +55,21 @@ formulário do frontend. O `PerguntaRequest` hoje (`app/models/pergunta_request.
 está usando o sistema. Isso reduz a superfície de dado pessoal coletado ao mínimo necessário para a
 função.
 
-## Retenção de editais no Pinecone: decisão deliberada
+## Retenção de editais no Pinecone: decisão deliberada, e agora com prazo configurável
 
-Os editais indexados permanecem no banco vetorial (Pinecone) por tempo indeterminado — e isso é uma
-decisão consciente, não um descuido. O racional:
+Os editais indexados via upload (`origem: "upload_usuario"`) têm retenção configurável, não
+indeterminada: `app/jobs/limpeza_pinecone.py`, rodado periodicamente (ex.: cron no Railway), apaga
+os registros cujo `timestamp_indexacao` seja mais antigo que `PINECONE_RETENCAO_DIAS` (default 7
+dias — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)). O racional:
 
-- O conteúdo de um edital é documento público; não há dado pessoal sensível envolvido.
-- A retenção viabiliza o **cruzamento histórico** planejado para a V2 (ex.: uma tool
-  `buscar_historico_empresa` que cruza uma empresa sancionada em um município com um padrão
-  semelhante em outro) — ver [Próximos Passos](limitacoes.md).
+- O conteúdo de um edital é documento público; não há dado pessoal sensível envolvido — a limpeza
+  é uma prática de minimização de dados, não uma exigência legal de anonimização.
+- Um prazo curto (dias, não meses) é suficiente para o caso de uso principal: o cidadão analisa um
+  edital específico dentro de uma janela curta de tempo; manter o vetor indexado indefinidamente
+  depois disso não agrega valor e amplia a superfície de dado armazenado sem necessidade.
+- O filtro do job usa também `origem: "upload_usuario"` — outras origens (ex.: uma futura
+  indexação automática via PNCP, ver [Próximos Passos](limitacoes.md)) podem ter um racional de
+  retenção diferente e não são afetadas por essa expiração.
 
 !!! note "O que muda na V2 (e por que é relevante para a LGPD)"
     A migração planejada troca o metadado de indexação de `municipio`/`estado` (informados

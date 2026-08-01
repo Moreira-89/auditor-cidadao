@@ -16,6 +16,7 @@ O que acontece no startup, em ordem:
 import os
 import shutil
 import sys
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -51,7 +52,7 @@ def get_extrator():
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Gerencia o ciclo de vida da aplicação: inicializa o MCP e o grafo no startup e libera recursos no shutdown."""
 
     logger.info("Iniciando servidor — carregando ferramentas e grafo...")

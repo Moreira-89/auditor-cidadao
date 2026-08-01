@@ -24,8 +24,10 @@ Referência completa de cada chave usada pelo Auditor Cidadão. O template versi
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `PINECONE_API_KEY` | **Sim** | — | Índice utilizado: `auditor-cidadao`, criado automaticamente pelo Pinecone se não existir |
+| `PINECONE_API_KEY` | **Sim** | — | Chave de acesso ao Pinecone |
+| `PINECONE_INDEX_NAME` | Não | `auditor-cidadao` | Índice usado pelo `GerenciadorVetorial` e pelo job de limpeza (`app/jobs/limpeza_pinecone.py`). Criado automaticamente pelo Pinecone se não existir |
 | `PINECONE_NAMESPACE` | Não | `production` | Namespace usado para indexar/buscar editais. O framework de avaliação sobrescreve essa env var em tempo de execução para isolar dados de teste do namespace de produção |
+| `PINECONE_RETENCAO_DIAS` | Não | `7` | Dias de retenção antes de um registro com `origem: "upload_usuario"` ser apagado pelo job de limpeza (`app/jobs/limpeza_pinecone.py`, ver [Uso de Dados e RAG](../ia/rag_dados.md#limpeza-de-dados-expirados)). Não afeta registros com outra origem |
 | `TOP_K_EDITAL` | Não | `3` | Quantos trechos do edital a busca semântica (RAG) traz por pergunta — ver a tool `buscar_contexto_edital` em `app/services/tools.py` |
 
 ## Redis (checkpointer do grafo + rate limiting)

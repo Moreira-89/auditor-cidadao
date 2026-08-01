@@ -26,7 +26,7 @@ class GerenciadorVetorial:
         # para reutilizar em todas as chamadas sem recriar conexões desnecessariamente
         self.modelo_embedding = OpenAIEmbeddings(model="text-embedding-3-small")
         self.pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-        self.index_name = "auditor-cidadao"
+        self.index_name = os.getenv("PINECONE_INDEX_NAME", "auditor-cidadao")
         self.vector_store = PineconeVectorStore(
             index_name=self.index_name, embedding=self.modelo_embedding
         )
@@ -62,7 +62,10 @@ class GerenciadorVetorial:
         return lista_chunks
 
     def processar_e_salvar(
-        self, lista_chunks: list[str], metadados: dict, namespace: str = "production"
+        self,
+        lista_chunks: list[str],
+        metadados: dict,
+        namespace: str = os.getenv("PINECONE_NAMESPACE", "production"),
     ) -> None:
         """
         Gera embeddings para cada chunk e realiza o upsert no Pinecone em lote.
@@ -92,7 +95,7 @@ class GerenciadorVetorial:
         pergunta: str,
         estado: str,
         municipio: str,
-        namespace: str = "production",
+        namespace: str = os.getenv("PINECONE_NAMESPACE", "production"),
         top_k: int = 3,
     ) -> str:
         """
@@ -137,7 +140,10 @@ class GerenciadorVetorial:
         return contexto_final
 
     def executar(
-        self, texto_edital: str, metadados: dict, namespace: str = "production"
+        self,
+        texto_edital: str,
+        metadados: dict,
+        namespace: str = os.getenv("PINECONE_NAMESPACE", "production"),
     ) -> None:
         """
         Ponto de entrada público para indexar um edital no banco vetorial.

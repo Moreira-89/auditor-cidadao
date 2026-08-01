@@ -10,6 +10,7 @@ com o código HTTP certo (415 tipo inválido, 413 grande demais, 422 PDF ilegív
 """
 
 import asyncio
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
@@ -107,6 +108,10 @@ async def upload_edital(
                 "municipio": municipio,
                 "estado": estado,
                 "arquivo": file.filename,
+                "timestamp_indexacao": int(
+                    datetime.now(timezone.utc).timestamp()
+                ),
+                "origem": "upload_usuario",
             },
         )
     except Exception:  # noqa: BLE001 — qualquer falha aqui vira um 502 amigável pro frontend

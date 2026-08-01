@@ -22,11 +22,30 @@ Quando o usuário faz upload de um edital (`POST /upload/`), o `GerenciadorVetor
    caracteres com 200 de sobreposição**, tentando separadores hierárquicos (parágrafo → linha →
    frase → palavra) para não cortar no meio de uma cláusula.
 2. **Embeddings** — cada chunk é convertido em vetor pelo `text-embedding-3-small` da OpenAI.
-3. **Upsert no Pinecone** — os vetores vão para o índice `auditor-cidadao`, com
-   `estado`/`municipio`/`arquivo` replicados como metadado **em cada chunk**.
+3. **Upsert no Pinecone** — os vetores vão para o índice configurado em `PINECONE_INDEX_NAME`
+   (`auditor-cidadao` por padrão), com os seguintes campos replicados como metadado **em cada
+   chunk**:
 
-O metadado replicado é o que permite, na busca, filtrar por edital — sem ele, uma pergunta sobre o
-edital de um município poderia recuperar trechos de outro município indexado no mesmo índice.
+   | Metadado | Descrição |
+   |---|---|
+   | `estado`, `municipio` | Usados para filtrar a busca por edital (ver abaixo) |
+   | `arquivo` | Nome do arquivo original, para rastreabilidade |
+   | `timestamp_indexacao` | Epoch (UTC) do momento da indexação — usado pelo job de limpeza para decidir o que expirou |
+   | `origem` | `"upload_usuario"` para editais enviados via `/upload/`. Distingue de outras origens futuras (ex.: `"agente_busca"`, indexação automática via PNCP — ver [Próximos Passos](../governanca/limitacoes.md)), que o job de limpeza deve tratar com regras de retenção diferentes |
+
+O metadado `estado`/`municipio` é o que permite, na busca, filtrar por edital — sem ele, uma
+pergunta sobre o edital de um município poderia recuperar trechos de outro município indexado no
+mesmo índice.
+
+## Limpeza de dados expirados
+
+`app/jobs/limpeza_pinecone.py` é um script standalone (pensado para rodar como cron, ex.: no
+Railway) que apaga do índice os registros com `origem = "upload_usuario"` cujo
+`timestamp_indexacao` seja mais antigo que `PINECONE_RETENCAO_DIAS` (default 7 dias). O filtro
+combinado (`timestamp_indexacao` + `origem`) garante que só editais de upload manual expiram —
+registros de outras origens (ex.: futura indexação automática) não são afetados por esse job. Ver
+[Retenção de editais no Pinecone](../governanca/lgpd.md#retencao-de-editais-no-pinecone) para o
+racional por trás dessa política.
 
 !!! note "Por que 2000 caracteres e 200 de overlap?"
     São os valores padrão escolhidos na implementação — **não foram empiricamente ajustados** neste
