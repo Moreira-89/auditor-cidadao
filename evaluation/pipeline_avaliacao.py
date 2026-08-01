@@ -19,13 +19,17 @@ import os
 import time
 import uuid
 from datetime import date
+from typing import Any
 
 from datasets import Dataset
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.memory import InMemorySaver
 from pinecone import Pinecone
 from pinecone.exceptions import NotFoundException
 from ragas import evaluate
+from ragas.dataset_schema import EvaluationResult
 from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import context_recall, faithfulness
 
@@ -121,7 +125,7 @@ def limpar_namespace_avaliacao(namespace: str = "avaliacao"):
     except NotFoundException:
         # Namespace ainda não existe (ex.: primeira execução da avaliação) - nada a limpar
         logger.info("Namespace '%s' ainda não existe, nada para limpar.", namespace)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — limpeza é best-effort, não deve propagar
         logger.error("Erro ao limpar o namespace '%s': %s", namespace, str(e))
 
 
@@ -174,6 +178,24 @@ def _aguardar_contagem_namespace(
         time.sleep(intervalo)
 
 
+# As três funções abaixo isolam os únicos I/Os de arquivo síncronos e bloqueantes
+# do módulo, para serem chamadas via `asyncio.to_thread(...)` a partir de `main`
+# (que é uma coroutine) sem travar o event loop durante a leitura/escrita em disco.
+def _ler_golden_dataset() -> list[dict]:
+    with open("evaluation/golden_dataset.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _ler_arquivo_binario(caminho: str) -> bytes:
+    with open(caminho, "rb") as f:
+        return f.read()
+
+
+def _salvar_relatorio(relatorio: dict) -> None:
+    with open("evaluation/relatorio.json", "w", encoding="utf-8") as f:
+        json.dump(relatorio, f, ensure_ascii=False, indent=2)
+
+
 async def main(salvar_json: bool = True):
     """
     Roda o golden dataset inteiro contra o agente e escreve evaluation/relatorio.json.
@@ -215,14 +237,15 @@ async def main(salvar_json: bool = True):
     resultados = []
 
     # Carrega o golden dataset de avaliação, que contém casos de teste.
-    with open("evaluation/golden_dataset.json", "r", encoding="utf-8") as f:
-        golden_dataset = json.load(f)
+    golden_dataset = await asyncio.to_thread(_ler_golden_dataset)
 
     # Mapa id -> caso, montado uma única vez: acha o caso original de um item de resultados
     # por "id" sem precisar de um loop de busca a cada iteração.
     golden_dataset_por_id = {caso["id"]: caso for caso in golden_dataset}
 
-    grafo = build_graph(TOOLS)
+    # InMemorySaver basta aqui: cada run da avaliação é isolado e efêmero, sem necessidade
+    # de persistir o histórico entre processos como faz o Redis em produção (lifespan.py).
+    grafo = build_graph(TOOLS, checkpointer=InMemorySaver())
 
     # Réplica do extrator de app/services/ai_engine.py (RespostaLaudo via
     # with_structured_output): não depende de estado entre chamadas, só da configuração
@@ -242,8 +265,7 @@ async def main(salvar_json: bool = True):
             if caminho_pdf is None:
                 texto_extraido = caso["contexto_edital_esperado"]
             else:
-                with open(caminho_pdf, "rb") as f:
-                    conteudo_bytes = f.read()
+                conteudo_bytes = await asyncio.to_thread(_ler_arquivo_binario, caminho_pdf)
 
                 texto_extraido, _ = extrair_texto_pdf(
                     conteudo_bytes, os.path.basename(caminho_pdf)
@@ -279,7 +301,7 @@ async def main(salvar_json: bool = True):
             _aguardar_contagem_namespace(len(lista_chunks), namespace=namespace_caso)
 
             thread_id = str(uuid.uuid4())
-            config = {"configurable": {"thread_id": thread_id}}
+            config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
 
             # Réplica do primeiro turno em ai_engine.run_agent: sempre "primeiro turno",
             # já que cada caso do golden dataset roda numa thread nova e isolada
@@ -293,7 +315,8 @@ async def main(salvar_json: bool = True):
             )
 
             system_message = SystemMessage(content=SYSTEM_PROMPT)
-            data_hoje = date.today().strftime("%Y%m%d")
+            # Réplica intencional de app/services/ai_engine.py (mesmo padrão de produção)
+            data_hoje = date.today().strftime("%Y%m%d")  # noqa: DTZ011
             human_message = HumanMessage(
                 content=PROMPT_DINAMICO.format(
                     pergunta_usuario=pergunta_usuario,
@@ -328,13 +351,17 @@ async def main(salvar_json: bool = True):
                     buffer_temporario = ""
 
                 elif tipo_evento == "on_chat_model_stream":
-                    chunk = evento["data"]["chunk"]
-                    if chunk.content and not getattr(chunk, "tool_calls", None):
+                    chunk = evento["data"].get("chunk")
+                    if (
+                        chunk is not None
+                        and chunk.content
+                        and not getattr(chunk, "tool_calls", None)
+                    ):
                         buffer_temporario += chunk.content
 
                 elif tipo_evento == "on_chat_model_end":
                     # Mensagem completa — agora sabemos com certeza se ela tinha tool_calls
-                    mensagem_final = evento["data"]["output"]
+                    mensagem_final = evento["data"].get("output")
                     if not getattr(mensagem_final, "tool_calls", None):
                         laudo_completo += buffer_temporario
 
@@ -343,19 +370,18 @@ async def main(salvar_json: bool = True):
                         {"tool": evento["name"], "input": evento["data"].get("input")}
                     )
 
-                elif tipo_evento == "on_tool_end":
-                    # Captura o output de buscar_contexto_edital — os trechos do edital
-                    # que o RAG efetivamente recuperou, para comparar com
-                    # contexto_edital_esperado. O input de todas as tools já foi
-                    # capturado em on_tool_start; aqui só nos importa o output do RAG.
-                    # data["output"] vem como ToolMessage (o ToolNode embrulha o retorno da
-                    # tool nela) — .content extrai a string crua, senão o pyarrow do
-                    # datasets não consegue serializar o objeto no Dataset.from_dict.
-                    if evento["name"] == "buscar_contexto_edital":
-                        saida_tool = evento["data"].get("output")
-                        contexto_recuperado.append(
-                            getattr(saida_tool, "content", saida_tool)
-                        )
+                # Captura o output de buscar_contexto_edital — os trechos do edital que o
+                # RAG efetivamente recuperou, para comparar com contexto_edital_esperado.
+                # O input de todas as tools já foi capturado em on_tool_start; aqui só nos
+                # importa o output do RAG. data["output"] vem como ToolMessage (o ToolNode
+                # embrulha o retorno da tool nela) — .content extrai a string crua, senão o
+                # pyarrow do datasets não consegue serializar o objeto no Dataset.from_dict.
+                elif (
+                    tipo_evento == "on_tool_end"
+                    and evento["name"] == "buscar_contexto_edital"
+                ):
+                    saida_tool = evento["data"].get("output")
+                    contexto_recuperado.append(getattr(saida_tool, "content", saida_tool))
 
             aderencia = calcular_aderencia_tools(caso, tools_chamadas)
 
@@ -382,7 +408,7 @@ async def main(salvar_json: bool = True):
                     # laudo=None é esperado para respostas conversacionais (sem anomalia
                     # nenhuma a extrair) — não é uma falha, só não há nada pra detectar.
                     codigos_detectados = set()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — isola a falha só desta etapa, ver comentário acima
                 logger.exception(
                     "Erro ao extrair laudo estruturado do caso '%s': %s",
                     caso.get("id", "desconhecido"),
@@ -411,7 +437,7 @@ async def main(salvar_json: bool = True):
                     "recall_anomalias": recall_anomalias,
                 }
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             # Falha isolada num caso (PDF corrompido, erro no Pinecone, erro do agente, etc.)
             # não deve interromper a avaliação dos demais casos do golden dataset
             logger.exception(
@@ -509,6 +535,10 @@ async def main(salvar_json: bool = True):
         resultado_ragas = evaluate(
             dataset_ragas, metrics=[faithfulness, context_recall], llm=llm_ragas
         )
+        # evaluate() só devolve Executor quando chamado com return_executor=True (não é o
+        # caso aqui) — o assert só existe para o type checker, o retorno real já é sempre
+        # EvaluationResult neste ponto.
+        assert isinstance(resultado_ragas, EvaluationResult)
         logger.info("RAGAS finalizado. Resultados: %s", resultado_ragas)
 
         # resultado_ragas é um EvaluationResult (dataclass sem __iter__/keys()) — dict(resultado_ragas)
@@ -538,7 +568,7 @@ async def main(salvar_json: bool = True):
             return {"valor": None, "aprovado": None}
         return {"valor": valor, "aprovado": valor >= CRITERIOS_APROVACAO[nome]}
 
-    aprovacao = {
+    aprovacao: dict[str, Any] = {
         "aderencia_tools": _avaliar_metrica("aderencia_tools", media_aderencia_tools),
         "faithfulness": _avaliar_metrica(
             "faithfulness", ragas_agregado["faithfulness"] if ragas_agregado else None
@@ -568,8 +598,7 @@ async def main(salvar_json: bool = True):
     logger.info("\n%s", _formatar_relatorio_aprovacao(aprovacao, CRITERIOS_APROVACAO))
 
     if salvar_json:
-        with open("evaluation/relatorio.json", "w", encoding="utf-8") as f:
-            json.dump(relatorio_final, f, ensure_ascii=False, indent=2)
+        await asyncio.to_thread(_salvar_relatorio, relatorio_final)
 
 
 if __name__ == "__main__":

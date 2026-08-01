@@ -16,13 +16,23 @@ O que acontece no startup, em ordem:
 import os
 import shutil
 import sys
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+from redis.asyncio import Redis
 
-from app.core.dependencies import EXTRATOR_MODEL, EXTRATOR_TEMPERATURE, retornar_cliente_llm
+from app.core.dependencies import (
+    EXTRATOR_MODEL,
+    EXTRATOR_TEMPERATURE,
+    REDIS_URI,
+    TTL_CHECKPOINT_MINUTOS,
+    retornar_cliente_llm,
+)
 from app.core.logging_config import logger
 from app.services.build_graph import initialize_graph
+from app.services.rate_limiter import inicializar_rate_limiter
 from app.services.tools import TOOLS
 from app.utils.cache_mcp import aplicar_cache
 from app.utils.mcp_utils import patch_mcp_tools
@@ -42,7 +52,7 @@ def get_extrator():
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Gerencia o ciclo de vida da aplicação: inicializa o MCP e o grafo no startup e libera recursos no shutdown."""
 
     logger.info("Iniciando servidor — carregando ferramentas e grafo...")
@@ -129,12 +139,6 @@ async def lifespan(app: FastAPI):
         "Total de ferramentas disponíveis para o agente: %d", len(todas_as_tools)
     )
 
-    # Constrói e armazena o grafo com todas as tools combinadas
-    initialize_graph(todas_as_tools)
-    logger.info(
-        "Grafo inicializado com sucesso. Servidor pronto para receber requests."
-    )
-
     # Instancia o modelo extrator (temperatura 0 para saída determinística),
     # usado no processo de extração de informações.
     global _extrator_instance
@@ -144,10 +148,42 @@ async def lifespan(app: FastAPI):
     )
     logger.info("Modelo extrator inicializado com sucesso.")
 
-    # O yield separa startup do shutdown.
-    yield
+    # Client Redis dedicado ao rate limiter — independente da conexão do checkpointer
+    # (que vive dentro do "with" do AsyncRedisSaver logo abaixo). Não precisa estar
+    # dentro daquele "with": é uma conexão simples, sem o setup específico que o
+    # checkpointer exige (asetup()), então basta abrir aqui e fechar no shutdown.
+    redis_rate_limiter = Redis.from_url(REDIS_URI)
+    inicializar_rate_limiter(redis_rate_limiter)
+    logger.info("Rate limiter inicializado com client Redis dedicado.")
 
-    # Nenhum cleanup explícito de mcp_client é necessário: como cada chamada MCP já
-    # abre e fecha sua própria sessão/subprocess internamente, não há recurso persistente
-    # para liberar aqui.
-    logger.info("Servidor encerrado com sucesso.")
+    # Expira o histórico de conversa (checkpoints do grafo) após TTL_CHECKPOINT_MINUTOS
+    # minutos de INATIVIDADE — refresh_on_read=True faz cada leitura renovar o TTL, então
+    # uma conversa ativa nunca expira no meio; só threads abandonadas são limpas.
+    ttl_config = {"default_ttl": TTL_CHECKPOINT_MINUTOS, "refresh_on_read": True}
+
+    # A conexão com o Redis só existe dentro deste "with" — por isso o grafo (que guarda o
+    # checkpointer) só pode ser construído aqui dentro, e o app também só pode rodar (yield)
+    # aqui dentro. Quando o "with" fecha (shutdown), a conexão é encerrada automaticamente.
+    async with AsyncRedisSaver.from_conn_string(
+        redis_url=REDIS_URI, ttl=ttl_config
+    ) as checkpointer:
+        await checkpointer.asetup()
+
+        # Constrói e armazena o grafo com todas as tools combinadas
+        initialize_graph(tools=todas_as_tools, checkpointer=checkpointer)
+        logger.info(
+            "Grafo inicializado com sucesso (checkpointer Redis). Servidor pronto para receber requests."
+        )
+
+        # O yield separa startup do shutdown — o app roda aqui, ainda dentro do "with".
+        yield
+
+        # Nenhum cleanup explícito de mcp_client é necessário: como cada chamada MCP já
+        # abre e fecha sua própria sessão/subprocess internamente, não há recurso persistente
+        # para liberar aqui.
+        logger.info("Servidor encerrado com sucesso.")
+
+    # Fecha o client Redis do rate limiter no shutdown — ele não é gerenciado pelo
+    # "with" do checkpointer acima (são duas conexões independentes), então precisa
+    # ser encerrado explicitamente aqui.
+    await redis_rate_limiter.aclose()

@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional, Union, get_args, get_origin
+from typing import Any, Union, get_args, get_origin
 
 from langchain_core.tools import StructuredTool
 from pydantic import create_model
@@ -27,9 +27,9 @@ def _tornar_tipo_permissivo(annotation: Any) -> Any:
 
     # int e float são os tipos que LLMs mais quebram — mandam "42" em vez de 42
     if annotation is int:
-        return Union[int, str]
+        return int | str
     if annotation is float:
-        return Union[float, str]
+        return float | str
 
     # get_origin revela o tipo "base" de um genérico: get_origin(Optional[int]) → Union
     origin = get_origin(annotation)
@@ -44,11 +44,11 @@ def _tornar_tipo_permissivo(annotation: Any) -> Any:
             # Aplica a permissividade recursivamente no tipo interno
             # Ex: Optional[int] → Optional[Union[int, str]]
             interno_permissivo = _tornar_tipo_permissivo(tipos_internos[0])
-            return Optional[interno_permissivo]
+            return interno_permissivo | None
 
     # Para listas, aceita também string para cobrir o caso em que o LLM manda "[1,2,3]" como texto
     if origin is list:
-        return Union[annotation, str]
+        return annotation | str
 
     # Tipos desconhecidos (bool, dict, str) são retornados sem modificação
     return annotation
@@ -61,9 +61,9 @@ def _tipo_python_de_json_schema(tipo_json: str) -> Any:
     # integer e number já viram Union com str para absorver strings que o LLM envia.
     # array também aceita str pois o LLM pode mandar '[1,2,3]' como texto.
     mapa = {
-        "integer": Union[int, str],
-        "number": Union[float, str],
-        "array": Union[list, str],
+        "integer": int | str,
+        "number": float | str,
+        "array": list | str,
         "string": str,
         "boolean": bool,
         "object": dict,
@@ -92,7 +92,7 @@ def _model_de_json_schema(schema_dict: dict, nome_base: str) -> type:
         else:
             # Campo opcional: envolve em Optional e define default=None
             campos[nome] = (
-                Optional[tipo_python],
+                tipo_python | None,
                 FieldInfo(default=None, description=desc),
             )
 
@@ -237,8 +237,9 @@ def _make_coercion_coroutine(original_coroutine, schema_dict: dict):
         # Chama o MCP server com os valores já no tipo correto
         try:
             resultado = await original_coroutine(**args_convertidos)
-        except Exception as e:
-            resultado = f"Erro ao executar a ferramenta: {str(e)}"
+        except Exception as e:  # noqa: BLE001 — captura ampla proposital: um erro na tool MCP
+            # não pode derrubar o agente, só deve virar uma mensagem de erro que o LLM lê
+            resultado = f"Erro ao executar a ferramenta: {e!s}"
             
         # Limita o tamanho do retorno de cada tool para controlar custo e qualidade.
         # Com múltiplas chamadas MCP por turno, retornos volumosos acumulam tokens

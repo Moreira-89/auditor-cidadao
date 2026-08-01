@@ -22,9 +22,17 @@ Pontos da imagem que valem explicação:
 
 ## Rodando o container
 
+O Redis **não** está embutido nessa imagem — precisa de um container separado rodando antes de
+subir a aplicação (ver [Setup local](setup_local.md#41-subir-um-redis-local)):
+
 ```bash
-docker run -p 8000:8000 --env-file .env auditor-cidadao
+docker run -d --name redis-auditor -p 6379:6379 redis:latest
+docker run -p 8000:8000 --env-file .env --add-host=host.docker.internal:host-gateway auditor-cidadao
 ```
+
+Se `REDIS_URI` no `.env` apontar para `localhost`, ajuste para `host.docker.internal` (ou coloque
+os dois containers na mesma rede Docker com `docker network create`) — de dentro do container da
+aplicação, `localhost` se refere ao próprio container, não ao host.
 
 O comando de start (`CMD` do Dockerfile) usa `${PORT:-8000}` — em produção (Railway), a plataforma
 injeta `PORT` automaticamente; localmente, cai no padrão `8000`.

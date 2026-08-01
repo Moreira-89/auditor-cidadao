@@ -25,14 +25,21 @@ Em editais grandes, o trecho relevante pode estar posicionalmente distante e for
 busca (`context_recall = 0.60` na avaliação, ver [Avaliação](../ia/avaliacao.md)). Endereçável com
 `top_k` maior ou reranking na V2.
 
-### Histórico volátil (`InMemorySaver`)
-O histórico de conversas vive em memória e é perdido a cada restart do servidor — ver o trade-off
-completo em [Operacional](../operacional/index.md). Plano V2: `PostgresSaver`.
+### Rate limiting por cookie, não por identidade real
+`/upload/` (5 requisições/dia) e `/conversar-com-auditor/` (50 requisições/dia) são limitados por
+cliente via um cookie httpOnly assinado (`app/services/rate_limiter.py`, `app/utils/cookie_manager.py`),
+não por conta de usuário — o projeto não tem autenticação. Isso resolve manipulação (o usuário não
+edita o valor via DevTools, já que é assinado com uma chave secreta do servidor), mas resolve só
+metade do problema de custo: **não impede reset**. Limpar cookies, aba anônima ou trocar de
+navegador geram um `client_id` novo e, portanto, uma quota nova. Aceitável para o escopo atual (não
+protege contra um atacante sofisticado, só eleva o custo do abuso casual) — autenticação mínima
+(mesmo que só um token de acesso) é o pré-requisito para um limite que resista a esse reset,
+planejado para a V2.
 
-### Sem autenticação nem limite de uso
-Não há autenticação, quota ou rate limiting: um usuário pode conversar — e gastar tokens da OpenAI —
-indefinidamente. É o risco de exposição a custo mais relevante hoje, e uma pergunta provável sobre
-escalabilidade. Nenhum middleware de auth ou rate limiter existe em `app/` na V1.
+### Sem autenticação de usuário
+Não há login nem conta de usuário — qualquer visitante pode usar a aplicação livremente, dentro dos
+limites de taxa acima. Autenticação mínima está no backlog V2, tanto como valor em si quanto como
+pré-requisito para o rate limiting acima resistir ao reset de cookie.
 
 ### Dependência de APIs externas
 O sistema depende de BrasilAPI, Portal da Transparência, PNCP e Tavily. Falhas isoladas são tratadas
@@ -51,9 +58,9 @@ consciente em vez de arriscar quebrar o streaming.
 ### Escalabilidade e persistência
 | Componente | V1 (atual) | V2 (alvo) |
 |---|---|---|
-| Histórico de conversas | `InMemorySaver` (RAM) | `PostgresSaver` (PostgreSQL) |
-| Cache de ferramentas | `TTLCache` em memória | Redis compartilhado entre instâncias |
-| Controle de custo | Nenhum | Rate limiting / quota por sessão / autenticação mínima |
+| Histórico de conversas | `AsyncRedisSaver` (Redis) — já persistente e compartilhável entre workers/instâncias | — (resolvido) |
+| Controle de custo | Rate limiting por cookie (`app/services/rate_limiter.py`), sem resistência a reset de cookie | Autenticação mínima, para que a quota resista a limpeza de cookie/aba anônima |
+| Cache de ferramentas | `TTLCache` em memória (por processo) | Redis compartilhado entre instâncias, caso o projeto passe a rodar com múltiplos workers |
 
 ### Indexação automática via PNCP (Fase 7)
 Eliminar o upload manual: o agente busca, baixa e indexa o PDF a partir de uma conversa

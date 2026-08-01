@@ -30,6 +30,7 @@ flowchart TB
     direction TB
         openai["OpenAI<br>LLM + embeddings"]
         pinecone[("Pinecone<br>banco vetorial")]
+        redis[("Redis<br>histórico + rate limit")]
         cgu["Portal da Transparência / CGU<br>CEIS · CNEP"]
         receita["BrasilAPI<br>Receita Federal"]
         tavily["Tavily<br>busca web"]
@@ -37,7 +38,7 @@ flowchart TB
   end
     fastapi <-- MCP via stdio --> mcp
     browser["Navegador do usuário"] <-- HTTPS --> fastapi
-    fastapi --> openai & pinecone & cgu & receita & tavily
+    fastapi --> openai & pinecone & redis & cgu & receita & tavily
     mcp --> pncp
 ```
 
@@ -49,11 +50,13 @@ Pontos que vale destacar:
   consciente de simplicidade para o estágio atual do projeto — já está em backlog migrar o frontend
   para uma stack dedicada (React), o que separaria esse diagrama em dois serviços
   (frontend e backend) e traria uma experiência mais rica para o usuário final.
-- **Nenhum banco de dados próprio** — o histórico de conversas vive em memória (`InMemorySaver`),
-  o que **é uma limitação conhecida, não a prática recomendada**: qualquer restart do container
-  derruba todas as conversas em andamento. Está no backlog a migração para `PostgresSaver`, que
-  persiste esse histórico num banco de verdade. O único estado que já sobrevive a um restart hoje
-  é o Pinecone, por ser um serviço gerenciado externo ao container.
+- **Redis é o único estado próprio da aplicação** (não vem embutido no container — é um serviço
+  externo, um add-on gerenciado no Railway). Guarda duas coisas independentes: o histórico de
+  conversa por `thread_id` (`AsyncRedisSaver`, ver [Visão Geral](../arquitetura/visao_geral.md)) e a
+  contagem de requisições do rate limiter (ver [Limitações conhecidas](../governanca/limitacoes.md)).
+  Isso substituiu o antigo `InMemorySaver` (RAM do processo) — a troca resolveu de uma vez a perda
+  de histórico a cada restart **e** o pré-requisito de estado compartilhado entre múltiplos
+  workers/instâncias, caso o projeto escale horizontalmente no futuro.
 - **Variáveis de ambiente** são cadastradas diretamente no painel do Railway (mesmas chaves de
   [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas.
 

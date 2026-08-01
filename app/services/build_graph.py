@@ -5,14 +5,16 @@ O fluxo é um ciclo ReAct simples: o LLM pensa e decide se precisa de uma ferram
 (nó call_llm); se precisar, o grafo executa a ferramenta (nó tool_node) e devolve o
 resultado ao LLM; isso se repete até o LLM responder sem pedir mais nenhuma ferramenta.
 
-Usa o checkpointer InMemorySaver para lembrar o histórico de cada conversa (por
-thread_id). É exposto como singleton (initialize_graph/get_graph) porque construir o
-grafo é caro e ele é idêntico — mesmas tools — para todas as requisições do processo.
+O checkpointer (hoje AsyncRedisSaver, ver lifespan.py) guarda o histórico de cada
+conversa por thread_id. É exposto como singleton (initialize_graph/get_graph) porque
+construir o grafo é caro e ele é idêntico — mesmas tools — para todas as requisições
+do processo.
 """
 
 from typing import Literal
 
-from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.messages import BaseMessage
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.constants import START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -41,11 +43,12 @@ def router(state: AgentState) -> Literal["tool_node", "__end__"]:
 
 def build_graph(
     tools: list,
+    checkpointer: BaseCheckpointSaver,
 ) -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
     """
     Constrói e compila o StateGraph do agente com memória persistida por thread.
     Registra os nós 'call_llm' e 'tool_node', conecta as arestas e compila
-    com InMemorySaver como checkpointer para manter o histórico por thread_id.
+    com o checkpointer recebido para manter o histórico por thread_id.
     """
     _modelo_llm = retornar_cliente_llm(
         model_name=LLM_MODEL,
@@ -64,7 +67,7 @@ def build_graph(
         output_schema=AgentState,
     )
 
-    async def call_llm(state: AgentState) -> AgentState:
+    async def call_llm(state: AgentState) -> dict[str, list[BaseMessage]]:
         response = await _modelo_com_ferramentas.ainvoke(state["messages"])
         return {"messages": [response]}
 
@@ -79,8 +82,7 @@ def build_graph(
     builder.add_conditional_edges("call_llm", router, ["tool_node", "__end__"])
     builder.add_edge("tool_node", "call_llm")
 
-    # InMemorySaver guarda o estado de cada thread na RAM — histórico é perdido ao reiniciar o servidor
-    return builder.compile(checkpointer=InMemorySaver())
+    return builder.compile(checkpointer=checkpointer)
 
 
 # Instância singleton do grafo — criada uma única vez no startup e reutilizada em todos os requests
@@ -96,7 +98,7 @@ def get_graph():
     return _graph_instance
 
 
-def initialize_graph(tools: list) -> None:
+def initialize_graph(tools: list, checkpointer: BaseCheckpointSaver) -> None:
     """Chamado uma única vez pelo lifespan para construir e armazenar o grafo com todas as tools."""
     global _graph_instance
-    _graph_instance = build_graph(tools=tools)
+    _graph_instance = build_graph(tools=tools, checkpointer=checkpointer)

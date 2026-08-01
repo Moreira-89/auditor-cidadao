@@ -17,10 +17,13 @@ intermediário do agente não contamina o laudo estruturado.
 
 import json
 import uuid
-from datetime import date
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import StateSnapshot
 
 from app.core.logging_config import logger
 from app.core.prompt import (
@@ -40,7 +43,12 @@ def escape_xml(texto: str) -> str:
     return texto.replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _curar_tool_calls_pendentes(grafo, state, config: dict, thread_id: str) -> None:
+async def _curar_tool_calls_pendentes(
+    grafo: CompiledStateGraph,
+    state: StateSnapshot,
+    config: RunnableConfig,
+    thread_id: str,
+) -> None:
     """
     Corrige um histórico deixado inconsistente por um turno anterior interrompido
     (ex.: usuário clicou em "parar a geração" no meio de uma rodada de tool_calls).
@@ -90,7 +98,7 @@ def _curar_tool_calls_pendentes(grafo, state, config: dict, thread_id: str) -> N
         )
         for tc in pendentes
     ]
-    grafo.update_state(config, {"messages": respostas_sinteticas})
+    await grafo.aupdate_state(config, {"messages": respostas_sinteticas})
 
 
 async def run_agent(
@@ -112,15 +120,15 @@ async def run_agent(
     if not thread_id:
         thread_id = str(uuid.uuid4())
 
-    config = {"configurable": {"thread_id": thread_id}}
+    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
     grafo = get_graph()
 
-    # Consulta o grafo SINGLETON para verificar se esta thread já tem histórico salvo no InMemorySaver
-    state = grafo.get_state(config)
+    # Consulta o grafo SINGLETON para verificar se esta thread já tem histórico salvo no checkpointer
+    state = await grafo.aget_state(config)
 
     # Se um turno anterior foi interrompido no meio de tool_calls, corrige o histórico
     # antes de prosseguir — senão a chamada abaixo à LLM falha com 400 da OpenAI.
-    _curar_tool_calls_pendentes(grafo, state, config, thread_id)
+    await _curar_tool_calls_pendentes(grafo, state, config, thread_id)
 
     conversa_iniciada = len(state.values.get("messages", [])) > 0
 
@@ -137,7 +145,7 @@ async def run_agent(
             else "Nenhum CNPJ encontrado no documento."
         )
         system_message = SystemMessage(content=SYSTEM_PROMPT)
-        data_hoje = date.today().strftime("%Y%m%d")
+        data_hoje = datetime.now(UTC).date().strftime("%Y%m%d")
         human_message = HumanMessage(
             content=PROMPT_DINAMICO.format(
                 pergunta_usuario=pergunta_usuario,
@@ -150,7 +158,7 @@ async def run_agent(
         mensagens_entrada = [system_message, human_message]
 
     try:
-        # `estado` e `municipio` são repassados em TODOS os turnos porque o InMemorySaver não persiste
+        # `estado` e `municipio` são repassados em TODOS os turnos porque o checkpointer não persiste
         # chaves arbitrárias entre invocações — o InjectedState da tool precisa lê-los do estado ativo
         laudo_completo = ""
         # Acumula os chunks da mensagem do LLM em andamento; só é somado a laudo_completo em
@@ -176,14 +184,18 @@ async def run_agent(
             # Emite cada fragmento de texto gerado pela LLM; ignora chunks que são apenas tool_calls.
             # getattr com default None evita AttributeError em chunks intermediários que, dependendo da versão do langchain-core, podem não expor o atributo`tool_calls`.
             elif tipo_evento == "on_chat_model_stream":
-                chunk = evento["data"]["chunk"]
-                if chunk.content and not getattr(chunk, "tool_calls", None):
+                chunk = evento["data"].get("chunk")
+                if (
+                    chunk is not None
+                    and chunk.content
+                    and not getattr(chunk, "tool_calls", None)
+                ):
                     buffer_temporario += chunk.content
                     yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
 
             elif tipo_evento == "on_chat_model_end":
                 # Mensagem completa — agora sabemos com certeza se ela tinha tool_calls
-                mensagem_final = evento["data"]["output"]
+                mensagem_final = evento["data"].get("output")
                 if not getattr(mensagem_final, "tool_calls", None):
                     # Não tinha tool_calls → era resposta final de verdade, confirma no acumulador real
                     laudo_completo += buffer_temporario
@@ -202,21 +214,20 @@ async def run_agent(
         try:
             extrator_estruturado = get_extrator().with_structured_output(RespostaLaudo)
             resultado = await extrator_estruturado.ainvoke(
-                [SystemMessage(content=PROMPT_EXTRATOR), HumanMessage(content=laudo_completo)]
+                [
+                    SystemMessage(content=PROMPT_EXTRATOR),
+                    HumanMessage(content=laudo_completo),
+                ]
             )
             if resultado.laudo is not None:
                 yield f"data: {json.dumps({'type': 'laudo_estruturado', 'content': resultado.laudo.model_dump()})}\n\n"
-        except Exception:
-            logger.exception(
-                "Erro ao extrair laudo estruturado | thread=%s", thread_id
-            )
+        except Exception:  # noqa: BLE001
+            logger.exception("Erro ao extrair laudo estruturado | thread=%s", thread_id)
             yield f"data: {json.dumps({'type': 'laudo_estruturado_erro', 'content': 'Não foi possível gerar a versão estruturada do laudo.'})}\n\n"
 
         # Sinaliza ao frontend que o streaming terminou normalmente
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
-    except Exception:
-        # Sem isso, uma exceção aqui dentro derruba o generator sem avisar o frontend,
-        # que ficaria esperando tokens indefinidamente.
+    except Exception:  # noqa: BLE001
         logger.exception("Erro durante o streaming do agente | thread=%s", thread_id)
         yield f"data: {json.dumps({'type': 'error', 'content': 'Ocorreu um erro ao processar sua pergunta. Tente novamente.'})}\n\n"

@@ -25,13 +25,13 @@ CAPACIDADES DISPONÍVEIS do SYSTEM_PROMPT.
 import asyncio
 import os
 import re
+from typing import Annotated
 
 import httpx
 from dotenv import load_dotenv
 from langchain.tools import BaseTool, tool
 from langgraph.prebuilt import InjectedState
 from pydantic import Field
-from typing_extensions import Annotated
 from validate_docbr import CNPJ
 
 from app.core.dependencies import gerenciador
@@ -90,7 +90,7 @@ async def consultar_receita_federal(
         }
     except httpx.RequestError as e:
         # Captura erros de conexão, DNS, SSL, redirect loop, etc.
-        return {"error": f"Falha de conexão ao consultar o CNPJ {cnpj_limpo}: {str(e)}"}
+        return {"error": f"Falha de conexão ao consultar o CNPJ {cnpj_limpo}: {e!s}"}
 
 
 @tool
@@ -160,10 +160,10 @@ async def buscar_informacao_web(
     """
     try:
         resultados = await buscar_na_web(assunto_busca, estado, municipio)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         # A lib da Tavily não expõe uma hierarquia de exceções específica e documentada
         # (indisponibilidade da API, cota excedida, chave ausente/inválida caem todas aqui)
-        return {"error": f"Falha ao buscar informações na web: {str(e)}"}
+        return {"error": f"Falha ao buscar informações na web: {e!s}"}
 
     return {"results": resultados}
 
@@ -288,7 +288,7 @@ async def buscar_contratos_fornecedor_pncp(
             "error": f"PNCP retornou status {e.response.status_code} para o órgão {cnpj_orgao_limpo}."
         }
     except httpx.RequestError as e:
-        return {"error": f"Falha de conexão ao consultar o PNCP: {str(e)}"}
+        return {"error": f"Falha de conexão ao consultar o PNCP: {e!s}"}
 
     return {"resultados": resultados}
 

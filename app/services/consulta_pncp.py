@@ -91,6 +91,11 @@ async def _get_pncp(client: httpx.AsyncClient, url: str, params: dict | None = N
         espera = float(response.headers.get("Retry-After", 5 * 2**tentativa))
         await asyncio.sleep(espera)
 
+    # Na prática o loop sempre retorna ou lança exceção antes de chegar aqui
+    # (a última tentativa sempre cai em um dos `return`/`raise` acima).
+    # Essa linha só existe para o Pylance confirmar que a função sempre devolve algo.
+    raise RuntimeError("Número máximo de tentativas ao PNCP excedido sem resposta.")
+
 
 async def _listar_modalidades_ativas(client: httpx.AsyncClient) -> list[int]:
     """

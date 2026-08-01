@@ -10,7 +10,12 @@ procura *onde* cada peça roda (Railway, container, serviços externos), isso j�
 O núcleo do sistema é um `StateGraph` do LangGraph (`app/services/build_graph.py`): o agente
 alterna entre `call_llm` e `tool_node` até o modelo responder sem pedir mais nenhuma ferramenta.
 O roteador (`router`) decide isso checando se a última mensagem tem `tool_calls` pendentes. Um
-`InMemorySaver` guarda esse histórico por `thread_id`, permitindo conversas com múltiplos turnos.
+`AsyncRedisSaver` (Redis, ver `app/services/lifespan.py`) guarda esse histórico por `thread_id`,
+persistindo entre restarts e compartilhado caso a aplicação rode com múltiplos workers/instâncias —
+substituiu o `InMemorySaver` original (RAM do processo, perdido a cada restart). A persistência não
+é indefinida: cada thread expira após `TTL_CHECKPOINT_MINUTOS` minutos de **inatividade** (default
+24h) — toda leitura renova essa contagem, então uma conversa em uso nunca expira no meio, só threads
+abandonadas são limpas (ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)).
 
 ```mermaid
 ---
@@ -106,11 +111,13 @@ Markdown já finalizado.
 
 !!! note "Histórico interrompido no meio de uma tool_call"
     Se o usuário interromper a execução de uma ferramenta, o
-    `InMemorySaver` fica com uma `AIMessage` cujos `tool_calls` nunca foram respondidos — e a
+    checkpointer fica com uma `AIMessage` cujos `tool_calls` nunca foram respondidos — e a
     OpenAI rejeita qualquer mensagem nova nessa thread com `400` enquanto isso não for corrigido.
     `_curar_tool_calls_pendentes()` detecta esse estado no início do próximo turno e injeta
     `ToolMessage`s sintéticas ("chamada cancelada") para cada `tool_call` pendente, restaurando a
-    validade do histórico sem descartar a conversa.
+    validade do histórico sem descartar a conversa. Esse comportamento independe de qual
+    checkpointer está por baixo (valia para o antigo `InMemorySaver` e continua valendo para o
+    `AsyncRedisSaver` atual).
 
 ## Limitações conhecidas desta arquitetura
 
@@ -120,6 +127,6 @@ Markdown já finalizado.
   paralelismo real entre sub-agentes, um buffer único global passaria a misturar conteúdo de
   streams concorrentes — nesse cenário, a migração seria para um dicionário de buffers indexado
   por `run_id`.
-- **`InMemorySaver` perde o histórico a cada restart do servidor** (ver
-  [Operacional](../operacional/index.md) para o trade-off completo e o plano de migração para
-  `PostgresSaver`).
+- **Rate limiting por cookie, não por identidade real.** O `client_id` (ver
+  [Limitações conhecidas](../governanca/limitacoes.md)) identifica o navegador, não a pessoa —
+  limpar cookies, aba anônima ou outro navegador geram uma sessão nova e, portanto, uma quota nova.
