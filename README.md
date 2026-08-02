@@ -21,11 +21,6 @@ laudo estruturado com evidências e nível de risco, em streaming, em tempo real
 
 O sistema **sinaliza padrões para investigação humana — não acusa nem substitui uma auditoria formal.**
 
-> 📚 Este README é um resumo de apresentação. Para a documentação técnica completa (arquitetura,
-> fluxo de dados, avaliação, LGPD, guardrails), veja **[moreira-89.github.io/auditor-cidadao](https://moreira-89.github.io/auditor-cidadao/)**
-> (fonte em [`docs/`](./docs/index.md)). Para testar sem instalar nada, acesse a aplicação publicada
-> em **[auditor-cidadao-production.up.railway.app](https://auditor-cidadao-production.up.railway.app/)**.
-
 ---
 
 ## ✨ Funcionalidades
@@ -170,10 +165,12 @@ agente. Camadas de defesa aplicadas:
 | HTTP assíncrono | [httpx](https://www.python-httpx.org/) |
 | Extração de PDF | [pdfplumber](https://github.com/jsvine/pdfplumber) |
 | Validação de dados | [Pydantic V2](https://docs.pydantic.dev/) + [validate-docbr](https://pypi.org/project/validate-docbr/) |
-| Cache | [cachetools](https://pypi.org/project/cachetools/) (TTL, em memória, para as tools) |
+| Cache | Redis (TTL 24h, compartilhado entre réplicas, para as tools) |
 | Avaliação automatizada | [RAGAS](https://docs.ragas.io/) — golden dataset + pipeline de métricas (`evaluation/`) |
 
-Versões exatas em [`requirements.txt`](./requirements.txt).
+Versões exatas em [`requirements.txt`](./requirements.txt) (runtime, mesmo que vai para a imagem
+Docker/produção) e [`requirements-dev.txt`](./requirements-dev.txt) (mkdocs + ragas, só para
+desenvolvimento local).
 
 ---
 
@@ -182,7 +179,8 @@ Versões exatas em [`requirements.txt`](./requirements.txt).
 ```text
 auditor-cidadao/
 ├── main.py                    # Entry point da aplicação FastAPI
-├── requirements.txt           # Dependências Python
+├── requirements.txt           # Dependências de runtime (o que vai para a imagem Docker)
+├── requirements-dev.txt       # Dependências de dev local (mkdocs, ragas) — fora da imagem
 ├── Dockerfile                 # Imagem Docker (Python 3.12-slim + Node.js 20)
 ├── .env.example                # Template de variáveis de ambiente (copie para .env)
 │
@@ -417,9 +415,6 @@ docker run -p 8000:8000 --env-file .env --add-host=host.docker.internal:host-gat
   `/conversar-com-auditor/` (50/dia) são limitados por um cookie assinado, não por conta de usuário —
   o projeto não tem autenticação. Limpar cookies, aba anônima ou trocar de navegador geram uma quota
   nova; autenticação mínima para resistir a esse reset é o próximo passo natural.
-- **Cache de tools em memória** (`cachetools`) é por processo, perdido a cada reinício — aceitável no
-  volume atual, mas não se beneficia de múltiplos workers/instâncias (diferente do histórico de
-  conversa, já em Redis).
 - **Cobertura de anomalias:** o catálogo (A–I) depende da disponibilidade das APIs públicas
   consultadas; quando uma fonte está indisponível, o agente registra a lacuna explicitamente em vez
   de presumir conformidade.

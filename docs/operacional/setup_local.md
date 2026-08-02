@@ -42,6 +42,14 @@ venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
+Isso instala só o necessário para rodar a API (o mesmo conjunto que vai para a imagem Docker/
+produção). Para gerar esta documentação (MkDocs) ou rodar o framework de avaliação (RAGAS), instale
+também `requirements-dev.txt`:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 ## 4. Configurar variáveis de ambiente
 
 ```bash
@@ -86,7 +94,7 @@ chave obrigatória estiver ausente, o erro aparece nos logs de boot, não numa r
 ## Rodando a documentação (este site)
 
 ```bash
-pip install mkdocs mkdocs-material   # já incluídos no requirements.txt
+pip install -r requirements-dev.txt   # mkdocs + mkdocs-material
 mkdocs serve
 ```
 

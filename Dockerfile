@@ -24,6 +24,11 @@ WORKDIR /app
 # Copia e instala dependências Python ANTES de copiar o código
 # Isso aproveita o cache de camadas do Docker:
 # se requirements.txt não mudar, essa camada não é reconstruída
+#
+# Só requirements.txt (runtime) entra aqui — de propósito. mkdocs/ragas/
+# langchain-community (documentação e avaliação) ficam em requirements-dev.txt,
+# que nunca é copiado para a imagem: são ferramental de desenvolvimento local,
+# não dependências da API que sobe em produção.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

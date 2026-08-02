@@ -18,6 +18,11 @@ Pontos da imagem que valem explicação:
   Sem essa camada, o container sobe mas o `lifespan` falha ao conectar no MCP.
 - **`COPY requirements.txt .` antes de `COPY . .`** — aproveita o cache de camadas do Docker: se as
   dependências não mudarem, a camada de `pip install` não é reconstruída a cada build.
+- **Só `requirements.txt` (runtime) entra na imagem** — `mkdocs`/`mkdocs-material` (documentação) e
+  `ragas`/`langchain-community` (avaliação) ficam em `requirements-dev.txt`, nunca copiado nem
+  instalado no container (`.dockerignore`). São ferramental de desenvolvimento local: a
+  documentação é publicada separadamente via GitHub Pages/Actions, e a avaliação roda fora do
+  container, sob demanda — nenhum dos dois é usado pela API em produção.
 - **`ENV NO_UPDATE_NOTIFIER=1`** — silencia o aviso de atualização do `npm` nos logs do container.
 
 ## Rodando o container
