@@ -1,0 +1,12 @@
+# Dependências de desenvolvimento local — NÃO entram na imagem Docker/produção
+# (nem o Dockerfile nem o .github/workflows/docs.yml instalam a partir deste
+# arquivo; o workflow de docs fixa as mesmas versões de mkdocs direto no YAML).
+# Instale com: pip install -r requirements.txt -r requirements-dev.txt
+
+# Documentação técnica (MkDocs), ver docs/ e mkdocs.yml
+mkdocs==1.6.1
+mkdocs-material==9.7.6
+
+# Avaliação automatizada (RAGAS), ver evaluation/pipeline_avaliacao.py
+ragas==0.3.9
+langchain-community==0.3.31

@@ -4,6 +4,8 @@
 .web
 assets/external/
 *.txt
+!requirements.txt
+!requirements-dev.txt
 avaliacao_log.json
 testes_locais/
 .claude/*
