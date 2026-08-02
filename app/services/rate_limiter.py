@@ -74,6 +74,28 @@ end
 _script_instance: AsyncScript | None = None
 
 
+def _formatar_tempo_restante(segundos: int) -> str:
+    """Converte segundos restantes em algo lido de cabeça — "23 horas e 12 minutos"
+    em vez do bruto em segundos. Composto (horas+minutos / minutos+segundos) porque
+    "restam X horas" sozinho é vago demais para quem está tentando decidir se espera
+    ou volta depois."""
+    segundos = max(segundos, 0)
+    horas, resto = divmod(segundos, 3600)
+    minutos, segs = divmod(resto, 60)
+
+    if horas > 0:
+        partes = [f"{horas} hora" + ("" if horas == 1 else "s")]
+        if minutos > 0:
+            partes.append(f"{minutos} minuto" + ("" if minutos == 1 else "s"))
+        return " e ".join(partes)
+    if minutos > 0:
+        partes = [f"{minutos} minuto" + ("" if minutos == 1 else "s")]
+        if segs > 0:
+            partes.append(f"{segs} segundo" + ("" if segs == 1 else "s"))
+        return " e ".join(partes)
+    return f"{segs} segundo" + ("" if segs == 1 else "s")
+
+
 def inicializar_rate_limiter(redis_client: Redis) -> None:
     """
     Chamado uma única vez pelo lifespan, no startup do servidor: registra no
@@ -106,7 +128,9 @@ class RateLimiter:
 
     Uso típico:
 
-        limitar_upload = RateLimiter(limit=5, window_seconds=60, prefixo="upload")
+        limitar_upload = RateLimiter(
+            limit=5, window_seconds=60, prefixo="upload", descricao="upload"
+        )
 
         @router.post("/", dependencies=[Depends(limitar_upload)])
         async def upload_edital(...): ...
@@ -125,7 +149,9 @@ class RateLimiter:
     para escapar do limite.
     """
 
-    def __init__(self, limit: int, window_seconds: int, prefixo: str) -> None:
+    def __init__(
+        self, limit: int, window_seconds: int, prefixo: str, descricao: str
+    ) -> None:
         # Número máximo de requisições permitidas dentro da janela
         self.limit = limit
         # Duração da janela de tempo, em segundos
@@ -133,6 +159,10 @@ class RateLimiter:
         # Identifica QUAL rota está sendo limitada — evita que o consumo de cota em
         # um endpoint (ex.: upload) "vaze" para o limite de outro (ex.: pergunta)
         self.prefixo = prefixo
+        # Nome amigável usado na mensagem de erro ao usuário (ex.: "upload de editais",
+        # "perguntas ao auditor") — sem isso a mensagem teria que ser genérica demais
+        # para servir aos dois endpoints que usam esta classe.
+        self.descricao = descricao
 
     async def __call__(self, client_id: str = Depends(get_client_id)) -> None:
         """Verifica se o cliente da requisição atual ainda tem cota disponível;
@@ -152,6 +182,11 @@ class RateLimiter:
                 self.limit,
                 self.window_seconds,
             )
+            # TTL da própria chave = tempo real até a cota resetar (a janela "desliza"
+            # a partir da primeira requisição do cliente, não tem hora fixa do dia) —
+            # por isso não dá pra usar window_seconds direto, precisa perguntar ao Redis.
+            segundos_restantes = await script.registered_client.ttl(chave_redis)
+
             # Se get_client_id acabou de emitir um cookie novo pra esse visitante,
             # levantar essa exceção normalmente o perderia (comportamento padrão
             # do FastAPI ao descartar o Response modificado por dependencies
@@ -161,8 +196,8 @@ class RateLimiter:
             raise HTTPException(
                 status_code=429,
                 detail=(
-                    f"Limite de {self.limit} requisições a cada {self.window_seconds} "
-                    "segundos excedido. Tente novamente em instantes."
+                    f"Você excedeu o limite de {self.descricao}. Volte em "
+                    f"{_formatar_tempo_restante(segundos_restantes)} para tentar novamente."
                 ),
             )
         else:

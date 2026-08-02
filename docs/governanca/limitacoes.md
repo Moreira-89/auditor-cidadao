@@ -58,9 +58,9 @@ consciente em vez de arriscar quebrar o streaming.
 ### Escalabilidade e persistência
 | Componente | V1 (atual) | V2 (alvo) |
 |---|---|---|
-| Histórico de conversas | `AsyncRedisSaver` (Redis) — já persistente e compartilhável entre workers/instâncias | — (resolvido) |
+| Histórico de conversas | `AsyncRedisSaver` (Redis) — já persistente e compartilhado entre as 2 réplicas em produção | — (resolvido) |
 | Controle de custo | Rate limiting por cookie (`app/services/rate_limiter.py`), sem resistência a reset de cookie | Autenticação mínima, para que a quota resista a limpeza de cookie/aba anônima |
-| Cache de ferramentas | `TTLCache` em memória (por processo) | Redis compartilhado entre instâncias, caso o projeto passe a rodar com múltiplos workers |
+| Cache de ferramentas | Redis compartilhado (TTL 24h) — resolvido, ver [Protocolo MCP](../arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache) | — (resolvido) |
 
 ### Indexação automática via PNCP (Fase 7)
 Eliminar o upload manual: o agente busca, baixa e indexa o PDF a partir de uma conversa

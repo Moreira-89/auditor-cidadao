@@ -30,17 +30,19 @@ Referência completa de cada chave usada pelo Auditor Cidadão. O template versi
 | `PINECONE_RETENCAO_DIAS` | Não | `7` | Dias de retenção antes de um registro com `origem: "upload_usuario"` ser apagado pelo job de limpeza (`app/jobs/limpeza_pinecone.py`, ver [Uso de Dados e RAG](../ia/rag_dados.md#limpeza-de-dados-expirados)). Não afeta registros com outra origem |
 | `TOP_K_EDITAL` | Não | `3` | Quantos trechos do edital a busca semântica (RAG) traz por pergunta — ver a tool `buscar_contexto_edital` em `app/services/tools.py` |
 
-## Redis (checkpointer do grafo + rate limiting)
+## Redis (checkpointer do grafo + rate limiting + cache de ferramentas)
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `REDIS_URI` | **Sim** | `redis://localhost:6379` | Precisa de uma instância Redis acessível (local, Docker ou gerenciada) — sem ela o **boot falha**. Duas conexões independentes usam essa mesma URI: o `AsyncRedisSaver` (histórico de conversa por `thread_id`, ver `app/services/lifespan.py`) e o rate limiter (contagem de requisições por cliente, ver `app/services/rate_limiter.py`) |
+| `REDIS_URI` | **Sim** | `redis://localhost:6379` | Precisa de uma instância Redis acessível (local, Docker ou gerenciada) — sem ela o **boot falha**. Duas conexões independentes usam essa mesma URI: o `AsyncRedisSaver` (histórico de conversa por `thread_id`, ver `app/services/lifespan.py`) e um client `Redis` compartilhado entre o rate limiter (`app/services/rate_limiter.py`) e o cache de ferramentas MCP/nativas (`app/utils/cache_mcp.py`, ver [Protocolo MCP](../arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache)) |
 | `TTL_CHECKPOINT_MINUTOS` | Não | `1440` (24h) | Minutos de **inatividade** até o histórico de uma conversa expirar no Redis. Não é um TTL fixo desde a criação: cada leitura renova a contagem (`refresh_on_read=True`), então uma conversa em uso nunca expira no meio — só threads abandonadas são limpas. Use `-1` para desativar a expiração |
 
 !!! note "Redis não vem embutido no container"
     O `Dockerfile` não instala Redis — é um serviço externo à aplicação (container separado
     localmente, add-on gerenciado no Railway). Ver [Setup local](setup_local.md) para como subir um
-    Redis local rapidamente.
+    Redis local rapidamente, e [Docker & Deploy](docker.md#deploy-em-producao-railway) para o passo
+    a passo de provisionar o add-on no Railway (esquecer `REDIS_URI` lá gera um crash-loop
+    característico no boot, documentado nessa página).
 
 ## Segurança: cookie de identificação de cliente
 
@@ -49,7 +51,7 @@ limiting (ver `app/utils/cookie_manager.py` e `app/api/dependencies_http.py`).
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `COOKIE_SECRET_KEY` | Recomendada | chave aleatória gerada em memória no boot | Assina o cookie httpOnly `auditor_client_id`. Sem essa env var definida, a chave muda a cada restart do processo (ou entre workers, se houver mais de um) e os cookies emitidos antes deixam de ser válidos — defina sempre em produção |
+| `COOKIE_SECRET_KEY` | **Sim, em produção** | chave aleatória gerada em memória no boot | Assina o cookie httpOnly `auditor_client_id`. Sem essa env var definida, cada processo gera sua própria chave aleatória no boot — em produção, com as 2 réplicas ativas hoje (ver [Docker & Deploy](docker.md#escalonamento-replicas-e-limites-de-recurso)), isso quebra a validação do cookie de forma intermitente, dependendo de qual réplica atende a requisição, sem sticky sessions no Railway. Defina sempre em produção |
 | `AMBIENTE_PRODUCAO` | Não | `True` | Controla a flag `secure` do cookie. `True` (HTTPS, produção) faz o navegador só reenviar o cookie em conexões seguras. Em dev local (`uvicorn` sem TLS), **precisa ser `False`** — com `True` fixo, o cookie nunca persiste entre requisições em `http://localhost`, e o rate limiter nunca reconhece o mesmo cliente duas vezes (bug silencioso: nenhum erro aparece, o limite simplesmente nunca dispara) |
 
 ## Fontes de dados oficiais (tools nativas)

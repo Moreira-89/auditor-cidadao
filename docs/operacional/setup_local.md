@@ -14,7 +14,7 @@ Passo a passo para rodar o Auditor Cidadão diretamente na sua máquina, sem Doc
 |---|---|---|
 | Python | 3.12+ | Runtime da aplicação FastAPI |
 | Node.js | 20 LTS | O agente carrega as 11 ferramentas do PNCP via MCP, que sobe um subprocesso `npx @licinexusbr/mcp` — **sem Node.js instalado, o boot da aplicação falha ao conectar no MCP** |
-| Redis | — | Persiste o histórico de conversa (`AsyncRedisSaver`) e conta requisições do rate limiter — **sem um Redis acessível, o boot também falha**. Não vem embutido no `Dockerfile`; ver o passo 4.1 abaixo |
+| Redis | — | Persiste o histórico de conversa (`AsyncRedisSaver`), conta requisições do rate limiter e guarda o cache de ferramentas (TTL 24h) — **sem um Redis acessível, o boot também falha**. Não vem embutido no `Dockerfile`; ver o passo 4.1 abaixo |
 | Chaves de API | — | OpenAI (obrigatória), Pinecone (obrigatória), CGU e Tavily (obrigatórias para as tools nativas de sanções e busca web) — ver [Variáveis de ambiente](variaveis_ambiente.md) |
 
 ## 1. Clonar o repositório
@@ -40,6 +40,14 @@ venv\Scripts\Activate.ps1
 
 ```bash
 pip install -r requirements.txt
+```
+
+Isso instala só o necessário para rodar a API (o mesmo conjunto que vai para a imagem Docker/
+produção). Para gerar esta documentação (MkDocs) ou rodar o framework de avaliação (RAGAS), instale
+também `requirements-dev.txt`:
+
+```bash
+pip install -r requirements-dev.txt
 ```
 
 ## 4. Configurar variáveis de ambiente
@@ -86,7 +94,7 @@ chave obrigatória estiver ausente, o erro aparece nos logs de boot, não numa r
 ## Rodando a documentação (este site)
 
 ```bash
-pip install mkdocs mkdocs-material   # já incluídos no requirements.txt
+pip install -r requirements-dev.txt   # mkdocs + mkdocs-material
 mkdocs serve
 ```
 

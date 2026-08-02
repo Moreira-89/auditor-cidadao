@@ -55,8 +55,9 @@ Pontos que vale destacar:
   conversa por `thread_id` (`AsyncRedisSaver`, ver [Visão Geral](../arquitetura/visao_geral.md)) e a
   contagem de requisições do rate limiter (ver [Limitações conhecidas](../governanca/limitacoes.md)).
   Isso substituiu o antigo `InMemorySaver` (RAM do processo) — a troca resolveu de uma vez a perda
-  de histórico a cada restart **e** o pré-requisito de estado compartilhado entre múltiplos
-  workers/instâncias, caso o projeto escale horizontalmente no futuro.
+  de histórico a cada restart **e** o pré-requisito de estado compartilhado entre múltiplas
+  réplicas, viabilizando o escalonamento horizontal hoje em produção (2 réplicas, 1 worker cada —
+  ver [Docker & Deploy](docker.md#escalonamento-replicas-e-limites-de-recurso)).
 - **Variáveis de ambiente** são cadastradas diretamente no painel do Railway (mesmas chaves de
   [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas.
 

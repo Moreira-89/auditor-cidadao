@@ -26,7 +26,16 @@ router = APIRouter(prefix="/conversar-com-auditor", tags=["Conversar sobre o edi
     # Conversa é o uso principal da aplicação — limite mais generoso que o de
     # upload, mas ainda existe para conter um cliente em loop/abuso gerando custo
     # de LLM sem limite. Janela de 86400s = 24h.
-    dependencies=[Depends(RateLimiter(limit=50, window_seconds=86400, prefixo="quota_chat"))],
+    dependencies=[
+        Depends(
+            RateLimiter(
+                limit=50,
+                window_seconds=86400,
+                prefixo="quota_chat",
+                descricao="perguntas diárias ao auditor",
+            )
+        )
+    ],
 )
 async def executar_pergunta(
     request: PerguntaRequest,

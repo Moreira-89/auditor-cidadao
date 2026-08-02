@@ -293,6 +293,22 @@ async def buscar_contratos_fornecedor_pncp(
     return {"resultados": resultados}
 
 
+# Usado por app/utils/cache_mcp.py (aplicar_cache) para gerar a chave de cache a partir
+# do CNPJ já normalizado, e não do texto exato que o LLM mandou. Sem isso, "12.345.678/0001-99"
+# e "12345678000199" — a mesma consulta — gerariam entradas de cache diferentes, porque a
+# normalização abaixo só acontece DENTRO da tool, depois que a chave já foi calculada.
+def _normalizar_cnpj_para_cache(v: str) -> str:
+    return re.sub(r"[./-]", "", v)
+
+CACHE_KEY_NORMALIZERS = {
+    "consultar_receita_federal": {"cnpj": _normalizar_cnpj_para_cache},
+    "consultar_sancoes_empresa": {"cnpj": _normalizar_cnpj_para_cache},
+    "buscar_contratos_fornecedor_pncp": {
+        "cnpj_orgao": _normalizar_cnpj_para_cache,
+        "cnpj_fornecedor": _normalizar_cnpj_para_cache,
+    },
+}
+
 # Lista de tools nativas do projeto — combinada com as MCP tools no startup pelo lifespan
 TOOLS: list[BaseTool] = [
     consultar_receita_federal,

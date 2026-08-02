@@ -28,6 +28,10 @@ testes_locais/
 test_mcp_connection.py
 *.ipynb
 
+# Dependências de dev (mkdocs + ragas) — só requirements.txt (runtime) é
+# instalado na imagem; ver requirements-dev.txt para o que fica de fora.
+requirements-dev.txt
+
 # Docker em si
 Dockerfile
 .dockerignore

@@ -8,7 +8,7 @@ extrator) é delegada ao lifespan em app/services/lifespan.py.
 
 import logging
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import (
     http_exception_handler,
     request_validation_exception_handler,

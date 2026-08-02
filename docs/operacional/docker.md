@@ -18,6 +18,11 @@ Pontos da imagem que valem explicação:
   Sem essa camada, o container sobe mas o `lifespan` falha ao conectar no MCP.
 - **`COPY requirements.txt .` antes de `COPY . .`** — aproveita o cache de camadas do Docker: se as
   dependências não mudarem, a camada de `pip install` não é reconstruída a cada build.
+- **Só `requirements.txt` (runtime) entra na imagem** — `mkdocs`/`mkdocs-material` (documentação) e
+  `ragas`/`langchain-community` (avaliação) ficam em `requirements-dev.txt`, nunca copiado nem
+  instalado no container (`.dockerignore`). São ferramental de desenvolvimento local: a
+  documentação é publicada separadamente via GitHub Pages/Actions, e a avaliação roda fora do
+  container, sob demanda — nenhum dos dois é usado pela API em produção.
 - **`ENV NO_UPDATE_NOTIFIER=1`** — silencia o aviso de atualização do `npm` nos logs do container.
 
 ## Rodando o container
@@ -46,7 +51,64 @@ injeta `PORT` automaticamente; localmente, cai no padrão `8000`.
 
 ## Deploy em produção (Railway)
 
-O Railway builda a mesma imagem a partir do `Dockerfile` do repositório — não há configuração de
-deploy divergente do ambiente local. As variáveis de ambiente são cadastradas diretamente no painel
-do Railway (mesmas chaves de [Variáveis de ambiente](variaveis_ambiente.md)), e a plataforma injeta
-`PORT` dinamicamente.
+O Railway builda a mesma imagem a partir do `Dockerfile` do repositório — a aplicação em si não tem
+configuração de deploy divergente do ambiente local. As variáveis de ambiente são cadastradas
+diretamente no painel do Railway (mesmas chaves de [Variáveis de ambiente](variaveis_ambiente.md)),
+e a plataforma injeta `PORT` dinamicamente.
+
+Uma peça, porém, **não** vem pronta: o Redis. Diferente do ambiente local (onde você mesmo sobe um
+container, ver acima), em produção é preciso provisionar o serviço explicitamente:
+
+1. No projeto do Railway, **"+ New" → "Database" → "Add Redis"** — sobe um serviço Redis gerenciado
+   dentro do mesmo projeto.
+2. No serviço da API, defina `REDIS_URI` apontando para esse Redis. O jeito robusto é referenciar a
+   variável do outro serviço em vez de colar a URL fixa: `REDIS_URI=${{Redis.REDIS_URL}}` (o nome
+   `Redis` precisa bater com o nome do serviço que aparece no painel).
+
+!!! danger "Sintoma de esquecer esse passo: crash-loop no boot"
+    Sem `REDIS_URI` definida, a aplicação cai no default `redis://localhost:6379` — que dentro do
+    container do Railway não tem nada escutando. O resultado é um loop de reinício a cada poucos
+    segundos, com esse erro nos logs:
+
+    ```
+    redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed
+    ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to
+    localhost:6379.
+    ```
+
+    Se aparecer isso, o Redis do projeto não existe ou `REDIS_URI` não está configurada no serviço
+    da API — não é um bug de código.
+
+## Escalonamento: réplicas e limites de recurso
+
+A aplicação roda em produção com **2 réplicas** (Railway, região US East), sem multi-região, e
+**1 worker por réplica** — o `CMD` do `Dockerfile` não passa `--workers` para o `uvicorn`, de
+propósito.
+
+- **Por que 2 réplicas, e não 1 ou mais:** elimina o ponto único de falha e valida em produção a
+  premissa de que o estado da aplicação vive fora da RAM local (Redis, ver
+  [Variáveis de ambiente](variaveis_ambiente.md#seguranca-cookie-de-identificacao-de-cliente) e
+  [Visão geral da arquitetura](../arquitetura/visao_geral.md)) — sem exigir mais infraestrutura do
+  que o estágio atual de tráfego (divulgação orgânica) justifica.
+- **Por que 1 worker por réplica, e não vários:** a carga é dominada por I/O (chamadas a
+  LLM/PNCP/Pinecone) e pela velocidade de rede, não por CPU — múltiplos workers por processo
+  trariam ganho marginal. As réplicas do Railway já são o eixo de escala escolhido; manter os dois
+  eixos (réplicas vs. workers por processo) simples facilita depurar.
+- **Teto de 4 vCPU / 4 GB por réplica** (Replica Limits do Railway) **+ Usage Limit no workspace**
+  como proteção agregada de custo: dado real de ~3 meses de uso mostrou pico de 1,38 GB de RAM e
+  CPU próxima de zero — o teto de 8 vCPU/8 GB do plano era o máximo técnico disponível, não
+  refletia uso real algum. 4/4 dá margem de ~3x sobre o pico observado, funcionando como disjuntor
+  contra anomalia (bug/loop), não como limite de operação normal.
+- **Pré-requisito que viabilizou essas decisões sem risco:** a migração de todo estado que antes
+  vivia só na RAM de um processo (checkpointer de conversa, contador de rate limit, cache de
+  tools) para o Redis — sem sticky sessions no Railway, qualquer uma dessas peças em memória local
+  quebraria silenciosamente com múltiplas réplicas.
+
+!!! warning "Configuração validada com tráfego de 1 usuário (autor, ambiente de testes)"
+    O dado de pico (1,38 GB RAM, CPU ~zero) usado para calibrar os tetos acima vem de ~3 meses de
+    uso, mas **todo esse uso é do próprio autor** testando o sistema — tanto localmente quanto em
+    produção —, não de múltiplos usuários reais e simultâneos. Número de réplicas, tetos de
+    recurso e o Usage Limit de custo são um **ponto de partida seguro**, não uma capacidade testada
+    sob carga real. Reavaliar todos esses números depois dos primeiros dias de uso com múltiplos
+    usuários reais (quando o link for compartilhado publicamente) — os padrões de tráfego
+    (concorrência, tamanho de picos, distribuição ao longo do dia) só existem daí em diante.
