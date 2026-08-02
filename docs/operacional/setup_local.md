@@ -14,7 +14,7 @@ Passo a passo para rodar o Auditor Cidadão diretamente na sua máquina, sem Doc
 |---|---|---|
 | Python | 3.12+ | Runtime da aplicação FastAPI |
 | Node.js | 20 LTS | O agente carrega as 11 ferramentas do PNCP via MCP, que sobe um subprocesso `npx @licinexusbr/mcp` — **sem Node.js instalado, o boot da aplicação falha ao conectar no MCP** |
-| Redis | — | Persiste o histórico de conversa (`AsyncRedisSaver`) e conta requisições do rate limiter — **sem um Redis acessível, o boot também falha**. Não vem embutido no `Dockerfile`; ver o passo 4.1 abaixo |
+| Redis | — | Persiste o histórico de conversa (`AsyncRedisSaver`), conta requisições do rate limiter e guarda o cache de ferramentas (TTL 24h) — **sem um Redis acessível, o boot também falha**. Não vem embutido no `Dockerfile`; ver o passo 4.1 abaixo |
 | Chaves de API | — | OpenAI (obrigatória), Pinecone (obrigatória), CGU e Tavily (obrigatórias para as tools nativas de sanções e busca web) — ver [Variáveis de ambiente](variaveis_ambiente.md) |
 
 ## 1. Clonar o repositório

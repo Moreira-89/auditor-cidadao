@@ -41,7 +41,7 @@ flowchart TB
     CONN --> GET["get_tools()<br>todas as tools do MCP"]
     GET --> FILTER["Filtra whitelist<br>11 de N tools"]
     FILTER --> PATCH["patch_mcp_tools<br>afrouxa schemas"]
-    PATCH --> CACHE["aplicar_cache<br>TTL 24h"]
+    PATCH --> CACHE["aplicar_cache<br>Redis, TTL 24h"]
     CACHE --> MERGE["Combina com as<br>4 tools nativas"]
     MERGE --> GRAFO["initialize_graph"]
 ```
@@ -56,7 +56,7 @@ As etapas, em detalhe:
    `list_licitacao_arquivos`, `aggregate_licitacoes_por_periodo`, `get_licitacao`,
    `list_licitacao_itens`, `list_licitacao_resultados`, `search_atas_rp`, `compare_periodos`).
 4. **Aplica o patch de schema** (`patch_mcp_tools`, ver abaixo).
-5. **Envolve com cache TTL de 24h** (`aplicar_cache`) — o mesmo cache também cobre as tools nativas.
+5. **Envolve com cache no Redis, TTL de 24h** (`aplicar_cache`) — o mesmo cache também cobre as tools nativas.
 6. **Combina** as 11 tools MCP com as 4 nativas e entrega tudo ao grafo.
 
 !!! info "Nenhum subprocesso persistente para encerrar no shutdown"
@@ -85,16 +85,67 @@ a atenção do modelo.
 ## Cache das ferramentas (`aplicar_cache`)
 
 Cada chamada MCP dispara uma requisição ao PNCP, e esses dados mudam pouco ao longo do dia. O
-`app/utils/cache_mcp.py` guarda os resultados num `cachetools.TTLCache` em memória, com chave
-`MD5(nome_da_tool + argumentos)` e validade de **24h** (alinhada ao ciclo de atualização do PNCP).
-A escolha do `TTLCache` (em vez de um `dict` cru) importa: ele expira as entradas sozinho e respeita
-um `maxsize`, evitando crescimento ilimitado de memória num servidor que fica dias no ar.
+`app/utils/cache_mcp.py` guarda os resultados no **Redis** (mesmo client `Redis` compartilhado com
+o rate limiter — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)), com chave
+`mcp_cache:{nome_da_tool}_{MD5(argumentos)}` e validade de **24h** (`ex=` no `SET`, alinhada ao ciclo
+de atualização do PNCP). O Redis expira a chave sozinho quando o TTL vence — não é preciso limpar
+nada manualmente.
+
+!!! note "Antes era em memória (`TTLCache`) — por que mudou"
+    Até uma versão anterior, o cache vivia num `cachetools.TTLCache` dentro do próprio processo
+    Python. Isso significava que o cache não sobrevivia a um restart do servidor e não seria
+    compartilhado entre réplicas (cada uma cacheava por conta própria). Mover para o Redis resolve
+    os dois pontos — pré-requisito para as 2 réplicas com que a aplicação roda em produção hoje
+    (ver [Docker & Deploy](../operacional/docker.md#escalonamento-replicas-e-limites-de-recurso)) —,
+    ao custo de uma serialização explícita — ver abaixo.
+
+**Serialização com marcação de tipo.** O Redis só guarda texto — mas o retorno de uma tool não é
+sempre um `dict`/`list` simples. As tools MCP (via `langchain-mcp-adapters`, que usa
+`response_format="content_and_artifact"`) devolvem uma **tupla** `(conteúdo, artefato)`, e
+`json.loads` nunca reconstrói uma tupla a partir de JSON — sempre devolve uma lista. Para não
+depender de "adivinhar" o tipo pela estrutura na leitura (o que ficaria ambíguo se uma tool nativa
+devolvesse, por coincidência, uma lista de 2 elementos de verdade), `_serializar`/`_desserializar`
+marcam o tipo original explicitamente antes de gravar:
+
+```python
+{"__tipo__": "tupla", "valor": [...]}   # quando o resultado é uma tuple
+{"__tipo__": "bruto", "valor": ...}     # dict, list, str — sem transformação
+```
+
+A leitura usa essa marca para decidir se reconstrói a tupla ou devolve o valor como veio — nunca
+precisa inspecionar a estrutura do dado em si.
+
+**Normalização da chave (`normalizadores`).** A chave é calculada a partir dos argumentos EXATOS
+que o LLM decide enviar — mas o LLM não é determinístico na formatação. `consultar_receita_federal`
+e `consultar_sancoes_empresa` tiram pontuação do CNPJ (`re.sub(r"[./-]", "", cnpj)`) **dentro** da
+tool, em `app/services/tools.py`, ou seja, depois que a chave de cache já teria sido calculada.
+Sem tratamento, `"11.222.333/0001-81"` e `"11222333000181"` — a mesma consulta — geram chaves
+diferentes e o cache nunca dá HIT entre uma formatação e outra. `aplicar_cache` aceita um parâmetro
+opcional `normalizadores: dict[str, dict[str, Callable]]` (`tool_name -> {arg_nome: função}`) que
+`_gerar_chave` aplica **só para calcular a chave**, sem alterar o valor que de fato chega à tool.
+`app/services/tools.py` declara esse mapa (`CACHE_KEY_NORMALIZERS`) porque é quem já sabe como cada
+CNPJ precisa ser normalizado — `cache_mcp.py` continua genérico, sem saber o que é um CNPJ.
+
+**Tolerância a falha do Redis.** Se o Redis estiver indisponível, `coroutine_com_cache` não derruba
+a chamada da tool: registra a falha (`logger.exception`) e segue direto para a tool original, tanto
+na leitura (GET) quanto na escrita (SET) — a tool sempre responde, só sem o benefício do cache
+naquela chamada.
+
+**Logs emitidos** (via `app/core/logging_config.py`), para acompanhar o comportamento em produção:
+
+| Evento | Nível | Quando |
+|---|---|---|
+| `Cache Redis aplicado a N ferramenta(s): ...` | INFO | Uma vez no startup, ao envolver as tools |
+| `Cache HIT (Redis) \| tool=... \| chave=...` | INFO | A chave já existia no Redis — tool original não foi chamada |
+| `Cache MISS (Redis) \| tool=... \| chave=...` | INFO | Chave não existia — tool original foi chamada |
+| `Resultado gravado no Redis \| tool=... \| chave=... \| ttl=...` | DEBUG | Escrita no Redis concluída após um MISS |
+| `Falha ao ler/gravar no Redis \| tool=... \| chave=...` | ERROR (com traceback) | Redis indisponível — a chamada seguiu sem cache |
 
 !!! info "Requisitos cobertos por este pilar"
     | Requisito | O que esta seção resolve |
     |---|---|
-    | **T3** — Uso de dados (preparação, armazenamento) | Cache TTL e truncamento de retorno |
-    | **T5** — Arquitetura com agentes (trade-offs) | Reuso via MCP × dependência de Node.js |
+    | **T3** — Uso de dados (preparação, armazenamento) | Cache TTL no Redis e truncamento de retorno |
+    | **T5** — Arquitetura com agentes (trade-offs) | Reuso via MCP × dependência de Node.js; cache local × cache distribuído |
 
 ## Limitações e observações
 

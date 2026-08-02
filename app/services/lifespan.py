@@ -33,7 +33,7 @@ from app.core.dependencies import (
 from app.core.logging_config import logger
 from app.services.build_graph import initialize_graph
 from app.services.rate_limiter import inicializar_rate_limiter
-from app.services.tools import TOOLS
+from app.services.tools import CACHE_KEY_NORMALIZERS, TOOLS
 from app.utils.cache_mcp import aplicar_cache
 from app.utils.mcp_utils import patch_mcp_tools
 
@@ -71,6 +71,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
 
     logger.info("npx encontrado em: %s", npx_cmd)
+
+    # Client Redis compartilhado pelo rate limiter e pelo cache de ferramentas — uma
+    # única conexão para os dois usos, em vez de abrir um client por consumidor.
+    # Independente da conexão do checkpointer (que vive dentro do "with" do
+    # AsyncRedisSaver mais abaixo): não precisa do setup específico que o
+    # checkpointer exige (asetup()), então basta abrir aqui e fechar no shutdown.
+    redis_client = Redis.from_url(REDIS_URI)
+    logger.info("Client Redis (rate limiter + cache de ferramentas) conectado.")
 
     # Importação adiada para evitar dependência circular no nível do módulo
     from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -126,12 +134,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Aplica o patch de tipos permissivos para compatibilidade entre LLM e MCP server
     mcp_tools = patch_mcp_tools(tools=mcp_tools)
 
-    # Envolve cada tool MCP com cache em memória (TTL 24h) para evitar chamadas repetidas ao subprocess
-    mcp_tools = aplicar_cache(tools=mcp_tools, ttl_segundos=86400)
+    # Envolve cada tool MCP com cache no Redis (TTL 24h) para evitar chamadas repetidas ao subprocess
+    mcp_tools = aplicar_cache(
+        tools=mcp_tools, redis_client=redis_client, ttl_segundos=86400
+    )
 
     # Envolve também as tools nativas do projeto (Receita Federal, busca no edital) com o mesmo cache —
-    # antes só as tools MCP eram cacheadas, mas essas duas fazem chamada HTTP/Pinecone e se beneficiam igual
-    tools_nativas = aplicar_cache(tools=TOOLS, ttl_segundos=86400)
+    # antes só as tools MCP eram cacheadas, mas essas duas fazem chamada HTTP/Pinecone e se beneficiam igual.
+    # normalizadores=CACHE_KEY_NORMALIZERS faz a chave de cache usar o CNPJ já sem pontuação, então
+    # "12.345.678/0001-99" e "12345678000199" caem na mesma chave em vez de gerar entradas separadas.
+    tools_nativas = aplicar_cache(
+        tools=TOOLS,
+        redis_client=redis_client,
+        ttl_segundos=86400,
+        normalizadores=CACHE_KEY_NORMALIZERS,
+    )
 
     # Combina as tools nativas do projeto com as tools do MCP
     todas_as_tools = tools_nativas + mcp_tools
@@ -148,13 +165,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     logger.info("Modelo extrator inicializado com sucesso.")
 
-    # Client Redis dedicado ao rate limiter — independente da conexão do checkpointer
-    # (que vive dentro do "with" do AsyncRedisSaver logo abaixo). Não precisa estar
-    # dentro daquele "with": é uma conexão simples, sem o setup específico que o
-    # checkpointer exige (asetup()), então basta abrir aqui e fechar no shutdown.
-    redis_rate_limiter = Redis.from_url(REDIS_URI)
-    inicializar_rate_limiter(redis_rate_limiter)
-    logger.info("Rate limiter inicializado com client Redis dedicado.")
+    inicializar_rate_limiter(redis_client)
+    logger.info("Rate limiter inicializado com o client Redis compartilhado.")
 
     # Expira o histórico de conversa (checkpoints do grafo) após TTL_CHECKPOINT_MINUTOS
     # minutos de INATIVIDADE — refresh_on_read=True faz cada leitura renovar o TTL, então
@@ -183,7 +195,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # para liberar aqui.
         logger.info("Servidor encerrado com sucesso.")
 
-    # Fecha o client Redis do rate limiter no shutdown — ele não é gerenciado pelo
-    # "with" do checkpointer acima (são duas conexões independentes), então precisa
-    # ser encerrado explicitamente aqui.
-    await redis_rate_limiter.aclose()
+    # Fecha o client Redis compartilhado (rate limiter + cache de tools) no shutdown —
+    # não é gerenciado pelo "with" do checkpointer acima (é uma conexão independente),
+    # então precisa ser encerrado explicitamente aqui.
+    await redis_client.aclose()
+    logger.info("Client Redis (rate limiter + cache de ferramentas) encerrado.")

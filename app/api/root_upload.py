@@ -30,7 +30,16 @@ router = APIRouter(prefix="/upload", tags=["Upload"])
     # Upload dispara indexação no Pinecone (custo de embeddings) — limite mais
     # apertado que o de conversa, já que um usuário legítimo sobe poucos editais
     # por dia. Janela de 86400s = 24h.
-    dependencies=[Depends(RateLimiter(limit=5, window_seconds=86400, prefixo="quota_upload"))],
+    dependencies=[
+        Depends(
+            RateLimiter(
+                limit=5,
+                window_seconds=86400,
+                prefixo="quota_upload",
+                descricao="upload diário",
+            )
+        )
+    ],
 )
 async def upload_edital(
     file: UploadFile = File(...),  # noqa: B008

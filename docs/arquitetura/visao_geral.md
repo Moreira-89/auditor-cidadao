@@ -11,7 +11,8 @@ O núcleo do sistema é um `StateGraph` do LangGraph (`app/services/build_graph.
 alterna entre `call_llm` e `tool_node` até o modelo responder sem pedir mais nenhuma ferramenta.
 O roteador (`router`) decide isso checando se a última mensagem tem `tool_calls` pendentes. Um
 `AsyncRedisSaver` (Redis, ver `app/services/lifespan.py`) guarda esse histórico por `thread_id`,
-persistindo entre restarts e compartilhado caso a aplicação rode com múltiplos workers/instâncias —
+persistindo entre restarts e compartilhado entre as réplicas com que a aplicação roda em produção
+hoje (2 réplicas, 1 worker cada, ver [Docker & Deploy](../operacional/docker.md#escalonamento-replicas-e-limites-de-recurso)) —
 substituiu o `InMemorySaver` original (RAM do processo, perdido a cada restart). A persistência não
 é indefinida: cada thread expira após `TTL_CHECKPOINT_MINUTOS` minutos de **inatividade** (default
 24h) — toda leitura renova essa contagem, então uma conversa em uso nunca expira no meio, só threads
