@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from pinecone import Pinecone
+from pinecone.exceptions import NotFoundException
 
 # Carrega as variáveis de ambiente (como PINECONE_API_KEY) do arquivo .env
 load_dotenv()
@@ -58,7 +59,14 @@ def limpar_registros_expirados() -> None:
         # O Pinecone não retorna quantos registros foram afetados por um delete
         # com filtro (só confirma se a chamada foi aceita) — por isso o log
         # abaixo é de confirmação de execução, não de contagem.
-        index.delete(namespace=NAMESPACE, filter=filtro)
+        try:
+            index.delete(namespace=NAMESPACE, filter=filtro)
+        except NotFoundException:
+            # O Pinecone cria namespaces só na primeira indexação; se ainda
+            # não há nenhum registro em NAMESPACE, o delete retorna 404 em
+            # vez de "0 registros apagados". Não há nada a limpar, então
+            # trata como sucesso em vez de derrubar o job.
+            print(f"ℹ️ Namespace '{NAMESPACE}' ainda não existe — nada a limpar.")
 
         print("✅ Limpeza concluída sem erros.")
     except Exception as e:
