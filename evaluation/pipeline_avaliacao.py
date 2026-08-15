@@ -42,7 +42,7 @@ from app.core.dependencies import (
     retornar_cliente_llm,
 )
 from app.core.logging_config import logger
-from app.core.prompt import PROMPT_DINAMICO, PROMPT_EXTRATOR, SYSTEM_PROMPT
+from app.core.prompt import PROMPT_DINAMICO, PROMPT_EXTRATOR
 from app.models.laudo import RespostaLaudo
 from app.services.ai_engine import escape_xml
 from app.services.build_graph import build_graph
@@ -314,8 +314,9 @@ async def main(salvar_json: bool = True):
                 else "Nenhum CNPJ encontrado no documento."
             )
 
-            system_message = SystemMessage(content=SYSTEM_PROMPT)
-            # Réplica intencional de app/services/ai_engine.py (mesmo padrão de produção)
+            # Réplica intencional de app/services/ai_engine.py (mesmo padrão de produção).
+            # SYSTEM_PROMPT não entra em mensagens_entrada — build_graph() já o passa como
+            # system_prompt= ao create_agent, que o prepõe automaticamente a cada chamada.
             data_hoje = date.today().strftime("%Y%m%d")  # noqa: DTZ011
             human_message = HumanMessage(
                 content=PROMPT_DINAMICO.format(
@@ -326,7 +327,7 @@ async def main(salvar_json: bool = True):
                     data_hoje=data_hoje,
                 )
             )
-            mensagens_entrada = [system_message, human_message]
+            mensagens_entrada = [human_message]
 
             # Acumula os nomes das tools chamadas pelo agente e o laudo final gerado,
             # seguindo o mesmo padrão de streaming usado em ai_engine.run_agent

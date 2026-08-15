@@ -1,25 +1,10 @@
 """
-As 4 ferramentas ("tools") NATIVAS do projeto — as capacidades que o agente pode
-acionar sozinho durante a conversa. Vão para o agente junto com as tools de PNCP
-vindas do MCP (ver app/services/lifespan.py). São elas: consulta cadastral (Receita
-Federal), busca semântica no edital indexado (Pinecone), busca na web (Tavily) e
-verificação de sanções (CEIS/CNEP do Portal da Transparência).
+As 4 ferramentas nativas do projeto (Receita Federal, RAG do edital, sanções CEIS/CNEP,
+busca web) — combinadas com as tools de PNCP do MCP em app/services/lifespan.py. Cada
+tool é uma casca fina sobre um módulo de serviço dedicado (consulta_*.py, busca_web.py).
 
-Cada tool aqui é, de propósito, uma "casca fina" (wrapper): só valida/normaliza os
-argumentos que o LLM enviou, repassa a chamada externa de verdade para um módulo de
-serviço dedicado (app/services/consulta_*.py, busca_web.py) e traduz o resultado — ou
-o erro — em algo que o LLM entenda. Isso mantém este arquivo legível conforme o número
-de tools cresce e deixa a lógica de integração reutilizável fora do agente (scripts, testes).
-
-NOTA — buscar_contratos_fornecedor_pncp (histórico de contratos entre um
-fornecedor e um órgão no PNCP) está definida abaixo mas DESATIVADA de propósito:
-removida de TOOLS e do SYSTEM_PROMPT porque a varredura de todas as modalidades
-de um órgão pode levar vários minutos sob o rate limit do PNCP (ver
-app/services/consulta_pncp.py), o que arrisca derrubar o streaming SSE em
-produção antes de terminar. O código fica pronto para ser reativado depois que
-esse ponto for resolvido (ex.: heartbeats periódicos no SSE, ou escopo mais
-restrito de varredura) — só voltar a incluí-la na lista TOOLS e na seção
-CAPACIDADES DISPONÍVEIS do SYSTEM_PROMPT.
+Lista completa de ferramentas e a tool desativada (buscar_contratos_fornecedor_pncp):
+docs/arquitetura/visao_geral.md#ferramentas-disponiveis-ao-agente.
 """
 
 import asyncio
@@ -29,8 +14,7 @@ from typing import Annotated
 
 import httpx
 from dotenv import load_dotenv
-from langchain.tools import BaseTool, tool
-from langgraph.prebuilt import InjectedState
+from langchain.tools import BaseTool, ToolRuntime, tool
 from pydantic import Field
 from validate_docbr import CNPJ
 
@@ -69,10 +53,8 @@ async def consultar_receita_federal(
         data de início de atividade e endereço (logradouro, número, bairro, município, UF, CEP).
         Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
     """
-    # Remove pontuação e hífens para padronizar o CNPJ antes de validar e consultar
     cnpj_limpo = re.sub(r"[./-]", "", cnpj)
 
-    # Valida matematicamente os dígitos verificadores antes de fazer a requisição HTTP
     if not CNPJ().validate(cnpj_limpo):
         return {
             "error": f"CNPJ inválido: '{cnpj}'. Os dígitos verificadores não conferem com o algoritmo oficial da Receita Federal."
@@ -89,16 +71,13 @@ async def consultar_receita_federal(
             "error": f"Receita Federal retornou status {e.response.status_code} para o CNPJ {cnpj_limpo}"
         }
     except httpx.RequestError as e:
-        # Captura erros de conexão, DNS, SSL, redirect loop, etc.
         return {"error": f"Falha de conexão ao consultar o CNPJ {cnpj_limpo}: {e!s}"}
 
 
 @tool
 async def buscar_contexto_edital(
     pergunta: str,
-    # InjectedState puxa o valor direto do AgentState, invisível para o LLM e para o schema da tool
-    estado: Annotated[str, InjectedState("estado")],
-    municipio: Annotated[str, InjectedState("municipio")],
+    runtime: ToolRuntime,
 ) -> str:
     """
     Busca trechos relevantes do edital ativo no banco vetorial com base em uma pergunta.
@@ -114,18 +93,16 @@ async def buscar_contexto_edital(
         Trechos do edital mais relevantes para a pergunta, prontos para análise.
         Se nenhum trecho for encontrado, retorna uma mensagem informando que o edital pode não estar indexado.
     """
-    # Lido em tempo de chamada (não de import) para que evaluation/pipeline_avaliacao.py
-    # possa apontar para o namespace "avaliacao" via env var sem afetar o agente em produção,
-    # que continua usando o default "production" do GerenciadorVetorial.
+    # Lido em tempo de chamada (não de import): evaluation/pipeline_avaliacao.py sobrescreve
+    # PINECONE_NAMESPACE para isolar o namespace de teste sem afetar o agente em produção.
     namespace_busca = os.getenv("PINECONE_NAMESPACE", "production")
     top_k = int(os.getenv("TOP_K_EDITAL", "3"))
 
-    # asyncio.to_thread garante que a query síncrona ao Pinecone não bloqueie o event loop
-    return await asyncio.to_thread(
+    return await asyncio.to_thread(  # busca ao Pinecone é síncrona; to_thread não bloqueia o event loop
         gerenciador.buscar_contexto,
         pergunta=pergunta,
-        estado=estado,
-        municipio=municipio,
+        estado=runtime.state["estado"],
+        municipio=runtime.state["municipio"],
         namespace=namespace_busca,
         top_k=top_k,
     )
@@ -140,9 +117,7 @@ async def buscar_informacao_web(
             min_length=5,
         ),
     ],
-    # InjectedState puxa o valor direto do AgentState, invisível para o LLM e para o schema da tool
-    estado: Annotated[str, InjectedState("estado")],
-    municipio: Annotated[str, InjectedState("municipio")],
+    runtime: ToolRuntime,
 ) -> dict:
     """
     Busca informações atualizadas na internet sobre um tema específico.
@@ -159,7 +134,9 @@ async def buscar_informacao_web(
         Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
     """
     try:
-        resultados = await buscar_na_web(assunto_busca, estado, municipio)
+        resultados = await buscar_na_web(
+            assunto_busca, runtime.state["estado"], runtime.state["municipio"]
+        )
     except Exception as e:  # noqa: BLE001
         # A lib da Tavily não expõe uma hierarquia de exceções específica e documentada
         # (indisponibilidade da API, cota excedida, chave ausente/inválida caem todas aqui)
@@ -197,10 +174,8 @@ async def consultar_sancoes_empresa(
         "aviso" (CNPJ inválido ou CEIS/CNEP indisponível na consulta) — trate "aviso"
         como "não verificado", nunca como "empresa sem sanções".
     """
-    # Remove pontuação e hífens para padronizar o CNPJ antes de validar e consultar
     cnpj_limpo = re.sub(r"[./-]", "", cnpj)
 
-    # Valida matematicamente os dígitos verificadores antes de fazer a requisição HTTP
     if not CNPJ().validate(cnpj_limpo):
         return [
             {
@@ -266,7 +241,6 @@ async def buscar_contratos_fornecedor_pncp(
     todas as modalidades de contratação do órgão no ano e pode levar alguns minutos
     em órgãos com muitas compras — isso é esperado, não um erro.
     """
-    # Remove pontuação e hífens para padronizar os CNPJs antes de validar e consultar
     cnpj_orgao_limpo = re.sub(r"[./-]", "", cnpj_orgao)
     cnpj_fornecedor_limpo = re.sub(r"[./-]", "", cnpj_fornecedor)
 
@@ -293,12 +267,19 @@ async def buscar_contratos_fornecedor_pncp(
     return {"resultados": resultados}
 
 
-# Usado por app/utils/cache_mcp.py (aplicar_cache) para gerar a chave de cache a partir
-# do CNPJ já normalizado, e não do texto exato que o LLM mandou. Sem isso, "12.345.678/0001-99"
-# e "12345678000199" — a mesma consulta — gerariam entradas de cache diferentes, porque a
-# normalização abaixo só acontece DENTRO da tool, depois que a chave já foi calculada.
+# Usado por aplicar_cache (app/utils/cache_mcp.py) para a chave de cache usar o CNPJ já
+# normalizado — ver docs/arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache.
 def _normalizar_cnpj_para_cache(v: str) -> str:
     return re.sub(r"[./-]", "", v)
+
+
+# ToolRuntime não é serializável em JSON — sem isso, aplicar_cache quebra com TypeError
+# ao tentar calcular a chave. Extrai só estado/municipio (que PRECISAM continuar na chave:
+# a mesma pergunta em municípios diferentes tem que gerar cache MISS, não reusar o
+# resultado de outro edital) — ver docs/arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache.
+def _extrair_estado_municipio_para_cache(runtime: ToolRuntime) -> dict:
+    return {"estado": runtime.state["estado"], "municipio": runtime.state["municipio"]}
+
 
 CACHE_KEY_NORMALIZERS = {
     "consultar_receita_federal": {"cnpj": _normalizar_cnpj_para_cache},
@@ -307,9 +288,10 @@ CACHE_KEY_NORMALIZERS = {
         "cnpj_orgao": _normalizar_cnpj_para_cache,
         "cnpj_fornecedor": _normalizar_cnpj_para_cache,
     },
+    "buscar_contexto_edital": {"runtime": _extrair_estado_municipio_para_cache},
+    "buscar_informacao_web": {"runtime": _extrair_estado_municipio_para_cache},
 }
 
-# Lista de tools nativas do projeto — combinada com as MCP tools no startup pelo lifespan
 TOOLS: list[BaseTool] = [
     consultar_receita_federal,
     buscar_contexto_edital,

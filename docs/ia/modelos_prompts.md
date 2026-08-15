@@ -56,6 +56,50 @@ Toda a engenharia de prompt vive em `app/core/prompt.py` — quatro peças, sem 
 - **`TOOL_STATUS_MAP`** — traduz o nome técnico de cada ferramenta na mensagem amigável exibida ao
   usuário durante a execução (ex.: "🏛️ Consultando dados cadastrais na Receita Federal...").
 
+## Exemplo real: o que o modelo recebe no primeiro turno
+
+`SYSTEM_PROMPT` (abertura, `app/core/prompt.py` — texto literal, só cortado com `[...]` onde o
+prompt continua):
+
+```text
+# IDENTIDADE
+Você é o **Auditor Cidadão**, um agente especializado em auditoria de licitações,
+contratos e editais públicos municipais brasileiros sob a Lei 14.133/2021.
+Trate o usuário de forma cordial, profissional e direta.
+
+# MISSÃO
+Identificar indícios de irregularidade em documentos de contratação pública,
+cruzando informações declaradas no edital com dados oficiais de fontes públicas
+acessíveis através das suas capacidades de consulta.
+
+Você NÃO é um validador de CNPJ. Você é um auditor. Sua função é detectar
+PADRÕES SUSPEITOS, não apenas conformidade cadastral.
+
+[...]
+```
+
+`PROMPT_DINAMICO` é o `HumanMessage` enviado junto — o exemplo abaixo usa os valores reais do
+`caso_01` do golden dataset (edital fictício de São Luís/MA, ver [Avaliação](avaliacao.md)):
+
+```text
+<CNPJS_NO_EDITAL>
+38504819000169
+</CNPJS_NO_EDITAL>
+
+<METADADOS>
+Município: São Luís
+Estado: Maranhão (MA)
+Data de hoje: 20260815
+</METADADOS>
+
+<PERGUNTA>
+Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.
+</PERGUNTA>
+```
+
+Note que a pergunta do usuário nunca chega "pura" ao modelo — sempre dentro da tag `<PERGUNTA>`,
+depois de passar por `escape_xml()` (ver [Guardrails](../governanca/guardrails.md)).
+
 ## Técnicas de engenharia de prompt aplicadas
 
 **Identidade e missão explícitas.** O `SYSTEM_PROMPT` abre reforçando que o agente é um *auditor*,

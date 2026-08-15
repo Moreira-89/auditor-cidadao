@@ -18,6 +18,40 @@ O formato do JSON é um schema Pydantic em `app/models/laudo.py`:
 Os textos em `Field(description=...)` não são só documentação — o próprio LLM extrator os lê para
 saber o que preencher em cada campo.
 
+### Exemplo de saída
+
+Ilustrativo, construído a partir do `caso_01` do golden dataset (empresa com sanção vigente em
+CEIS/CNEP, ver [Avaliação](avaliacao.md)) — não é um output literal capturado em produção, mas
+segue o schema real campo a campo:
+
+```json
+{
+  "laudo": {
+    "cnpjs_analisados": ["38504819000169"],
+    "anomalias": [
+      {
+        "codigo": "H",
+        "descricao": "Empresa vencedora do certame consta com sanção vigente no CEIS.",
+        "evidencias": [
+          "CNPJ 38.504.819/0001-69 possui registro de Suspensão ativo no CEIS.",
+          "Registro classificado com Tipo: \"Suspensão\", fonte: Portal da Transparência (CGU)."
+        ],
+        "nivel_risco": "CRÍTICO"
+      }
+    ],
+    "nivel_risco_geral": "CRÍTICO",
+    "resumo_executivo": "A empresa vencedora da dispensa eletrônica consta com sanção vigente no CEIS (Suspensão), o que configura impedimento legal expresso para contratar com a administração pública (Lei 14.133/2021, art. 14).",
+    "recomendacoes": [
+      "Suspender a contratação até confirmação formal da vigência da sanção junto ao órgão sancionador.",
+      "Verificar manualmente se há decisão judicial suspendendo os efeitos da sanção."
+    ]
+  }
+}
+```
+
+Para uma resposta conversacional (ex.: "qual o valor do contrato?"), o extrator devolve
+`{"laudo": null}` — nenhum outro campo é preenchido.
+
 ## Como a extração acontece
 
 Depois que o laudo em Markdown já foi transmitido ao usuário, `run_agent`
@@ -74,3 +108,25 @@ compromete a resposta principal.
     uma tool de auditoria no turno — gera falso positivo (ex.: "verifica esse CNPJ pra mim" chama
     uma tool, mas não é um laudo completo). A decisão final foi delegar ao próprio LLM extrator, via
     o critério explícito do `PROMPT_EXTRATOR`, em vez de uma heurística fixa no código.
+
+!!! note "Por que não `response_format=` do create_agent"
+    `create_agent` (ver [Arquitetura](../arquitetura/visao_geral.md)) aceita um parâmetro
+    `response_format=` que faz o próprio agente devolver uma saída validada contra um schema Pydantic
+    — em tese, dava para passar `RespostaLaudo` ali e eliminar a segunda chamada ao LLM. Avaliado e
+    descartado por dois motivos, confirmados inspecionando o grafo compilado (`agent.get_graph()`)
+    com `response_format` ativo:
+
+    1. **`response_format` se aplica a toda invocação, não só ao laudo.** O agente responde tanto
+       perguntas conversacionais quanto laudos completos no mesmo fluxo — `response_format` forçaria
+       toda resposta final (inclusive as conversacionais) a validar contra `RespostaLaudo`, perdendo
+       a distinção que hoje vive no `PROMPT_EXTRATOR` (`laudo: null` quando não é laudo).
+    2. **Muda o que conta como "resposta final" no streaming.** Com `response_format` ativo, o nó
+       `model` ganha uma aresta condicional de auto-loop (`model → model`) para validar/repetir a
+       saída estruturada — nesse desenho, a resposta final deixa de ser texto Markdown de streaming
+       livre e passa a ser vinculada à validação do schema. Isso quebraria o streaming token-a-token
+       do laudo em Markdown que o frontend já renderiza, ou exigiria desenhar dois caminhos de
+       resposta dentro do mesmo agente.
+
+    Manter a segunda chamada (extrator dedicado, fora do grafo principal) preserva os dois
+    comportamentos — streaming de Markdown livre + JSON estruturado só quando aplicável — ao custo de
+    uma chamada extra ao LLM por turno. Decisão consciente, não desconhecimento do recurso.

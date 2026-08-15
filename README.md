@@ -58,9 +58,9 @@ flowchart TD
     CHAT --> RAG["Busca semântica no Pinecone<br/>filtro: estado + município"]
     RAG --> AGENT
 
-    subgraph AGENT["Loop agêntico - LangGraph StateGraph"]
+    subgraph AGENT["Loop agêntico - langchain.agents.create_agent"]
         direction LR
-        LLM["call_llm"] -->|"tool_calls"| TOOLS["ToolNode"]
+        LLM["model"] -->|"tool_calls"| TOOLS["tools"]
         TOOLS -->|"resultado"| LLM
     end
 
@@ -78,19 +78,20 @@ chunks de até 2.000 caracteres (200 de overlap) → gera embeddings → indexa 
 de estado/município → extrai e retorna os CNPJs encontrados no texto.
 
 **Fluxo 2 — Auditoria (`POST /conversar-com-auditor/`):** busca os 3 trechos mais relevantes do
-edital no Pinecone → monta o contexto (System Prompt + CNPJs, apenas no primeiro turno) → o grafo
-LangGraph itera entre `call_llm` e `ToolNode` até o agente ter evidência suficiente → transmite a
-resposta via SSE, token a token, junto com eventos de status ("Consultando Receita Federal...") e,
-ao final, o laudo estruturado em JSON.
+edital no Pinecone → monta o contexto (CNPJs, apenas no primeiro turno — o System Prompt é
+reaplicado pelo próprio agente a cada chamada) → o agente itera entre `model` e `tools` até ter
+evidência suficiente → transmite a resposta via SSE, token a token, junto com eventos de status
+("Consultando Receita Federal...") e, ao final, o laudo estruturado em JSON.
 
 ---
 
 ## 🤖 Loop agêntico e ferramentas
 
-O núcleo do sistema é um `StateGraph` do LangGraph com dois nós — `call_llm` e `ToolNode` — que se
-alternam até o modelo parar de solicitar ferramentas. `AsyncRedisSaver` (Redis) persiste o histórico
-por `thread_id`, permitindo conversas multi-turno mesmo entre restarts do servidor — o histórico
-expira automaticamente após um período configurável de inatividade (`TTL_CHECKPOINT_MINUTOS`).
+O núcleo do sistema é um agente `create_agent` (`langchain.agents`) com dois nós — `model` e
+`tools` — que se alternam até o modelo parar de solicitar ferramentas. `AsyncRedisSaver` (Redis)
+persiste o histórico por `thread_id`, permitindo conversas multi-turno mesmo entre restarts do
+servidor — o histórico expira automaticamente após um período configurável de inatividade
+(`TTL_CHECKPOINT_MINUTOS`).
 
 | Ferramenta nativa | Fonte | O que verifica |
 |---|---|---|
@@ -153,7 +154,7 @@ agente. Camadas de defesa aplicadas:
 | Categoria | Tecnologia |
 |---|---|
 | Framework web | [FastAPI](https://fastapi.tiangolo.com/) + Uvicorn |
-| Orquestração agêntica | [LangGraph](https://langchain-ai.github.io/langgraph/) (`ToolNode`, `StateGraph`, `AsyncRedisSaver`) |
+| Orquestração agêntica | [LangGraph](https://langchain-ai.github.io/langgraph/) (`AsyncRedisSaver`) via `langchain.agents.create_agent` |
 | Framework de LLM | [LangChain](https://python.langchain.com/) |
 | LLM (padrão) | OpenAI `gpt-4o-mini` — trocável via `LLM_MODEL` (Groq Llama 3.3, Google Gemini) |
 | Embeddings | OpenAI `text-embedding-3-small` |
@@ -218,7 +219,7 @@ auditor-cidadao/
     │   ├── consulta_pncp.py          # Integração PNCP (ver Limitações Conhecidas)
     │   ├── busca_web.py
     │   ├── gerenciadorvetorial.py    # Pipeline RAG: chunking → embeddings → Pinecone
-    │   ├── build_graph.py            # Compilação do StateGraph
+    │   ├── build_graph.py            # Montagem do agente via create_agent
     │   ├── ai_engine.py              # run_agent() + streaming SSE
     │   ├── rate_limiter.py           # Limita requisições por cliente (Redis + script Lua)
     │   └── lifespan.py               # Startup: conecta o MCP, Redis e monta as tools

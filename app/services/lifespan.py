@@ -1,16 +1,8 @@
 """
-"Lifespan" do FastAPI: código que roda UMA vez no startup do servidor (antes do primeiro
-request) e uma vez no shutdown. É onde concentramos a inicialização pesada, para não pagar
-esse custo de novo a cada requisição.
+"Lifespan" do FastAPI: roda uma vez no startup (antes do primeiro request) e uma vez
+no shutdown — é onde fica a inicialização pesada (MCP, cache, grafo).
 
-O que acontece no startup, em ordem:
-1. Garante que o Node.js/npx está acessível (o MCP roda como um processo Node).
-2. Conecta ao MCP LiciNexus e obtém as ferramentas de PNCP. (MCP = Model Context Protocol,
-   um padrão para expor ferramentas a um agente; aqui é um pacote npm que fala com o PNCP.)
-3. Filtra só as ferramentas MCP desejadas, ajusta os schemas delas (mcp_utils) e envolve
-   tudo em cache com validade de 24h (cache_mcp) — inclusive as ferramentas nativas.
-4. Constrói o grafo do agente (com todas as ferramentas) e o modelo extrator, guardando
-   ambos como singletons usados pela aplicação inteira.
+Passo a passo e diagrama: docs/arquitetura/protocolo_mcp.md.
 """
 
 import os
@@ -24,8 +16,10 @@ from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from redis.asyncio import Redis
 
 from app.core.dependencies import (
+    EXTRATOR_MAX_RETRIES,
     EXTRATOR_MODEL,
     EXTRATOR_TEMPERATURE,
+    EXTRATOR_TIMEOUT_SEGUNDOS,
     REDIS_URI,
     TTL_CHECKPOINT_MINUTOS,
     retornar_cliente_llm,
@@ -37,8 +31,7 @@ from app.services.tools import CACHE_KEY_NORMALIZERS, TOOLS
 from app.utils.cache_mcp import aplicar_cache
 from app.utils.mcp_utils import patch_mcp_tools
 
-# Instância singleton do modelo usado no processo de extração de informações (temperatura 0
-# para respostas determinísticas). Criada no startup do lifespan e recuperada via get_extrator().
+# Singleton do modelo extrator, criado no startup e recuperado via get_extrator().
 _extrator_instance = None
 
 
@@ -57,13 +50,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("Iniciando servidor — carregando ferramentas e grafo...")
 
-    # No Windows, subprocessos não herdam o PATH do shell automaticamente — injeta o Node.js manualmente
+    # Subprocessos no Windows não herdam o PATH do shell automaticamente
     if sys.platform == "win32":
         os.environ["PATH"] = (
             r"C:\Program Files\nodejs" + os.pathsep + os.environ.get("PATH", "")
         )
 
-    # Localiza o executável npx no PATH; usa npx.cmd no Windows e npx no Linux/Docker
     npx_cmd = shutil.which("npx.cmd") or shutil.which("npx")
     if not npx_cmd:
         raise RuntimeError(
@@ -72,21 +64,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("npx encontrado em: %s", npx_cmd)
 
-    # Client Redis compartilhado pelo rate limiter e pelo cache de ferramentas — uma
-    # única conexão para os dois usos, em vez de abrir um client por consumidor.
-    # Independente da conexão do checkpointer (que vive dentro do "with" do
-    # AsyncRedisSaver mais abaixo): não precisa do setup específico que o
-    # checkpointer exige (asetup()), então basta abrir aqui e fechar no shutdown.
+    # Client Redis compartilhado entre rate limiter e cache de ferramentas — independente
+    # da conexão do checkpointer (não precisa do asetup() que o AsyncRedisSaver exige).
     redis_client = Redis.from_url(REDIS_URI)
     logger.info("Client Redis (rate limiter + cache de ferramentas) conectado.")
 
-    # Importação adiada para evitar dependência circular no nível do módulo
+    # Import adiado: evita dependência circular no nível do módulo
     from langchain_mcp_adapters.client import MultiServerMCPClient
 
-    # Nesta versão do langchain-mcp-adapters (0.3.0), o MultiServerMCPClient não mantém
-    # um subprocess Node.js persistente: get_tools() e cada chamada de tool abrem e fecham
-    # sua própria sessão (via "async with" internamente), então não há um processo de longa
-    # duração para encerrar explicitamente no shutdown do lifespan.
     mcp_client = MultiServerMCPClient(
         {
             "licinexus": {
@@ -100,16 +85,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         mcp_tools_todas = await mcp_client.get_tools()
     except Exception as e:
-        # Falha aqui derruba o startup do servidor de propósito (fail-fast) — mas sem
-        # contexto, o traceback bruto do subprocess Node.js não deixa claro se o problema
-        # é o MCP em si ou a inicialização do npx/PATH feita acima.
+        # Fail-fast de propósito — mas com contexto, já que o traceback bruto do
+        # subprocess Node.js não deixa claro se o problema é o MCP ou o npx/PATH.
         logger.exception("Falha ao conectar ao MCP LiciNexus durante o startup.")
         raise RuntimeError(
             "Não foi possível obter as ferramentas do MCP LiciNexus. "
             "Verifique se o pacote @licinexusbr/mcp está acessível e se o npx foi localizado corretamente."
         ) from e
 
-    # Filtra apenas as tools necessárias para o agente, descartando as demais do MCP
     TOOLS_MCP_SELECIONADAS = {
         "search_licitacoes",
         "search_contratos",
@@ -131,18 +114,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         len(mcp_tools_todas),
     )
 
-    # Aplica o patch de tipos permissivos para compatibilidade entre LLM e MCP server
     mcp_tools = patch_mcp_tools(tools=mcp_tools)
 
-    # Envolve cada tool MCP com cache no Redis (TTL 24h) para evitar chamadas repetidas ao subprocess
+    # Cache Redis TTL 24h — normalizadores=CACHE_KEY_NORMALIZERS unifica a chave de cache
+    # entre CNPJ formatado e só-dígitos (ver docs/arquitetura/protocolo_mcp.md).
     mcp_tools = aplicar_cache(
         tools=mcp_tools, redis_client=redis_client, ttl_segundos=86400
     )
-
-    # Envolve também as tools nativas do projeto (Receita Federal, busca no edital) com o mesmo cache —
-    # antes só as tools MCP eram cacheadas, mas essas duas fazem chamada HTTP/Pinecone e se beneficiam igual.
-    # normalizadores=CACHE_KEY_NORMALIZERS faz a chave de cache usar o CNPJ já sem pontuação, então
-    # "12.345.678/0001-99" e "12345678000199" caem na mesma chave em vez de gerar entradas separadas.
     tools_nativas = aplicar_cache(
         tools=TOOLS,
         redis_client=redis_client,
@@ -150,53 +128,43 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         normalizadores=CACHE_KEY_NORMALIZERS,
     )
 
-    # Combina as tools nativas do projeto com as tools do MCP
     todas_as_tools = tools_nativas + mcp_tools
     logger.info(
         "Total de ferramentas disponíveis para o agente: %d", len(todas_as_tools)
     )
 
-    # Instancia o modelo extrator (temperatura 0 para saída determinística),
-    # usado no processo de extração de informações.
     global _extrator_instance
     _extrator_instance = retornar_cliente_llm(
         model_name=EXTRATOR_MODEL,
-        config_params={"temperature": EXTRATOR_TEMPERATURE},
+        config_params={
+            "temperature": EXTRATOR_TEMPERATURE,
+            "timeout": EXTRATOR_TIMEOUT_SEGUNDOS,
+            "max_retries": EXTRATOR_MAX_RETRIES,
+        },
     )
     logger.info("Modelo extrator inicializado com sucesso.")
 
     inicializar_rate_limiter(redis_client)
     logger.info("Rate limiter inicializado com o client Redis compartilhado.")
 
-    # Expira o histórico de conversa (checkpoints do grafo) após TTL_CHECKPOINT_MINUTOS
-    # minutos de INATIVIDADE — refresh_on_read=True faz cada leitura renovar o TTL, então
-    # uma conversa ativa nunca expira no meio; só threads abandonadas são limpas.
+    # refresh_on_read=True: cada leitura renova o TTL, então só threads abandonadas expiram.
     ttl_config = {"default_ttl": TTL_CHECKPOINT_MINUTOS, "refresh_on_read": True}
 
-    # A conexão com o Redis só existe dentro deste "with" — por isso o grafo (que guarda o
-    # checkpointer) só pode ser construído aqui dentro, e o app também só pode rodar (yield)
-    # aqui dentro. Quando o "with" fecha (shutdown), a conexão é encerrada automaticamente.
+    # O grafo só pode ser construído (e o app só pode rodar) dentro deste "with" — é
+    # aqui que a conexão do checkpointer com o Redis existe.
     async with AsyncRedisSaver.from_conn_string(
         redis_url=REDIS_URI, ttl=ttl_config
     ) as checkpointer:
         await checkpointer.asetup()
 
-        # Constrói e armazena o grafo com todas as tools combinadas
         initialize_graph(tools=todas_as_tools, checkpointer=checkpointer)
         logger.info(
             "Grafo inicializado com sucesso (checkpointer Redis). Servidor pronto para receber requests."
         )
 
-        # O yield separa startup do shutdown — o app roda aqui, ainda dentro do "with".
         yield
 
-        # Nenhum cleanup explícito de mcp_client é necessário: como cada chamada MCP já
-        # abre e fecha sua própria sessão/subprocess internamente, não há recurso persistente
-        # para liberar aqui.
         logger.info("Servidor encerrado com sucesso.")
 
-    # Fecha o client Redis compartilhado (rate limiter + cache de tools) no shutdown —
-    # não é gerenciado pelo "with" do checkpointer acima (é uma conexão independente),
-    # então precisa ser encerrado explicitamente aqui.
     await redis_client.aclose()
     logger.info("Client Redis (rate limiter + cache de ferramentas) encerrado.")
