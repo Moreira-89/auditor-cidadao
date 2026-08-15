@@ -55,7 +55,7 @@ config:
 ---
 flowchart LR
     U["Usuário"] -->|"Pergunta sobre o edital"| CHAT["POST /conversar-com-auditor/"]
-    CHAT --> AGENTE["Loop do agente<br>call_llm ↔ tool_node"]
+    CHAT --> AGENTE["Loop do agente<br>model ↔ tools (create_agent)"]
     AGENTE --> SSE["StreamingResponse (SSE)"]
     SSE -->|"tokens + status + laudo_estruturado + done"| U
 ```
@@ -80,7 +80,7 @@ config:
     fontSize: '30px'
 ---
 flowchart TB
-    AGENTE["Loop do agente<br>call_llm ↔ tool_node"] --> RF["consultar_receita_federal"]
+    AGENTE["Loop do agente<br>model ↔ tools (create_agent)"] --> RF["consultar_receita_federal"]
     AGENTE --> RAG["buscar_contexto_edital"]
     AGENTE --> SANC["consultar_sancoes_empresa"]
     AGENTE --> WEB["buscar_informacao_web"]

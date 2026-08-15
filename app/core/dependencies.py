@@ -1,10 +1,9 @@
 """
-Configuração e recursos compartilhados, carregados UMA vez no import do módulo:
+Configuração e recursos compartilhados, carregados uma vez no import do módulo.
 
-- Os parâmetros dos modelos (agente principal, extrator e avaliador) lidos do .env, com
-  defaults seguros para o servidor não quebrar no boot se alguma env var faltar.
-- Um único GerenciadorVetorial (embeddings + conexão com o Pinecone), reutilizado por todo
-  o app — abrir essa conexão é caro demais para refazer a cada requisição (padrão singleton).
+Referência completa de cada env var (default, obrigatoriedade, o "porquê" de cada
+uma): docs/operacional/variaveis_ambiente.md. Comentários abaixo só cobrem o que
+não está lá — decisões específicas do código Python.
 """
 
 import os
@@ -18,57 +17,31 @@ from app.services.gerenciadorvetorial import GerenciadorVetorial
 
 load_dotenv()
 
-# Parâmetros do LLM lidos do .env para facilitar troca de modelo sem alterar código.
-# Defaults abaixo evitam TypeError no boot (ex.: Railway) caso a env var não esteja configurada.
 LLM_MODEL = os.getenv("LLM_MODEL", "openai:gpt-4o-mini")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
+LLM_TIMEOUT_SEGUNDOS = int(os.getenv("LLM_TIMEOUT_SEGUNDOS", "60"))
+LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "2"))
 
-# Modelo usado no processo de extração de informações — separado do LLM_MODEL do agente
-# principal para permitir trocar um sem afetar o outro.
+# Extrator roda no mesmo turno, depois do streaming (ver ai_engine.py) — reusa os
+# limites do agente principal em vez de expor env vars próprias sem necessidade.
 EXTRATOR_MODEL = os.getenv("EXTRATOR_MODEL", "openai:gpt-4o-mini")
-# Temperatura 0 por padrão: saída determinística é o comportamento esperado para extração.
 EXTRATOR_TEMPERATURE = float(os.getenv("EXTRATOR_TEMPERATURE", "0.0"))
+EXTRATOR_TIMEOUT_SEGUNDOS = LLM_TIMEOUT_SEGUNDOS
+EXTRATOR_MAX_RETRIES = LLM_MAX_RETRIES
 
-# Modelo usado pelo RAGAS (evaluation/pipeline_avaliacao.py) para julgar as métricas —
-# separado do LLM_MODEL do agente principal para permitir trocar um sem afetar o outro.
 AVALIADOR_MODEL = os.getenv("AVALIADOR_MODEL", "openai:gpt-4o-mini")
-# Temperatura 0 por padrão: saída determinística é o comportamento esperado para avaliação.
 AVALIADOR_TEMPERATURE = float(os.getenv("AVALIADOR_TEMPERATURE", "0.0"))
 
-# URI de conexão do Redis, usado pelo AsyncRedisSaver como checkpointer do grafo — guarda o
-# histórico de conversa por thread_id de forma persistente e compartilhada entre workers.
 REDIS_URI = os.getenv("REDIS_URI", "redis://localhost:6379")
-
-
-# Minutos de INATIVIDADE até um checkpoint (histórico de conversa) expirar no Redis
-# — não é um TTL fixo desde a criação: cada leitura renova a contagem (ver
-# refresh_on_read em app/services/lifespan.py), então uma conversa em uso nunca
-# expira no meio, só threads abandonadas são limpas. Default 1440 min = 24h.
 TTL_CHECKPOINT_MINUTOS = int(os.getenv("TTL_CHECKPOINT_MINUTOS", "1440"))
 
-# Diferencia ambiente de produção (Railway, servido via HTTPS) de desenvolvimento
-# local (uvicorn em http://localhost, sem TLS). Hoje o único uso é decidir a flag
-# `secure` do cookie de sessão (ver app/api/dependencies_http.py) — um cookie
-# `Secure=True` só é reenviado pelo navegador em conexões HTTPS, então usá-lo fixo
-# faria o cookie nunca persistir em dev local, quebrando o rate limiter em silêncio
-# (cada requisição pareceria vir de um cliente novo).
-#
-# Comparação por string (não bool(os.getenv(...))) porque bool("False") é True em
-# Python — qualquer string não-vazia é "verdadeira". O default é "True" de propósito:
-# se a env var faltar (ex.: esquecida no deploy), o comportamento seguro (HTTPS
-# obrigatório) é o padrão, não o inseguro.
+# bool(os.getenv(...)) não serve aqui: bool("False") é True em Python (string não-vazia).
+# Default "True" de propósito — env var esquecida no deploy cai no lado seguro (HTTPS).
 AMBIENTE_PRODUCAO = os.getenv("AMBIENTE_PRODUCAO", "True").strip().lower() == "true"
 
-# Chave secreta usada para ASSINAR os cookies de identificação de sessão (ver
-# app/utils/cookie_manager.py). Só quem conhece essa chave consegue gerar uma
-# assinatura válida — é o que impede um cliente de forjar ou adulterar o cookie.
-#
-# Se a env var não estiver definida, geramos uma chave aleatória em memória no boot.
-# Isso evita o servidor quebrar em ambiente de desenvolvimento, mas tem um efeito
-# colateral importante: a cada reinício do processo (ou em cada worker, se rodar
-# múltiplos), a chave muda e os cookies emitidos antes viram inválidos. Por isso,
-# em produção, SEMPRE defina COOKIE_SECRET_KEY no ambiente.
+# Sem COOKIE_SECRET_KEY definida, cai numa chave aleatória em memória — não quebra o
+# boot em dev, mas invalida cookies emitidos a cada restart. Sempre definir em produção.
 _COOKIE_SECRET_KEY_ENV = os.getenv("COOKIE_SECRET_KEY")
 if not _COOKIE_SECRET_KEY_ENV:
     logger.warning(
@@ -79,9 +52,7 @@ if not _COOKIE_SECRET_KEY_ENV:
 COOKIE_SECRET_KEY = _COOKIE_SECRET_KEY_ENV or secrets.token_hex(32)
 
 
-# GerenciadorVetorial instanciado uma única vez no import (Singleton):
-# carrega o modelo de embedding e conecta ao Pinecone — custoso demais para recriar por requisição.
-# O try/except garante log CRITICAL com contexto claro antes de encerrar o processo em caso de falha.
+# Singleton: uma única conexão Pinecone/embedding para todo o app.
 try:
     logger.info("Inicializando GerenciadorVetorial (modelo de embedding + Pinecone)...")
     gerenciador = GerenciadorVetorial()
@@ -97,12 +68,6 @@ except Exception as e:
 
 
 def retornar_cliente_llm(model_name: str, config_params: dict | None = None):
-    """
-    Cria e retorna uma instância do cliente LLM configurada via LangChain.
-    Usa None como sentinela para config_params a fim de evitar o bug de argumento mutável padrão em Python.
-    """
-    # Sentinela None: cada chamada recebe seu próprio dict, independente das demais
-    config_params = config_params or {}
-
-    # init_chat_model identifica o provider pelo prefixo do model_name e lê as credenciais do ambiente
+    """Cria um cliente LLM via init_chat_model (provider identificado pelo prefixo de model_name)."""
+    config_params = config_params or {}  # sentinela: evita default mutável compartilhado
     return init_chat_model(model_name, **config_params)

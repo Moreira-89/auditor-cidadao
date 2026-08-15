@@ -131,6 +131,29 @@ a chamada da tool: registra a falha (`logger.exception`) e segue direto para a t
 na leitura (GET) quanto na escrita (SET) — a tool sempre responde, só sem o benefício do cache
 naquela chamada.
 
+**Acoplamento com `ToolRuntime` (risco de reconstrução).** `StructuredTool` é imutável, então
+`aplicar_cache` reconstrói cada tool do zero (`name`/`description`/`args_schema`/`coroutine`
+copiados um a um) em vez de só trocar a `coroutine`. As tools nativas `buscar_contexto_edital` e
+`buscar_informacao_web` recebem `estado`/`municipio` via um parâmetro `runtime: ToolRuntime` — a
+anotação que dispara essa injeção vive no `args_schema`, então ela depende do `args_schema`
+sobreviver por referência na reconstrução. Se `aplicar_cache` um dia passar a reconstruir o
+`args_schema` em vez de copiá-lo, o acoplamento quebra em silêncio (a tool recebe `runtime=None`,
+sem erro explícito). `testes_locais/test_toolruntime_pos_cache.py` confirma esse comportamento
+contra o cache real.
+
+**Bug real encontrado ao migrar para `ToolRuntime` (não hipotético).** `ToolRuntime` não é
+serializável em JSON — ao contrário do `InjectedState` anterior, que injetava direto `estado`/
+`municipio` como strings simples, `ToolRuntime` injeta um objeto (`state`, `config`, `store`,
+`tools`...) inteiro. Sem tratamento, `_gerar_chave` quebrava com `TypeError: Object of type
+ToolRuntime is not JSON serializable` toda vez que `buscar_contexto_edital`/`buscar_informacao_web`
+eram chamadas — ou seja, a migração para `ToolRuntime` teria derrubado essas duas tools em produção
+se não fosse pega antes do merge. Corrigido com um normalizador dedicado
+(`_extrair_estado_municipio_para_cache` em `app/services/tools.py`, registrado em
+`CACHE_KEY_NORMALIZERS`) que extrai só `estado`/`municipio` do `runtime.state` para a chave —
+mantendo a correção original do cache (a mesma pergunta em municípios diferentes precisa continuar
+gerando um `MISS` novo, não reaproveitar o resultado de outro edital) sem tentar serializar o
+`ToolRuntime` inteiro.
+
 **Logs emitidos** (via `app/core/logging_config.py`), para acompanhar o comportamento em produção:
 
 | Evento | Nível | Quando |
