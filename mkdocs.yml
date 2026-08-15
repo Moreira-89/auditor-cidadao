@@ -42,9 +42,11 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Codemap: codemap.md
   - Operacional:
       - Visão geral: operacional/index.md
       - Setup local: operacional/setup_local.md
+      - Referência de API: operacional/api.md
       - Docker & Deploy: operacional/docker.md
       - Variáveis de ambiente: operacional/variaveis_ambiente.md
   - Arquitetura:

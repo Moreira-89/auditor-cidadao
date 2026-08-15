@@ -12,6 +12,33 @@ com sanção ativa no CEIS/CNEP (Anomalia H), prazo de publicação irregular (A
 controle sem anomalia esperada e caso puramente conversacional. Cada caso declara o que se espera
 (ferramentas, anomalias, contexto do edital), servindo de gabarito para as métricas.
 
+**Exemplo real** (`caso_01`, truncado — o campo completo `contexto_edital_esperado` é mais longo):
+
+```json
+{
+  "id": "caso_01",
+  "descricao": "São Luís/MA — sanção CEIS/CNEP vigente da empresa vencedora fictícia na dispensa de notebooks",
+  "categoria": "hibrido",
+  "estado": "Maranhão (MA)",
+  "municipio": "São Luís",
+  "cnpjs": ["38504819000169"],
+  "caminho_pdf": "evaluation/editais_teste/edital_saoluis.pdf",
+  "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Resultado da Fase de Lances: sagrou-se vencedora do certame uma empresa, CNPJ 38.504.819/0001-69, classificada em primeiro lugar com valor total de R$ 58.400,00 para o fornecimento dos 09 notebooks.",
+  "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
+  "tools_esperadas": [
+    {"tool": "consultar_sancoes_empresa", "argumentos_esperados": {"cnpj": "38504819000169"}}
+  ],
+  "anomalias_esperadas": ["H"],
+  "resposta_esperada": "laudo",
+  "score_minimo_esperado": 0.9
+}
+```
+
+`trecho_injetado` é concatenado ao texto extraído do PDF antes da indexação — permite testar um
+cenário específico (aqui, uma sanção) sem precisar de um edital real que já contenha esse dado.
+`tools_esperadas` e `anomalias_esperadas` são o gabarito usado por `aderencia_tools` e
+`recall_anomalias`, respectivamente (ver abaixo).
+
 ## As três famílias de métrica
 
 | Métrica | Como é medida | Usa LLM? |
@@ -59,6 +86,52 @@ o texto do último chunk do documento**, afetando usuários reais em produção.
 estão em [Uso de Dados e RAG](rag_dados.md#o-bug-de-producao-que-a-avaliacao-revelou). É a resposta
 concreta para "como o framework de avaliação ajudou a encontrar problemas reais, não só medir
 números?".
+
+## Rodando o pipeline
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt   # requirements-dev.txt tem ragas
+python -m evaluation.pipeline_avaliacao
+```
+
+Precisa das mesmas chaves de API que a aplicação principal (`OPENAI_API_KEY`, `PINECONE_API_KEY`
+— ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)); não precisa de Redis nem de
+Node.js/MCP — o pipeline monta o grafo direto com `build_graph(TOOLS, checkpointer=InMemorySaver())`,
+fora do `lifespan` da API.
+
+!!! warning "Só exercita as 4 tools nativas, não as 11 do PNCP nem o cache"
+    O agente do pipeline roda **sem** as tools MCP e **sem** a camada `aplicar_cache` que a produção
+    usa (`app/services/lifespan.py`) — ele testa o raciocínio do agente e as 4 tools nativas, não a
+    integração completa. Isso já mordeu na prática: a migração de `InjectedState` para `ToolRuntime`
+    (ver [Arquitetura](../arquitetura/visao_geral.md)) introduziu um bug que só aparecia dentro de
+    `aplicar_cache` — o golden dataset passou normalmente nas duas vezes em que foi rodado durante
+    essa migração, porque nunca chega perto do código que quebrou. Ao interpretar "o golden dataset
+    passou" como evidência de que nada quebrou, vale lembrar desse ponto cego.
+
+O terminal imprime um resumo ao final (`_formatar_relatorio_aprovacao`):
+
+```text
+============================================================
+                   RESULTADO DA AVALIAÇÃO
+============================================================
+  aderencia_tools   : 1.000  (mínimo 0.70)  [OK]     APROVADO
+  faithfulness      : 0.858  (mínimo 0.85)  [OK]     APROVADO
+  context_recall    : 0.600  (mínimo 0.75)  [FALHOU] REPROVADO
+  recall_anomalias  : 1.000  (mínimo 0.80)  [OK]     APROVADO
+------------------------------------------------------------
+  VEREDITO GERAL: [FALHOU] REPROVADO
+============================================================
+```
+
+(Números da rodada de 2026-07-08 documentada abaixo — reproduzido a partir do código real de
+`_formatar_relatorio_aprovacao`, não digitado à mão.)
+
+!!! note "`python -m evaluation.pipeline_avaliacao` não grava `evaluation/relatorio.json`"
+    `main()` tem `salvar_json: bool = True` por padrão, mas o bloco `if __name__ == "__main__":` do
+    próprio arquivo chama `main(salvar_json=False)` — rodar o script direto do terminal só imprime o
+    resumo acima, sem escrever o relatório completo em disco (todas as métricas, por caso e
+    agregadas). Para gravar o JSON, importe e chame `main()` sem esse argumento (ou com
+    `salvar_json=True` explícito) a partir de outro script/notebook.
 
 ## Resultados consolidados
 

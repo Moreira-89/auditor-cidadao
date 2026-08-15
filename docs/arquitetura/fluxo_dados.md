@@ -32,7 +32,8 @@ passar de 20 MB (`app/api/root_upload.py`), e tem o texto extraído via `pdfplum
 palavra), gera os embeddings e faz o upsert no Pinecone com `estado`/`municipio`/`arquivo`
 replicados como metadado em cada chunk — é esse metadado que permite filtrar a busca por edital
 depois. Os CNPJs do texto são extraídos por regex e devolvidos ao frontend, que os reenvia em
-cada pergunta subsequente.
+cada pergunta subsequente. Exemplo real de request/response (`curl`):
+[Referência de API](../operacional/api.md#post-upload-indexar-um-edital).
 
 ## Conversa com o agente (`POST /conversar-com-auditor/`)
 
@@ -64,7 +65,9 @@ A resposta é transmitida via Server-Sent Events (SSE): tokens de texto conforme
 mensagens de status quando uma ferramenta é acionada (ex.: "Consultando Receita Federal..."), e
 ao final o laudo estruturado em JSON — ver o trade-off do **buffer-then-commit** em
 [Visão Geral](visao_geral.md#streaming-por-que-o-laudo-nao-e-preenchido-direto-no-stream) para
-entender por que o laudo não é montado direto durante o streaming.
+entender por que o laudo não é montado direto durante o streaming. Exemplo real do stream de
+eventos (`curl -N` + o JSON completo de cada tipo de evento):
+[Referência de API](../operacional/api.md#post-conversar-com-auditor-perguntar-sobre-o-edital).
 
 ### O que o agente pode acionar dentro do loop
 

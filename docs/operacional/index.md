@@ -65,6 +65,8 @@ Pontos que vale destacar:
 
 - **[Setup local](setup_local.md)** — clonar o repositório, criar o ambiente virtual, instalar
   dependências e subir a aplicação com `uvicorn`.
+- **[Referência de API](api.md)** — exemplos reais de request/response dos dois endpoints
+  (`curl` para upload e para o streaming SSE de conversa).
 - **[Docker & Deploy](docker.md)** — build e execução via container, e como o mesmo Dockerfile é
   usado em produção (Railway).
 - **[Variáveis de ambiente](variaveis_ambiente.md)** — referência completa de cada chave exigida

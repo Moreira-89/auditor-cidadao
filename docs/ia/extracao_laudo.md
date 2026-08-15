@@ -18,6 +18,40 @@ O formato do JSON é um schema Pydantic em `app/models/laudo.py`:
 Os textos em `Field(description=...)` não são só documentação — o próprio LLM extrator os lê para
 saber o que preencher em cada campo.
 
+### Exemplo de saída
+
+Ilustrativo, construído a partir do `caso_01` do golden dataset (empresa com sanção vigente em
+CEIS/CNEP, ver [Avaliação](avaliacao.md)) — não é um output literal capturado em produção, mas
+segue o schema real campo a campo:
+
+```json
+{
+  "laudo": {
+    "cnpjs_analisados": ["38504819000169"],
+    "anomalias": [
+      {
+        "codigo": "H",
+        "descricao": "Empresa vencedora do certame consta com sanção vigente no CEIS.",
+        "evidencias": [
+          "CNPJ 38.504.819/0001-69 possui registro de Suspensão ativo no CEIS.",
+          "Registro classificado com Tipo: \"Suspensão\", fonte: Portal da Transparência (CGU)."
+        ],
+        "nivel_risco": "CRÍTICO"
+      }
+    ],
+    "nivel_risco_geral": "CRÍTICO",
+    "resumo_executivo": "A empresa vencedora da dispensa eletrônica consta com sanção vigente no CEIS (Suspensão), o que configura impedimento legal expresso para contratar com a administração pública (Lei 14.133/2021, art. 14).",
+    "recomendacoes": [
+      "Suspender a contratação até confirmação formal da vigência da sanção junto ao órgão sancionador.",
+      "Verificar manualmente se há decisão judicial suspendendo os efeitos da sanção."
+    ]
+  }
+}
+```
+
+Para uma resposta conversacional (ex.: "qual o valor do contrato?"), o extrator devolve
+`{"laudo": null}` — nenhum outro campo é preenchido.
+
 ## Como a extração acontece
 
 Depois que o laudo em Markdown já foi transmitido ao usuário, `run_agent`

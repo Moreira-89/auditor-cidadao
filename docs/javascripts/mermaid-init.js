@@ -6,6 +6,10 @@ document.addEventListener("DOMContentLoaded", function () {
     mermaid.initialize({
         startOnLoad: false,
         theme: "dark",
+        // "strict" (default) desativa silenciosamente os links de "click" nos nós —
+        // necessário para o codemap interativo (docs/codemap.md navegar para outras
+        // páginas ao clicar num nó do diagrama).
+        securityLevel: "loose",
         themeVariables: {
             darkMode: true,
             background: "#101010",
