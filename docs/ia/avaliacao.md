@@ -44,7 +44,7 @@ cenário específico (aqui, uma sanção) sem precisar de um edital real que já
 | Métrica | Como é medida | Usa LLM? |
 |---|---|---|
 | **`aderencia_tools`** | Comparação determinística entre `tools_esperadas` e `tools_chamadas` | Não |
-| **`recall_anomalias`** | Reusa o extrator estruturado de produção sobre o laudo e compara os códigos A–I detectados com os esperados | Sim (o mesmo extrator de produção) |
+| **`recall_anomalias`** | Reusa o mesmo mecanismo de extração estruturada de produção (`with_structured_output` + `CATALOGO_ANOMALIAS`) sobre o laudo e compara os códigos A–I detectados com os esperados | Sim (extrator dedicado, réplica do de produção) |
 | **RAGAS (`faithfulness`, `context_recall`)** | Mede alucinação e cobertura de contexto nos casos que usam `buscar_contexto_edital` | Sim (juiz `gpt-4o`) |
 
 - **`faithfulness`** — a resposta só afirma coisas sustentadas pelo contexto recuperado, ou inventou
@@ -59,9 +59,11 @@ cenário específico (aqui, uma sanção) sem precisar de um edital real que já
     métricas. A implementação final diverge conscientemente: usa **RAGAS** (biblioteca validada pela
     comunidade) para `faithfulness`/`context_recall`, mantém `aderencia_tools` como comparação
     **determinística sem LLM** (mais confiável que julgamento subjetivo para esse caso), e
-    `recall_anomalias` como fração reaproveitando o extrator já usado em produção. É uma decisão de
-    engenharia, não desvio por falta de tempo — vale como resposta para "por que a implementação
-    diverge do plano original?".
+    `recall_anomalias` como fração reaproveitando o mesmo mecanismo de extração estruturada da
+    produção (`PROMPT_EXTRATOR`/`RespostaLaudo`, em `app/core/prompt.py`/`app/models/laudo.py` —
+    réplica dedicada à avaliação, ver [Relatório Automático e Extração de Laudo](extracao_laudo.md)).
+    É uma decisão de engenharia, não desvio por falta de tempo — vale como resposta para "por que a
+    implementação diverge do plano original?".
 
 !!! note "Exclusão do `caso_06` do cálculo de RAGAS"
     O `caso_06` tem `contexto_edital_esperado` como uma afirmação **negativa** ("o edital não traz a

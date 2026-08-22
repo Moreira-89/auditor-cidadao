@@ -90,16 +90,34 @@ async def tratar_excecao_nao_prevista(request: Request, exc: Exception):
 
 # Serve o front-end (index.html, chat.html, css/, js/) como arquivos estáticos —
 # não há build step nem framework, é HTML/CSS/JS puro na mesma origem da API.
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# Sem Cache-Control, o navegador aplica cache heurístico e pode continuar servindo
+# HTML/JS/CSS antigos por conta própria mesmo depois de um deploy novo — daí o
+# no-store aqui: nesta fase (sem build/hash de asset) é preferível servir sempre a
+# versão atual do disco a economizar uma requisição.
+_HEADERS_NO_CACHE = {"Cache-Control": "no-store"}
+
+
+class StaticFilesSemCache(StaticFiles):
+    """Mesma coisa que StaticFiles, mas força no-store em toda resposta — evita
+    que o navegador guarde uma versão velha de /static/js/chat.js ou
+    /static/css/style.css e ignore as mudanças feitas em disco."""
+
+    def file_response(self, *args, **kwargs):
+        resposta = super().file_response(*args, **kwargs)
+        resposta.headers["Cache-Control"] = "no-store"
+        return resposta
+
+
+app.mount("/static", StaticFilesSemCache(directory="frontend"), name="static")
 
 
 @app.get("/", include_in_schema=False, response_class=FileResponse)
 async def serve_home():
     """Serve a landing page (apresentação do produto)."""
-    return FileResponse("frontend/index.html")
+    return FileResponse("frontend/index.html", headers=_HEADERS_NO_CACHE)
 
 
 @app.get("/chat", include_in_schema=False, response_class=FileResponse)
 async def serve_chat():
     """Serve a página de chat (upload de edital + conversa com o agente)."""
-    return FileResponse("frontend/chat.html")
+    return FileResponse("frontend/chat.html", headers=_HEADERS_NO_CACHE)

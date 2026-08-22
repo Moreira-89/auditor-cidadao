@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from app.api.dependencies_http import get_client_id
 from app.core.dependencies import gerenciador
 from app.core.logging_config import logger
+from app.services.ai_engine import gerar_relatorio_inicial
 from app.services.rate_limiter import RateLimiter
 from app.utils.func_extrair_cnpj import extrair_cnpj
 from app.utils.func_extrair_texto_pdf import ErroExtracaoPDF, extrair_texto_pdf
@@ -45,6 +46,7 @@ async def upload_edital(
     file: UploadFile = File(...),  # noqa: B008
     estado: str = Form(...),
     municipio: str = Form(...),
+    thread_id: str = Form(...),
     client_id: str = Depends(get_client_id),
 ):
     """Recebe um edital em PDF, extrai o texto, indexa no banco vetorial e retorna os CNPJs encontrados."""
@@ -140,4 +142,26 @@ async def upload_edital(
         cnpjs_encontrados,
     )
 
-    return {"mensagem": "Edital indexado!", "cnpjs": cnpjs_encontrados}
+    # Relatório automático pós-indexação (Backlog V2, Seção C): gera o primeiro turno
+    # da thread sozinho, sem esperar o usuário perguntar. Roda dentro da mesma requisição
+    # de upload — por isso consome a quota_upload (5/dia), não a quota_chat — e nunca
+    # levanta exceção: se falhar, o upload segue bem-sucedido com relatorio_inicial: null,
+    # e o frontend cai de volta nas sugestões de pergunta estáticas.
+    logger.info("Gerando relatório automático pós-indexação | thread=%s", thread_id)
+    relatorio_inicial = await gerar_relatorio_inicial(
+        thread_id=thread_id,
+        lista_cnpj=cnpjs_encontrados,
+        estado=estado,
+        municipio=municipio,
+    )
+    logger.info(
+        "Relatório automático concluído | thread=%s | sucesso=%s",
+        thread_id,
+        relatorio_inicial is not None,
+    )
+
+    return {
+        "mensagem": "Edital indexado!",
+        "cnpjs": cnpjs_encontrados,
+        "relatorio_inicial": relatorio_inicial,
+    }
