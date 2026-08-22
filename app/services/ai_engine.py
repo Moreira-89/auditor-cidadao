@@ -2,8 +2,7 @@
 Coração do agente: run_agent() orquestra um turno de conversa de ponta a ponta e
 devolve a resposta em streaming (SSE).
 
-Fluxo completo, buffer-then-commit e o tratamento de histórico interrompido:
-docs/arquitetura/visao_geral.md.
+Fluxo completo e o tratamento de histórico interrompido: docs/arquitetura/visao_geral.md.
 """
 
 import json
@@ -17,8 +16,13 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import StateSnapshot
 
 from app.core.logging_config import logger
-from app.core.prompt import PROMPT_DINAMICO, PROMPT_EXTRATOR, TOOL_STATUS_MAP
-from app.models.laudo import RespostaLaudo
+from app.core.prompt import (
+    PROMPT_DINAMICO,
+    PROMPT_EXTRATOR_INICIAL,
+    PROMPT_RELATORIO_INICIAL,
+    TOOL_STATUS_MAP,
+)
+from app.models.laudo import RelatorioInicial
 from app.services.build_graph import get_graph
 from app.services.lifespan import get_extrator
 
@@ -69,6 +73,28 @@ async def _curar_tool_calls_pendentes(
     await grafo.aupdate_state(config, {"messages": respostas_sinteticas})
 
 
+def _montar_primeiro_turno(
+    pergunta_usuario: str, lista_cnpj: list[str], estado: str, municipio: str
+) -> HumanMessage:
+    """Monta o envelope PROMPT_DINAMICO (CNPJs/estado/município/pergunta) usado como
+    primeiro HumanMessage de uma thread nova — reaproveitado tanto pelo primeiro turno
+    de uma conversa comum (run_agent) quanto pelo relatório automático pós-indexação
+    (gerar_relatorio_inicial), que também é, por definição, o primeiro turno da thread."""
+    cnpjs_formatados = escape_xml(
+        ", ".join(lista_cnpj) if lista_cnpj else "Nenhum CNPJ encontrado no documento."
+    )
+    data_hoje = datetime.now(UTC).date().strftime("%Y%m%d")
+    return HumanMessage(
+        content=PROMPT_DINAMICO.format(
+            pergunta_usuario=pergunta_usuario,
+            cnpjs_formatados=cnpjs_formatados,
+            municipio=municipio,
+            estado=estado,
+            data_hoje=data_hoje,
+        )
+    )
+
+
 async def run_agent(
     pergunta_usuario: str,
     lista_cnpj: list[str],
@@ -105,28 +131,13 @@ async def run_agent(
         # prepõe automaticamente a cada chamada ao modelo via system_prompt=. O
         # contexto do edital também não é pré-injetado — o agente busca sob demanda
         # via a tool buscar_contexto_edital.
-        cnpjs_formatados = escape_xml(
-            ", ".join(lista_cnpj)
-            if lista_cnpj
-            else "Nenhum CNPJ encontrado no documento."
-        )
-        data_hoje = datetime.now(UTC).date().strftime("%Y%m%d")
-        human_message = HumanMessage(
-            content=PROMPT_DINAMICO.format(
-                pergunta_usuario=pergunta_usuario,
-                cnpjs_formatados=cnpjs_formatados,
-                municipio=municipio,
-                estado=estado,
-                data_hoje=data_hoje,
-            )
-        )
-        mensagens_entrada = [human_message]
+        mensagens_entrada = [
+            _montar_primeiro_turno(pergunta_usuario, lista_cnpj, estado, municipio)
+        ]
 
     try:
         # estado/municipio são repassados em todo turno — o checkpointer não persiste
         # chaves arbitrárias, e o ToolRuntime das tools precisa lê-los do estado ativo.
-        laudo_completo = ""
-        buffer_temporario = ""  # buffer-then-commit, ver docs/arquitetura/visao_geral.md
         async for evento in grafo.astream_events(
             input={
                 "messages": mensagens_entrada,
@@ -138,10 +149,7 @@ async def run_agent(
         ):
             tipo_evento = evento["event"]
 
-            if tipo_evento == "on_chat_model_start":
-                buffer_temporario = ""  # nova mensagem do LLM começando
-
-            elif tipo_evento == "on_chat_model_stream":
+            if tipo_evento == "on_chat_model_stream":
                 # getattr com default: chunks intermediários podem não ter o atributo tool_calls
                 chunk = evento["data"].get("chunk")
                 if (
@@ -149,38 +157,81 @@ async def run_agent(
                     and chunk.content
                     and not getattr(chunk, "tool_calls", None)
                 ):
-                    buffer_temporario += chunk.content
                     yield f"data: {json.dumps({'type': 'token', 'content': chunk.content})}\n\n"
-
-            elif tipo_evento == "on_chat_model_end":
-                mensagem_final = evento["data"].get("output")
-                if not getattr(mensagem_final, "tool_calls", None):
-                    laudo_completo += buffer_temporario
-                # Se tinha tool_calls, o buffer é descartado (era decisão intermediária)
 
             elif tipo_evento == "on_tool_start":
                 tool_name = evento["name"]
                 mensagem = TOOL_STATUS_MAP.get(tool_name, "Analisando...")
                 yield f"data: {json.dumps({'type': 'status', 'content': mensagem})}\n\n"
 
-        # try/except isolado: uma falha na extração não deve derrubar o "done" — o
-        # Markdown do laudo já foi entregue ao frontend com sucesso.
-        try:
-            extrator_estruturado = get_extrator().with_structured_output(RespostaLaudo)
-            resultado = await extrator_estruturado.ainvoke(
-                [
-                    SystemMessage(content=PROMPT_EXTRATOR),
-                    HumanMessage(content=laudo_completo),
-                ]
-            )
-            if resultado.laudo is not None:
-                yield f"data: {json.dumps({'type': 'laudo_estruturado', 'content': resultado.laudo.model_dump()})}\n\n"
-        except Exception:  # noqa: BLE001
-            logger.exception("Erro ao extrair laudo estruturado | thread=%s", thread_id)
-            yield f"data: {json.dumps({'type': 'laudo_estruturado_erro', 'content': 'Não foi possível gerar a versão estruturada do laudo.'})}\n\n"
-
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     except Exception:  # noqa: BLE001
         logger.exception("Erro durante o streaming do agente | thread=%s", thread_id)
         yield f"data: {json.dumps({'type': 'error', 'content': 'Ocorreu um erro ao processar sua pergunta. Tente novamente.'})}\n\n"
+
+
+async def gerar_relatorio_inicial(
+    thread_id: str,
+    lista_cnpj: list[str],
+    estado: str,
+    municipio: str,
+) -> dict | None:
+    """
+    Gera o relatório automático pós-indexação (Backlog V2, Seção C): assim que o upload
+    termina de indexar o edital, o sistema roda um primeiro turno sintético — sem esperar
+    o usuário perguntar nada — pedindo um laudo completo, e extrai dele um resumo
+    estruturado mais sugestões de perguntas de acompanhamento.
+
+    Roda como o PRIMEIRO turno da thread (mesmo `thread_id` que o frontend vai usar no
+    chat): perguntas seguintes do usuário continuam essa mesma conversa no checkpointer,
+    em vez de começar do zero. Por isso este endpoint deve ser chamado uma única vez por
+    thread, antes de qualquer chamada a run_agent() no mesmo thread_id.
+
+    Não levanta exceção: qualquer falha (LLM, extração, timeout) é logada e vira None —
+    o upload não pode falhar por causa do relatório automático, que é um "bônus" de UX,
+    não um requisito do fluxo de indexação.
+    """
+    try:
+        estado = escape_xml(estado)
+        municipio = escape_xml(municipio)
+
+        config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
+        grafo = get_graph()
+
+        mensagem_inicial = _montar_primeiro_turno(
+            PROMPT_RELATORIO_INICIAL, lista_cnpj, estado, municipio
+        )
+
+        # Sem streaming aqui — o relatório automático faz parte da resposta síncrona
+        # do upload, não do canal SSE de conversa (ver docs/arquitetura para o
+        # trade-off de custo/latência dessa decisão).
+        resultado_agente = await grafo.ainvoke(
+            {
+                "messages": [mensagem_inicial],
+                "estado": estado,
+                "municipio": municipio,
+            },
+            config={**config, "recursion_limit": 50},
+        )
+        mensagem_final = resultado_agente["messages"][-1]
+        texto_relatorio = (
+            mensagem_final.content if isinstance(mensagem_final, AIMessage) else ""
+        )
+
+        extrator_estruturado = get_extrator().with_structured_output(RelatorioInicial)
+        resultado = await extrator_estruturado.ainvoke(
+            [
+                SystemMessage(content=PROMPT_EXTRATOR_INICIAL),
+                HumanMessage(content=texto_relatorio),
+            ]
+        )
+
+        return {
+            "texto": texto_relatorio,
+            "laudo": resultado.laudo.model_dump() if resultado.laudo else None,
+            "sugestoes_perguntas": resultado.sugestoes_perguntas,
+        }
+    except Exception:  # noqa: BLE001
+        logger.exception("Erro ao gerar relatório automático pós-indexação | thread=%s", thread_id)
+        return None

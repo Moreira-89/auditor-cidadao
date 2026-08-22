@@ -810,6 +810,15 @@ a {
     color: var(--primary-soft);
 }
 
+/* Sugestões contextuais anexadas depois do relatório automático pós-indexação —
+   diferente do .suggestion-chips do estado vazio, ficam alinhadas à esquerda,
+   recuadas sob o avatar da mensagem, e sem largura máxima centralizada. */
+.suggestion-chips-inline {
+    justify-content: flex-start;
+    max-width: none;
+    margin: 4px 0 16px 46px;
+}
+
 /* Botão flutuante que aparece quando o usuário rola pra cima durante uma
    resposta em andamento — evita brigar com o scroll manual do usuário. */
 .jump-bottom {

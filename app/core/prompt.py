@@ -1,18 +1,24 @@
 # Este arquivo guarda os TEXTOS que instruem o comportamento do agente — é aqui que mora
 # boa parte da "engenharia de prompt" do projeto. Não há lógica; só os prompts e um mapa
-# de mensagens de status. Os quatro elementos, e onde cada um é usado (app/services/ai_engine.py):
+# de mensagens de status. Os elementos, e onde cada um é usado (app/services/ai_engine.py):
 #
-#   SYSTEM_PROMPT   — injetado uma vez no primeiro turno de cada conversa; define a
-#                     identidade, as capacidades, o catálogo de anomalias e as regras de
-#                     segurança do agente.
-#   PROMPT_DINAMICO — o "envelope" (em tags no estilo XML) com CNPJs/estado/município/
-#                     pergunta, enviado como HumanMessage no primeiro turno junto ao
-#                     SYSTEM_PROMPT.
-#   PROMPT_EXTRATOR — instrução de uma SEGUNDA chamada ao LLM (o "extrator"), que decide se
-#                     o texto gerado é um laudo completo e, se for, extrai o RespostaLaudo
-#                     (a versão estruturada em JSON).
-#   TOOL_STATUS_MAP — traduz o nome técnico de cada ferramenta para a mensagem amigável
-#                     mostrada ao usuário enquanto ela executa (ex.: "Consultando a Receita...").
+#   SYSTEM_PROMPT           — injetado uma vez no primeiro turno de cada conversa; define a
+#                             identidade, as capacidades, o catálogo de anomalias e as regras
+#                             de segurança do agente.
+#   PROMPT_DINAMICO         — o "envelope" (em tags no estilo XML) com CNPJs/estado/município/
+#                             pergunta, enviado como HumanMessage no primeiro turno junto ao
+#                             SYSTEM_PROMPT.
+#   PROMPT_RELATORIO_INICIAL — a "pergunta" sintética usada como pergunta_usuario do envelope
+#                             acima quando é o sistema, não o usuário, que dispara o primeiro
+#                             turno — logo após o upload do edital (Backlog V2, Seção C).
+#   PROMPT_EXTRATOR_INICIAL — instrução da segunda chamada ao LLM que estrutura em JSON o
+#                             relatório automático gerado a partir de PROMPT_RELATORIO_INICIAL.
+#   PROMPT_EXTRATOR         — variante mais simples de PROMPT_EXTRATOR_INICIAL (sem sugestões
+#                             de pergunta), usada só pelo pipeline de avaliação
+#                             (evaluation/pipeline_avaliacao.py) — não consumida em produção.
+#   TOOL_STATUS_MAP         — traduz o nome técnico de cada ferramenta para a mensagem amigável
+#                             mostrada ao usuário enquanto ela executa (ex.: "Consultando a
+#                             Receita...").
 
 CATALOGO_ANOMALIAS = """# CATÁLOGO DE ANOMALIAS A INVESTIGAR
 
@@ -274,6 +280,55 @@ Data de hoje: {data_hoje}
 </PERGUNTA>
 """
 
+PROMPT_RELATORIO_INICIAL = """Gere agora o relatório inicial deste edital: faça uma auditoria
+completa, cruzando o catálogo de anomalias com os CNPJs informados e o conteúdo do
+documento indexado, seguindo o formato de Laudo Completo. O usuário ainda não fez
+nenhuma pergunta — este relatório é gerado automaticamente assim que o edital termina
+de ser indexado, para que ele tenha um ponto de partida sem precisar saber o que
+perguntar."""
+
+PROMPT_EXTRATOR_INICIAL = f"""
+Você recebe o relatório inicial gerado automaticamente por um agente de auditoria de
+licitações e contratos públicos, logo após a indexação de um edital — o usuário ainda
+não fez nenhuma pergunta. Sua tarefa tem duas partes:
+
+1. Extrair a estrutura do laudo, exatamente como faria para um laudo completo comum
+   (mesmos critérios abaixo, incluindo a regra crítica da Anomalia H).
+2. Sugerir até 3 perguntas de acompanhamento (`sugestoes_perguntas`) que o usuário
+   provavelmente teria depois de ler esse relatório. Elas devem ser **específicas ao
+   conteúdo lido** (ex.: citar a anomalia, o CNPJ ou o valor concreto encontrado) —
+   nunca genéricas como "quais são os riscos?". Se nenhuma anomalia foi detectada,
+   sugira perguntas sobre os pontos que ficaram como "Verificações Não Concluídas" ou
+   sobre os fornecedores/valores mencionados no relatório.
+
+Considere que é um LAUDO COMPLETO quando o texto contém uma análise de auditoria
+com anomalias identificadas (ou a ausência delas) e uma conclusão/recomendação —
+isto é, quando ele varre o catálogo de anomalias e emite um veredito sobre o
+edital ou fornecedor. CNPJs analisados costumam aparecer quando a pergunta
+envolve uma empresa específica, mas **não são obrigatórios**: anomalias que
+dependem só do texto do edital (ex.: F — prazo insuficiente, calculado a partir
+de datas do próprio documento) não exigem CNPJ nenhum e ainda assim são laudo
+completo, desde que haja veredito sobre a conformidade do edital.
+
+Se o texto recebido não for um laudo (ex.: uma recusa, uma mensagem de erro), retorne
+`laudo: null`, mas ainda assim preencha `sugestoes_perguntas` com perguntas genéricas
+úteis para começar a explorar o edital (ex.: pedir um resumo do objeto licitado).
+
+# REGRA CRÍTICA — ANOMALIA H (SANÇÃO VIGENTE)
+A anomalia H depende de a empresa constar em CEIS/CNEP — não do subtipo da
+penalidade. Ao ler uma lista de registros de sanção, classifique como H mesmo
+quando os registros forem heterogêneos (suspensão, multa, publicação
+extraordinária da decisão condenatória, declaração de inidoneidade, etc.) ou
+vierem misturados entre CEIS e CNEP. Um registro de multa ou de publicação
+extraordinária NÃO anula os demais registros do mesmo CNPJ — a presença de
+qualquer registro já caracteriza H.
+
+{CATALOGO_ANOMALIAS}
+"""
+
+# Variante mais simples de PROMPT_EXTRATOR_INICIAL (sem sugestões de pergunta), usada só pelo
+# pipeline de avaliação (evaluation/pipeline_avaliacao.py) para pontuar respostas avulsas do
+# golden dataset — não é chamada em produção (ver app/services/ai_engine.py).
 PROMPT_EXTRATOR = f"""
 Você recebe um texto gerado por um agente de auditoria de licitações e contratos
 públicos. Sua tarefa é decidir se esse texto é um laudo completo de auditoria e,

@@ -71,7 +71,7 @@ Referência em tabela, para quem preferir (ou não conseguir clicar no diagrama,
 | `app/api/` | Os dois endpoints HTTP (`/upload/`, `/conversar-com-auditor/`) — só a "borda", validação e tradução de erro em status HTTP | [Referência de API](operacional/api.md) |
 | `app/core/` | `prompt.py` (os 4 prompts do sistema) e `dependencies.py` (config + singletons) | [Modelos e Prompts](ia/modelos_prompts.md) |
 | `app/services/` | O agente em si: `build_graph.py` (`create_agent`), `ai_engine.py` (`run_agent`, streaming), `lifespan.py` (startup), `tools.py` (as 4 tools nativas) | [Arquitetura do Sistema](arquitetura/visao_geral.md) |
-| `app/models/` | Schemas Pydantic — `agent_state.py` (estado do grafo), `laudo.py` (`RespostaLaudo`), `pergunta_request.py` (validação de entrada) | [Extração de Laudo](ia/extracao_laudo.md) |
+| `app/models/` | Schemas Pydantic — `agent_state.py` (estado do grafo), `laudo.py` (`RelatorioInicial`), `pergunta_request.py` (validação de entrada) | [Relatório Automático e Extração de Laudo](ia/extracao_laudo.md) |
 | `app/utils/` | `cache_mcp.py` (cache Redis de tools), `mcp_utils.py` (patch de schema do MCP), `cookie_manager.py` (identificação de cliente) | [Protocolo MCP](arquitetura/protocolo_mcp.md) |
 | `app/jobs/` | `limpeza_pinecone.py` — script standalone de retenção, roda como cron | [Uso de Dados e RAG](ia/rag_dados.md#limpeza-de-dados-expirados) |
 | `evaluation/` | Framework de avaliação: golden dataset + pipeline + resultados | [Avaliação (RAGAS)](ia/avaliacao.md) |

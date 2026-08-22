@@ -62,9 +62,8 @@ edital e conversa, incluindo as ferramentas e o streaming) está em
     determinístico fora do ciclo de decisão do LLM — pequenas automações, análises que não
     precisam passar pelo modelo) entrarem no fluxo. O roadmap já prevê separar esse ciclo em nós
     dedicados (ou middleware, ver abaixo) — por exemplo, um nó só de decisão/orquestração, outro só
-    de geração final, mais nós de processamento determinístico à parte. Não é correção de bug: o
-    buffer-then-commit (ver abaixo) já garante a extração correta do laudo independente da topologia
-    do grafo — é uma melhoria de manutenibilidade e clareza planejada para a V2.
+    de geração final, mais nós de processamento determinístico à parte. Não é correção de bug — é
+    uma melhoria de manutenibilidade e clareza planejada para a V2.
 
 ## O estado do grafo (`AgentState`)
 
@@ -122,19 +121,15 @@ devolvem `{"error": ...}` estruturado para o LLM decidir como reagir, em vez de 
     de arriscar quebrar o streaming em produção — ainda estamos avaliando como reativá-la de forma
     segura (ex.: heartbeats periódicos no SSE ou uma varredura de escopo mais restrito).
 
-## Streaming: por que o laudo não é preenchido direto no stream
+## Streaming: o que sai pelo SSE de conversa
 
-`run_agent()` consome `grafo.astream_events()` e emite eventos SSE (`token`, `status`,
-`laudo_estruturado`, `done`/`error`) conforme o grafo executa. O texto que vira o laudo final seria
-simples de acumular direto no evento `on_chat_model_stream` — mas isso contaminaria o resultado com
-texto de rodadas intermediárias, porque o modelo pode emitir conteúdo parcial *antes* dos
-`tool_calls` daquela mensagem aparecerem completos no chunk.
-
-A solução (**buffer-then-commit**): cada fragmento de texto vai para um `buffer_temporario`
-durante `on_chat_model_stream`; só quando `on_chat_model_end` confirma que a mensagem inteira **não
-teve** `tool_calls` é que o buffer é somado ao `laudo_completo` de verdade. Uma segunda chamada ao
-LLM (temperatura 0, com um `SystemMessage` próprio) extrai então o JSON estruturado a partir desse
-Markdown já finalizado.
+`run_agent()` consome `grafo.astream_events()` e emite eventos SSE (`token`, `status`, `done`/
+`error`) conforme o grafo executa — só repassa fragmentos de texto (`on_chat_model_stream`, filtrando
+chunks que carregam `tool_calls` em vez de conteúdo final) e mensagens de status quando uma
+ferramenta é acionada (`on_tool_start`). Diferente do relatório automático pós-upload (ver
+[Relatório Automático e Extração de Laudo](../ia/extracao_laudo.md)), essa conversa não faz nenhuma
+extração estruturada: a resposta chega ao frontend como Markdown livre, sem card de laudo — o único
+laudo estruturado de uma thread é o gerado uma vez, logo após o upload.
 
 !!! note "Histórico interrompido no meio de uma tool_call"
     Se o usuário interromper a execução de uma ferramenta, o
@@ -173,10 +168,6 @@ sentido decidir junto da separação de nós, não isoladamente.
 
 - **Grafo com apenas dois nós** — ver a expansão planejada logo acima, em
   [O ciclo de decisão do agente](#o-ciclo-de-decisao-do-agente).
-- **`buffer_temporario` assume execução sequencial.** Se uma versão futura introduzir
-  paralelismo real entre sub-agentes, um buffer único global passaria a misturar conteúdo de
-  streams concorrentes — nesse cenário, a migração seria para um dicionário de buffers indexado
-  por `run_id`.
 - **Rate limiting por cookie, não por identidade real.** O `client_id` (ver
   [Limitações conhecidas](../governanca/limitacoes.md)) identifica o navegador, não a pessoa —
   limpar cookies, aba anônima ou outro navegador geram uma sessão nova e, portanto, uma quota nova.

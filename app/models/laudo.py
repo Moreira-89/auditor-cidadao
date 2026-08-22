@@ -2,12 +2,16 @@
 Formato (schema Pydantic) da versão ESTRUTURADA do laudo — o mesmo conteúdo do laudo,
 porém em JSON em vez de texto.
 
-Como é usado: depois que o laudo em Markdown já foi transmitido ao usuário, uma segunda
-chamada ao LLM (o "extrator", em app/services/ai_engine.py) lê esse texto e o converte
-para este formato via with_structured_output. O JSON serve para o frontend desenhar os
-"cards" de anomalia e de risco. Detalhe importante: os textos em Field(description=...)
-NÃO são só documentação — o próprio LLM extrator os lê para saber o que preencher em
-cada campo.
+Como é usado em produção: logo após o upload de um edital, gerar_relatorio_inicial() (em
+app/services/ai_engine.py) gera o primeiro laudo da thread e faz uma segunda chamada ao LLM
+(o "extrator") que lê esse texto e o converte para RelatorioInicial via
+with_structured_output. O JSON serve para o frontend desenhar os "cards" de anomalia e de
+risco. Detalhe importante: os textos em Field(description=...) NÃO são só documentação —
+o próprio LLM extrator os lê para saber o que preencher em cada campo.
+
+RespostaLaudo é o envelope mais simples (sem sugestões de pergunta) usado só pelo pipeline
+de avaliação (evaluation/pipeline_avaliacao.py), que replica esse mesmo extrator turno a
+turno contra o golden dataset — não é consumido em produção.
 """
 
 from typing import Literal
@@ -43,6 +47,23 @@ class LaudoEstruturado(BaseModel):
 
 
 class RespostaLaudo(BaseModel):
-    """Envelope retornado pelo extrator — laudo None indica resposta conversacional, não um laudo."""
+    """Envelope simples (laudo ou None) usado pelo extrator do pipeline de avaliação
+    (evaluation/pipeline_avaliacao.py) — não é consumido em produção, ver módulo acima."""
 
     laudo: LaudoEstruturado | None = Field(description="Null se o texto não for um laudo de auditoria completo, ex: resposta conversacional.")
+
+
+class RelatorioInicial(BaseModel):
+    """
+    Envelope retornado pelo extrator do relatório automático pós-indexação (Bloco C do
+    roadmap — Produto e experiência do usuário) — o único laudo estruturado gerado numa
+    thread, emitido uma vez logo após o upload. Sempre traz `sugestoes_perguntas`: como
+    esse turno é sintético (o sistema gera o relatório sozinho, sem pergunta do usuário),
+    o laudo em si é sempre esperado aqui — a lista pode vir vazia só se a extração falhar
+    em reconhecer o texto como laudo.
+    """
+
+    laudo: LaudoEstruturado | None = Field(description="Null se o texto não for um laudo de auditoria completo.")
+    sugestoes_perguntas: list[str] = Field(
+        description="Até 3 perguntas de acompanhamento sugeridas ao usuário, específicas ao conteúdo deste edital (nunca genéricas)."
+    )

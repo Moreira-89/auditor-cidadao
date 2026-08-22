@@ -87,6 +87,20 @@ function agora() {
     return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * Extrai uma mensagem legível do corpo de erro de uma resposta HTTP não-ok. `detail` normalmente
+ * é uma string (nossos HTTPException), mas num 422 de validação automática do FastAPI/Pydantic ele
+ * vem como uma LISTA de objetos (`[{loc, msg, type}, ...]`) — sem tratar esse caso, `new Error(lista)`
+ * vira o texto "[object Object]", que não ajuda ninguém a entender o que houve.
+ */
+function extrairMensagemErro(err, statusFallback) {
+    if (typeof err.detail === 'string' && err.detail) return err.detail;
+    if (Array.isArray(err.detail) && err.detail.length) {
+        return err.detail.map((item) => item.msg || JSON.stringify(item)).join('; ');
+    }
+    return `Erro HTTP ${statusFallback}`;
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.appendChild(document.createTextNode(text));
@@ -411,20 +425,21 @@ async function confirmarUpload() {
 
     clearModalError();
     dom.btnConfirm.disabled = true;
-    dom.modalLoadingText.textContent = 'Indexando o edital… isso pode levar alguns segundos.';
+    dom.modalLoadingText.textContent = 'Indexando o edital e gerando o relatório inicial… isso pode levar até 1 minuto.';
     dom.modalLoading.classList.remove('hidden');
 
     const formData = new FormData();
     formData.append('file', state.selectedFile);
     formData.append('estado', state.estado.toUpperCase());
     formData.append('municipio', state.municipio);
+    formData.append('thread_id', state.threadId);
 
     try {
         const response = await fetch(`${API_BASE}/upload/`, { method: 'POST', body: formData });
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(err.detail || `Erro HTTP ${response.status}`);
+            throw new Error(extrairMensagemErro(err, response.status));
         }
 
         const data = await response.json();
@@ -441,11 +456,54 @@ async function confirmarUpload() {
         syncLocationPill();
         showToast(`Edital indexado! ${state.cnpjs.length} CNPJ(s) encontrado(s).`, 'success');
 
+        renderRelatorioInicial(data.relatorio_inicial);
+
     } catch (error) {
         dom.modalLoading.classList.add('hidden');
         showModalError(`Falha ao indexar: ${error.message}`);
         dom.btnConfirm.disabled = false;
     }
+}
+
+/**
+ * Renderiza o relatório automático pós-indexação (Backlog V2, Seção C) como se fosse a
+ * primeira mensagem do agente — sem esperar o usuário perguntar nada. `relatorio` pode
+ * vir `null` (backend não conseguiu gerar): nesse caso não faz nada e o usuário só vê o
+ * estado vazio de sempre, com as sugestões estáticas.
+ */
+function renderRelatorioInicial(relatorio) {
+    if (!relatorio) return;
+
+    const refs = addAiMessage(); // já esconde o chat-empty (e as sugestões estáticas)
+    refs.reasoningEl.classList.add('hidden'); // não houve streaming/steps pra mostrar aqui
+
+    const texto = relatorio.texto && relatorio.texto.trim()
+        ? relatorio.texto
+        : '*(não foi possível gerar o relatório inicial deste edital)*';
+    renderMarkdown(refs.markdownEl, texto);
+    enableCopyButton(refs, relatorio.texto || '');
+
+    if (relatorio.laudo) {
+        renderLaudoEstruturado(refs.laudoEl, relatorio.laudo);
+    }
+
+    if (relatorio.sugestoes_perguntas && relatorio.sugestoes_perguntas.length) {
+        renderSugestoesPerguntas(relatorio.sugestoes_perguntas);
+    }
+
+    scrollChatToBottom(true);
+}
+
+/** Sugestões de perguntas contextuais ao edital lido (vindas do relatório automático),
+ * renderizadas com o mesmo estilo dos chips estáticos do estado vazio, mas anexadas
+ * depois da mensagem — o estado vazio já foi escondido nesse ponto. */
+function renderSugestoesPerguntas(perguntas) {
+    const container = document.createElement('div');
+    container.className = 'suggestion-chips suggestion-chips-inline';
+    container.innerHTML = perguntas
+        .map((p) => `<button class="suggestion-chip" data-prompt="${escapeHtml(p)}">${escapeHtml(p)}</button>`)
+        .join('');
+    dom.chatMessages.appendChild(container);
 }
 
 function abrirModalNovaSessao() {
@@ -715,7 +773,7 @@ async function streamAgentResponse(texto) {
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(err.detail || `Erro HTTP ${response.status}`);
+            throw new Error(extrairMensagemErro(err, response.status));
         }
 
         const reader  = response.body.getReader();
@@ -760,13 +818,6 @@ async function streamAgentResponse(texto) {
                             addReasoningStep(refs.reasoningBody, event.content);
                             hasSteps = true;
                             scrollChatToBottom();
-                        } else if (event.type === 'laudo_estruturado' && event.content) {
-                            renderLaudoEstruturado(refs.laudoEl, event.content);
-                            scrollChatToBottom();
-                        } else if (event.type === 'laudo_estruturado_erro') {
-                            // A montagem do laudo estruturado (JSON) falhou no backend, mas o
-                            // texto do laudo já chegou com sucesso — só avisa, sem interromper.
-                            showToast(event.content || 'Não foi possível gerar a versão estruturada do laudo.', 'error');
                         } else if (event.type === 'error') {
                             streamError = event.content || 'Erro desconhecido durante o streaming.';
                             break streamLoop;
@@ -909,6 +960,15 @@ dom.suggestionChips.addEventListener('click', (e) => {
     const chip = e.target.closest('.suggestion-chip');
     if (!chip || !state.ready || state.isLoading) return;
     dom.chatInput.value = chip.dataset.prompt;
+    sendMessage();
+});
+
+// --- Sugestões contextuais do relatório automático (anexadas após a 1ª mensagem) ---
+dom.chatMessages.addEventListener('click', (e) => {
+    const chip = e.target.closest('.suggestion-chip');
+    if (!chip || !state.ready || state.isLoading) return;
+    dom.chatInput.value = chip.dataset.prompt;
+    chip.closest('.suggestion-chips-inline')?.remove();
     sendMessage();
 });
 

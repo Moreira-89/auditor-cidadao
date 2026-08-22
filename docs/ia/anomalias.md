@@ -2,16 +2,18 @@
 
 O núcleo do conhecimento de auditoria do Auditor Cidadão é um catálogo de 9 categorias de anomalia
 (A–I), definido em `app/core/prompt.py` na constante `CATALOGO_ANOMALIAS`. Esse catálogo é injetado
-tanto no `SYSTEM_PROMPT` (para o agente saber o que procurar) quanto no `PROMPT_EXTRATOR` (para
-classificar cada anomalia no JSON estruturado) — uma constante única, reusada nos dois, para evitar
-divergência de texto entre eles.
+no `SYSTEM_PROMPT` (para o agente saber o que procurar) e no `PROMPT_EXTRATOR_INICIAL` (para
+classificar cada anomalia no JSON estruturado do relatório automático, ver
+[Relatório Automático e Extração do Laudo](extracao_laudo.md)) — e também no `PROMPT_EXTRATOR`, a
+variante mais simples usada só pelo pipeline de avaliação. Uma constante única, reusada nos três,
+para evitar divergência de texto entre eles.
 
-!!! info "Uma constante, dois consumidores"
+!!! info "Uma constante, vários consumidores"
     O catálogo estar em um só lugar não é detalhe estético. Um dos bugs corrigidos durante a
     avaliação foi justamente o extrator ver *só* a lista de códigos válidos (`A`–`I`), sem os
     critérios de cada um — e por isso não conseguir mapear um texto de sanção para o código `H`. A
     correção foi extrair o catálogo completo (com critério por letra) para a constante única
-    `CATALOGO_ANOMALIAS`, reaproveitada nos dois prompts.
+    `CATALOGO_ANOMALIAS`, reaproveitada em todos os prompts que precisam dele.
 
 ## As 9 categorias
 
@@ -53,8 +55,8 @@ Empresa vencedora consta em CEIS, CNEP ou lista de inidôneos do TCU. É **proib
     impedimento, declaração de inidoneidade, multa, publicação extraordinária da decisão
     condenatória, etc. Registros acessórios (ex.: uma multa) não anulam nem diluem a caracterização
     de H trazida pelos demais registros do mesmo CNPJ. Essa regra é explicitada tanto no
-    `SYSTEM_PROMPT` quanto no `PROMPT_EXTRATOR`, porque o modelo tendia a ignorar a anomalia quando
-    os registros eram heterogêneos.
+    `SYSTEM_PROMPT` quanto no `PROMPT_EXTRATOR_INICIAL`, porque o modelo tendia a ignorar a
+    anomalia quando os registros eram heterogêneos.
 
 ### I — Incompatibilidade de Atividade
 CNAE principal da empresa não compatível com o objeto licitado (ex.: empresa cadastrada como

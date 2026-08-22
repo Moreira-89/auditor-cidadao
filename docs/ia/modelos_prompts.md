@@ -9,7 +9,7 @@ preparado e recuperado. Esta primeira página trata dos modelos e da engenharia 
 | Papel | Modelo (default) | Temperatura | Onde |
 |---|---|---|---|
 | Agente principal | `openai:gpt-4o-mini` | `0.1` | Conversa e geração do laudo (`app/core/dependencies.py`) |
-| Extrator de laudo | `openai:gpt-4o-mini` | `0.0` | Segunda chamada que gera o JSON estruturado |
+| Extrator de laudo | `openai:gpt-4o-mini` | `0.0` | Chamada que estrutura em JSON o relatório automático pós-upload |
 | Embeddings (RAG) | `text-embedding-3-small` | — | Indexação e busca no Pinecone (1536 dimensões) |
 | Juiz de avaliação (RAGAS) | `openai:gpt-4o` | `0.0` | Só no framework de avaliação, nunca em produção |
 
@@ -42,19 +42,30 @@ Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODE
     citando trechos reais, e reduz alucinação ao ancorar a resposta no texto recuperado. Ver
     [Uso de Dados (RAG)](rag_dados.md) para o pipeline completo.
 
-## Os quatro prompts do sistema
+## Os prompts do sistema
 
-Toda a engenharia de prompt vive em `app/core/prompt.py` — quatro peças, sem lógica:
+Toda a engenharia de prompt vive em `app/core/prompt.py` — sem lógica, só texto:
 
 - **`SYSTEM_PROMPT`** — injetado uma vez no primeiro turno de cada conversa. Define a identidade de
   auditor, as capacidades, o catálogo de anomalias, a hierarquia de evidências e as regras de
   segurança.
 - **`PROMPT_DINAMICO`** — o "envelope" em tags no estilo XML (`<CNPJS_NO_EDITAL>`, `<METADADOS>`,
-  `<PERGUNTA>`) enviado como `HumanMessage` no primeiro turno.
-- **`PROMPT_EXTRATOR`** — instrução da segunda chamada ao LLM, que decide se o texto gerado é um
-  laudo completo e o converte em JSON — ver [Extração de Laudo](extracao_laudo.md).
+  `<PERGUNTA>`) enviado como `HumanMessage` no primeiro turno de qualquer thread — seja o primeiro
+  turno de uma conversa comum ou o turno sintético do relatório automático pós-upload.
+- **`PROMPT_RELATORIO_INICIAL`** — a "pergunta" sintética usada como `pergunta_usuario` no envelope
+  acima quando é o sistema (não o usuário) que dispara o primeiro turno, logo após o upload do
+  edital — ver [Relatório Automático e Extração do Laudo](extracao_laudo.md).
+- **`PROMPT_EXTRATOR_INICIAL`** — instrução da segunda chamada ao LLM que estrutura em JSON o
+  relatório automático gerado a partir de `PROMPT_RELATORIO_INICIAL`, e sugere até 3 perguntas de
+  acompanhamento — ver [Relatório Automático e Extração do Laudo](extracao_laudo.md).
 - **`TOOL_STATUS_MAP`** — traduz o nome técnico de cada ferramenta na mensagem amigável exibida ao
   usuário durante a execução (ex.: "🏛️ Consultando dados cadastrais na Receita Federal...").
+
+!!! note "`PROMPT_EXTRATOR`: variante usada só na avaliação"
+    `PROMPT_EXTRATOR` (mais simples que `PROMPT_EXTRATOR_INICIAL` — sem sugestões de pergunta)
+    não é chamado em produção. Existe porque `evaluation/pipeline_avaliacao.py` reusa esse mesmo
+    padrão de extrator para pontuar cada resposta avulsa do golden dataset contra o catálogo de
+    anomalias, fora do fluxo do relatório automático — ver [Avaliação](avaliacao.md).
 
 ## Exemplo real: o que o modelo recebe no primeiro turno
 
