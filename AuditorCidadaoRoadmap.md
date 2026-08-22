@@ -183,40 +183,12 @@ Documentação (`docs/arquitetura/visao_geral.md`, `docs/arquitetura/protocolo_m
 >
 > **Nenhum item abaixo bloqueia a entrega.** A entrega já pode ser feita hoje, no estado atual do projeto (`.txt` com os dois links — repositório GitHub e documentação MkDocs publicada). Esta seção é o material de resposta para "quais são os próximos passos?" (E6) e uma lista de trabalho para depois da entrega — pode ser implementada aos poucos, em commits nos dias seguintes, sem prazo.
 
-## A. Segurança, custo e escalabilidade
-
-Agrupa tudo que trata do sistema aguentar produção real com múltiplos usuários simultâneos — o ponto que a banca mais tende a questionar (T6).
-
-> Escalonamento horizontal (réplicas/workers no Railway) e a decisão sobre namespace do Pinecone por `thread_id` foram fechados no Bloco 7 (ver "O Que Já Foi Feito"). Sem itens pendentes nesta seção no momento.
-
----
-
-## B. 🆕 Reestruturação seguindo os padrões oficiais do LangGraph/LangChain
-
-> ✅ **Concluída em 2026-08-15 (Bloco 8, ver "O Que Já Foi Feito").** O agente foi construído acompanhando um tutorial que explica o funcionamento *por baixo do capô* — ótimo para aprender os mecanismos, mas verboso em relação ao que a lib já resolve nativamente na v1 (`langchain==1.3.1`/`langgraph>=1.1.10`). Migração feita em três etapas (fixes triviais → `create_agent` → `ToolRuntime`/middleware/`response_format`), validada com o golden dataset do Bloco 4 depois de cada etapa que mudou comportamento, sem regressão em nenhuma métrica. Detalhes completos, incluindo um bug real de produção encontrado e corrigido no processo (`ToolRuntime` não serializável quebrando o cache de tools), estão no Bloco 8.
-
-Dois pontos levantados na pré-validação original **não faziam parte do escopo dessa migração** e continuam como backlog:
-
-- **Padrão singleton do grafo vs. ciclo de vida recomendado pelo FastAPI.** `initialize_graph`/`get_graph` (`app/services/build_graph.py`) usam uma variável módulo-level como singleton. Agora que o checkpointer é `AsyncRedisSaver` (Bloco 6) e o grafo passa por `create_agent` (Bloco 8), vale reavaliar se armazenar a instância em `app.state` (padrão mais idiomático para recursos de ciclo de vida em FastAPI) traria alguma vantagem prática sobre o módulo-level atual — ou se é troca sem ganho real.
-- **Integração MCP (`langchain-mcp-adapters`) vs. o padrão oficial mais atual de registro de tools externas no LangGraph.** Não auditado ainda contra a documentação oficial mais recente.
-
----
-
-## C. Produto e experiência do usuário
-
-> ✅ **Relatório automático pós-indexação concluído em 2026-08-21 (Bloco 9, ver "O Que Já Foi Feito").** Ao concluir a indexação, `POST /upload/` agora gera sozinho um laudo inicial completo mais até 3 sugestões de perguntas contextuais, sem esperar o usuário perguntar nada. Consome a `quota_upload` (não a `quota_chat`), exatamente o trade-off já previsto aqui. Validado ponta a ponta com 4 editais reais (curl + navegador). Detalhes completos, incluindo a limitação de latência conhecida e um caso de não-determinismo do extrator observado num dos editais de teste, estão no Bloco 9.
-
----
-
-## D. Arquitetura do grafo e streaming
-
-### Separação de nodes no grafo (decisão de tool vs. geração de resposta)
-Hoje o grafo é o padrão ReAct simples: um único node `agent` chamado em loop até parar de emitir `tool_calls`, seguido de `tools` → volta pro `agent`. Funciona, mas fica difícil de ler num diagrama à medida que mais lógica Python (pequenas automações, análises fora de tools) for entrando no fluxo. Separar em nodes dedicados (ex.: um node de decisão/orquestração e um node de geração final, mais nodes de processamento determinístico fora do ciclo de decisão do LLM) melhora legibilidade e reduz rodadas de LLM desnecessárias conforme o número de tools/automações cresce na V2. Não é correção de bug — o buffer-then-commit do Bloco 2 já resolve a extração correta do laudo independente da topologia do grafo — é uma melhoria de manutenibilidade e clareza arquitetural.
-
-### Buffer por `run_id` (streaming paralelo)
-O `buffer_temporario` do Bloco 2 assume execução sequencial (uma chamada de LLM por vez no grafo). Se a V2 introduzir paralelismo real (ex.: `Send` do LangGraph disparando sub-agentes simultâneos), um buffer único global passa a misturar conteúdo de streams concorrentes — nesse cenário, migrar para um dicionário de buffers indexado por `evento["run_id"]`.
-
----
+> **Ordem por prioridade, não alfabética** (reordenado em 2026-08-21): as letras A–H são
+> identificadores fixos de cada seção, referenciados em outros pontos deste documento (histórico
+> em "O Que Já Foi Feito", tabela de Pendências Técnicas) — por isso não foram renumeradas. A
+> ordem de leitura abaixo é por prioridade real: itens de maior impacto no case (avaliação/qualidade,
+> novas fontes de dados) primeiro; itens de baixo esforço residual, débito técnico adiado ou seções
+> já concluídas (sem pendências) por último.
 
 ## E. Modelo, avaliação e qualidade
 
@@ -307,12 +279,33 @@ IDH, PIB per capita, população, IDEB — contextualiza o valor de uma contrata
 
 ---
 
+## B. 🆕 Reestruturação seguindo os padrões oficiais do LangGraph/LangChain
+
+> ✅ **Concluída em 2026-08-15 (Bloco 8, ver "O Que Já Foi Feito").** O agente foi construído acompanhando um tutorial que explica o funcionamento *por baixo do capô* — ótimo para aprender os mecanismos, mas verboso em relação ao que a lib já resolve nativamente na v1 (`langchain==1.3.1`/`langgraph>=1.1.10`). Migração feita em três etapas (fixes triviais → `create_agent` → `ToolRuntime`/middleware/`response_format`), validada com o golden dataset do Bloco 4 depois de cada etapa que mudou comportamento, sem regressão em nenhuma métrica. Detalhes completos, incluindo um bug real de produção encontrado e corrigido no processo (`ToolRuntime` não serializável quebrando o cache de tools), estão no Bloco 8.
+
+Dois pontos levantados na pré-validação original **não faziam parte do escopo dessa migração** e continuam como backlog:
+
+- **Padrão singleton do grafo vs. ciclo de vida recomendado pelo FastAPI.** `initialize_graph`/`get_graph` (`app/services/build_graph.py`) usam uma variável módulo-level como singleton. Agora que o checkpointer é `AsyncRedisSaver` (Bloco 6) e o grafo passa por `create_agent` (Bloco 8), vale reavaliar se armazenar a instância em `app.state` (padrão mais idiomático para recursos de ciclo de vida em FastAPI) traria alguma vantagem prática sobre o módulo-level atual — ou se é troca sem ganho real.
+- **Integração MCP (`langchain-mcp-adapters`) vs. o padrão oficial mais atual de registro de tools externas no LangGraph.** Não auditado ainda contra a documentação oficial mais recente.
+
+---
+
 ## G. Débito técnico adiado do Bloco 1
 
 ### Melhorias identificadas no Bloco 1, adiadas conscientemente pelo prazo
 - **Resumo por resultado da busca web via modelo pequeno:** em vez do filtro/truncamento simples usado no V1, resumir cada resultado da Tavily individualmente (um por chamada, preservando o vínculo com a URL de origem) com um modelo pequeno/gratuito antes de devolver ao `gpt-4o-mini`. Melhora rastreabilidade e reduz tokens, mas adiciona uma segunda chamada de rede/provider dentro da tool — descartado no V1 por custo de engenharia e latência dado o prazo, documentar como trade-off no Bloco 5.
 - **Estender `asyncio.gather` às demais tools nativas** (`consultar_receita_federal`, `buscar_contexto_edital`) sempre que fizerem múltiplas chamadas independentes — hoje só `consultar_sancoes_empresa` paraleliza porque é a única com duas fontes simultâneas. Documentar como decisão consciente no Bloco 5, não como pendência crítica.
 - **`include_answer` da Tavily avaliado e descartado:** a API oferece um resumo sintetizado pronto, mas ele mistura informação de várias fontes sem vínculo por URL (quebra rastreabilidade) e é gerado em inglês mesmo com query em português — mantido fora do V1.
+
+---
+
+## D. Arquitetura do grafo e streaming
+
+### Separação de nodes no grafo (decisão de tool vs. geração de resposta)
+Hoje o grafo é o padrão ReAct simples: um único node `agent` chamado em loop até parar de emitir `tool_calls`, seguido de `tools` → volta pro `agent`. Funciona, mas fica difícil de ler num diagrama à medida que mais lógica Python (pequenas automações, análises fora de tools) for entrando no fluxo. Separar em nodes dedicados (ex.: um node de decisão/orquestração e um node de geração final, mais nodes de processamento determinístico fora do ciclo de decisão do LLM) melhora legibilidade e reduz rodadas de LLM desnecessárias conforme o número de tools/automações cresce na V2. Não é correção de bug — o buffer-then-commit do Bloco 2 já resolve a extração correta do laudo independente da topologia do grafo — é uma melhoria de manutenibilidade e clareza arquitetural.
+
+### Buffer por `run_id` (streaming paralelo)
+O `buffer_temporario` do Bloco 2 assume execução sequencial (uma chamada de LLM por vez no grafo). Se a V2 introduzir paralelismo real (ex.: `Send` do LangGraph disparando sub-agentes simultâneos), um buffer único global passa a misturar conteúdo de streams concorrentes — nesse cenário, migrar para um dicionário de buffers indexado por `evento["run_id"]`.
 
 ---
 
@@ -359,6 +352,20 @@ Sem servidor Node em produção. O fluxo é:
 4. Portar `home.js` (animação GSAP) por último — é cosmético, não bloqueia nenhuma funcionalidade.
 5. Rodar `next build`, validar `out/` servido localmente pelo FastAPI (`StaticFiles`), só então substituir o `front-end/` atual e ajustar o `.gitignore`.
 6. Atualizar `docs/operacional/` (Bloco 5) com o novo passo de build manual antes do deploy — reprodutibilidade (R2/R3) exige que isso fique documentado, mesmo não sendo requisito formal do case.
+
+---
+
+## A. Segurança, custo e escalabilidade
+
+Agrupa tudo que trata do sistema aguentar produção real com múltiplos usuários simultâneos — o ponto que a banca mais tende a questionar (T6).
+
+> Escalonamento horizontal (réplicas/workers no Railway) e a decisão sobre namespace do Pinecone por `thread_id` foram fechados no Bloco 7 (ver "O Que Já Foi Feito"). Sem itens pendentes nesta seção no momento.
+
+---
+
+## C. Produto e experiência do usuário
+
+> ✅ **Relatório automático pós-indexação concluído em 2026-08-21 (Bloco 9, ver "O Que Já Foi Feito").** Ao concluir a indexação, `POST /upload/` agora gera sozinho um laudo inicial completo mais até 3 sugestões de perguntas contextuais, sem esperar o usuário perguntar nada. Consome a `quota_upload` (não a `quota_chat`), exatamente o trade-off já previsto aqui. Validado ponta a ponta com 4 editais reais (curl + navegador). Detalhes completos, incluindo a limitação de latência conhecida e um caso de não-determinismo do extrator observado num dos editais de teste, estão no Bloco 9.
 
 ---
 
