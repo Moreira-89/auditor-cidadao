@@ -277,6 +277,17 @@ IDH, PIB per capita, população, IDEB — contextualiza o valor de uma contrata
 - **Busca web direcionada por endereço (indício de sede "fachada" — residência, terreno baldio, escritório virtual/coworking):** o endereço completo já vem da BrasilAPI e hoje é descartado; dá para enriquecer a query da busca web com o endereço + termos como "sala comercial", "coworking", "endereço fiscal". Isso é diferente de analisar imagem de Street View de verdade (exigiria Google Maps Static API + um modelo de visão — integração nova, custo novo, esforço alto). Separar em duas versões: a "leve" (query enriquecida com endereço, já descartado hoje) é esforço **baixo** e cabe numa V2 próxima; a versão com imagem de rua é módulo futuro.
 - **Monitoramento de mídia local** (termos como "atraso", "denúncia", "paralisada", "MPF" combinados com empresa + município, mirado em municípios pequenos com pouca cobertura de mídia nacional): ajuste de template de query na tool `buscar_informacao_web` já existente. Esforço **baixo**.
 
+### `consultar_dados_municipio` (API IBGE)
+IDH, PIB per capita, população — contextualiza o valor de uma contratação com a capacidade fiscal real do município (ex.: prefeitura com PIB per capita de R$8.000 contratando sistema de TI por R$2 milhões). Indicadores levantados no design inicial e descartados do escopo: **desemprego**, por não ter granularidade municipal no IBGE (PNAD Contínua só desagrega até UF/Região Metropolitana — a amostra não permite recorte por município; incluir esse campo arriscaria o LLM alucinar um número municipal inexistente). Saneamento permanece candidato, mas depende de tabela específica do Censo (2010/2022) via SIDRA — verificar disponibilidade e nomenclatura de variável antes de implementar.
+
+**Resolução de município sem tool nova:** diferente de outras integrações, não é preciso expor ao LLM uma tool separada de lookup nome→código IBGE. O padrão já usado em `buscar_contexto_edital`/`buscar_informacao_web` (`runtime: ToolRuntime`, com `runtime.state["municipio"]`/`["estado"]` já populados pelo estado da conversa) resolve isso de graça — `consultar_dados_municipio` recebe `runtime` como as outras duas, sem exigir que o LLM informe ou "adivinhe" o código do município como argumento.
+
+**Cache em duas camadas, seguindo o padrão existente:**
+- A tabela de municípios do IBGE (~5.570 linhas, nome→código, API de Localidades) é praticamente estática — TTL longo (candidato: 30 dias) no Redis, e não em memória de processo isolada: a decisão consciente aqui é que o Redis já é a peça de infraestrutura que sobrevive a restart/redeploy (mesmo racional do `AsyncRedisSaver` do Bloco 6), enquanto um dict carregado no `lifespan.py` reconstrói do zero a cada boot.
+- A tool em si (`consultar_dados_municipio`) entra na lista `TOOLS` nativa normalmente e herda o cache de 24h já aplicado via `aplicar_cache` em `lifespan.py`, com `CACHE_KEY_NORMALIZERS["consultar_dados_municipio"]` usando o mesmo extrator `_extrair_estado_municipio_para_cache` já existente para `runtime`.
+
+**Fontes prováveis por indicador:** IDH e PIB per capita não vêm da mesma API — confirmar se estão no SIDRA (tabelas do IBGE) ou se IDH exige fonte externa (PNUD/Atlas Brasil, IBGE não é o produtor original do IDH municipal). Verificar antes de comprometer o escopo de implementação.
+
 ---
 
 ## B. 🆕 Reestruturação seguindo os padrões oficiais do LangGraph/LangChain
