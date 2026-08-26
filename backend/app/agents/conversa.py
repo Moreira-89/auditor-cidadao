@@ -1,11 +1,16 @@
-import json
 import uuid
 from collections.abc import AsyncGenerator
 
 from app.agents.envelope import escape_xml, montar_primeiro_turno
+from app.agents.eventos import (
+    ErroNoTurno,
+    EventoDoTurno,
+    FerramentaIniciada,
+    TokenGerado,
+    TurnoConcluido,
+)
 from app.agents.graph import get_graph
 from app.config.logging import logger
-from app.config.tool_status_map import TOOL_STATUS_MAP
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
@@ -53,20 +58,19 @@ async def _curar_tool_calls_pendentes(
     await grafo.aupdate_state(config, {"messages": respostas_sinteticas})
 
 
-def _sse(tipo: str, content: str | None = None) -> str:
-    """Formata um evento no protocolo Server-Sent Events consumido pelo frontend."""
-    payload = {"type": tipo} if content is None else {"type": tipo, "content": content}
-    return f"data: {json.dumps(payload)}\n\n"
-
-
 async def run_agent(
     pergunta_usuario: str,
     lista_cnpj: list[str],
     estado: str,
     municipio: str,
     thread_id: str | None = None,
-) -> AsyncGenerator[str, None]:
-    """Executa um turno de conversa e devolve a resposta do agente em streaming (SSE)."""
+) -> AsyncGenerator[EventoDoTurno, None]:
+    """
+    Executa um turno de conversa e emite o que acontece nele, evento a evento.
+
+    Não serializa nada: quem traduz esses eventos para o formato de transporte é o
+    consumidor — hoje o endpoint SSE em app/api/endpoints/chat.py.
+    """
 
     # Escapa todos os campos que entram no prompt, não só a pergunta — qualquer um deles
     # pode carregar tags XML maliciosas vindas do cliente.
@@ -117,17 +121,13 @@ async def run_agent(
                     and chunk.content
                     and not getattr(chunk, "tool_calls", None)
                 ):
-                    yield _sse("token", chunk.content)
+                    yield TokenGerado(chunk.content)
 
             elif evento["event"] == "on_tool_start":
-                yield _sse(
-                    "status", TOOL_STATUS_MAP.get(evento["name"], "Analisando...")
-                )
+                yield FerramentaIniciada(evento["name"])
 
-        yield _sse("done")
+        yield TurnoConcluido()
 
     except Exception:  # noqa: BLE001
         logger.exception("Erro durante o streaming do agente | thread=%s", thread_id)
-        yield _sse(
-            "error", "Ocorreu um erro ao processar sua pergunta. Tente novamente."
-        )
+        yield ErroNoTurno()

@@ -215,27 +215,52 @@ O que os dois compartilham vive em
 primeiro `HumanMessage` de toda thread nova, seja ela aberta por uma pergunta ou pelo relatório
 automático.
 
-### Streaming: o que sai pelo SSE de conversa
+### Streaming: eventos de domínio e o formato de fio
 
-`run_agent()` consome `grafo.astream_events(version="v2")` e traduz dois tipos de evento do grafo
-em eventos SSE:
+`run_agent()` consome `grafo.astream_events(version="v2")` e traduz o que acontece no grafo
+em **eventos de domínio** — objetos que dizem o que aconteceu, sem saber como serão transmitidos.
+O vocabulário está em
+[`app/agents/eventos.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/eventos.py): `TokenGerado`, `FerramentaIniciada`,
+`TurnoConcluido` e `ErroNoTurno`.
 
-```python title="app/agents/conversa.py:112-127"
+```python title="app/agents/conversa.py:116-129"
 if evento["event"] == "on_chat_model_stream":
     # getattr com default: chunks intermediários podem não ter o atributo tool_calls
     chunk = evento["data"].get("chunk")
     if chunk is not None and chunk.content and not getattr(chunk, "tool_calls", None):
-        yield _sse("token", chunk.content)
+        yield TokenGerado(chunk.content)
 
 elif evento["event"] == "on_tool_start":
-    yield _sse("status", TOOL_STATUS_MAP.get(evento["name"], "Analisando..."))
+    yield FerramentaIniciada(evento["name"])
 
-yield _sse("done")
+yield TurnoConcluido()
 ```
 
 O filtro `not getattr(chunk, "tool_calls", None)` é o que impede que fragmentos de uma chamada de
-ferramenta apareçam como texto na tela do usuário. `evento["name"]`, no `on_tool_start`, é o nome da
-**tool** — a chave do `TOOL_STATUS_MAP`.
+ferramenta apareçam como texto na tela. `evento["name"]`, no `on_tool_start`, é o nome técnico da
+**tool**.
+
+Quem transforma esses eventos em bytes é o endpoint,
+[`app/api/endpoints/chat.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/chat.py) — a única camada que sabe o que é
+Server-Sent Events. É também onde o nome técnico vira o texto que o usuário lê:
+
+```python title="app/api/endpoints/chat.py:43-54"
+def _para_sse(evento: EventoDoTurno) -> str:
+    match evento:
+        case TokenGerado(texto):
+            return _linha_sse("token", texto)
+        case FerramentaIniciada(nome):
+            # É aqui que o nome técnico da tool vira o texto que o usuário lê.
+            return _linha_sse("status", TOOL_STATUS_MAP.get(nome, "Analisando..."))
+        case TurnoConcluido():
+            return _linha_sse("done")
+        case ErroNoTurno():
+            return _linha_sse("error", MENSAGEM_ERRO_GENERICA)
+```
+
+Essa fronteira é o que permite consumir o agente sem HTTP: um teste afirma
+`FerramentaIniciada("buscar_contexto_edital")` em vez de comparar strings `data: ...`, e um
+consumidor futuro (uma fila, um WebSocket) recebe objetos em vez de bytes de SSE.
 
 Essa conversa não faz extração estruturada: a resposta chega ao frontend como Markdown livre. O
 único laudo estruturado de uma thread é o

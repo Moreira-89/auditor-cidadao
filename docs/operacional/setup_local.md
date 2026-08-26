@@ -124,6 +124,23 @@ de status, ou um nome de whitelist que o servidor MCP não expôs.
 - Interface web: `http://localhost:8000` (upload de edital + chat)
 - Swagger UI: `http://localhost:8000/docs`
 
+## Rodando os testes
+
+De dentro de `backend/`:
+
+```bash
+pytest
+```
+
+A suíte roda **sem rede**: nenhuma chave de API, nenhum Redis, nenhum Pinecone. Isso é possível
+porque nada abre conexão no import — o cliente do Pinecone só é criado na primeira busca, e o LLM é
+substituído por um modelo falso nos testes do grafo.
+
+O que ela cobre: montagem do grafo e o ciclo ReAct completo (incluindo a injeção do `ToolRuntime`
+nas tools), os eventos emitidos por `run_agent()`, a tradução desses eventos para SSE, a cura de
+histórico interrompido, os normalizadores da chave de cache, o filtro de resultados da busca web e a
+consistência entre as tools registradas e o `TOOL_STATUS_MAP`.
+
 ## Rodando esta documentação
 
 O `mkdocs` já veio no `requirements.txt` do passo 3. Da raiz do repositório:
