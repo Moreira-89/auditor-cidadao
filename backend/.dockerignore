@@ -1,0 +1,26 @@
+# O contexto de build é a pasta backend/ — docs/, frontend/ e o roadmap ficam fora
+# dele por construção, e não precisam ser listados aqui.
+
+# Ambiente virtual e bytecode — recriados no container
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Variáveis de ambiente — NÃO vão para a imagem (ficam no painel do Railway)
+.env
+.env.docker
+
+# Controle de versão
+.git/
+.gitignore
+
+# Docker em si
+Dockerfile
+.dockerignore
+
+# IDEs e ferramentas de desenvolvimento
+.vscode/
+.idea/
+.claude/
+.ruff_cache/
