@@ -8,7 +8,7 @@ preparado e recuperado. Esta primeira página trata dos modelos e da engenharia 
 
 | Papel | Modelo (default) | Temperatura | Onde |
 |---|---|---|---|
-| Agente principal | `openai:gpt-4o-mini` | `0.1` | Conversa e geração do laudo (`app/core/dependencies.py`) |
+| Agente principal | `openai:gpt-4o-mini` | `0.1` | Conversa e geração do laudo ([`app/config/settings.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py)) |
 | Extrator de laudo | `openai:gpt-4o-mini` | `0.0` | Chamada que estrutura em JSON o relatório automático pós-upload |
 | Embeddings (RAG) | `text-embedding-3-small` | — | Indexação e busca no Pinecone (1536 dimensões) |
 | Juiz de avaliação (RAGAS) | `openai:gpt-4o` | `0.0` | Só no framework de avaliação, nunca em produção |
@@ -44,7 +44,7 @@ Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODE
 
 ## Os prompts do sistema
 
-Toda a engenharia de prompt vive em `app/core/prompt.py` — sem lógica, só texto:
+Toda a engenharia de prompt vive em [`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py) — sem lógica, só texto:
 
 - **`SYSTEM_PROMPT`** — injetado uma vez no primeiro turno de cada conversa. Define a identidade de
   auditor, as capacidades, o catálogo de anomalias, a hierarquia de evidências e as regras de
@@ -58,18 +58,13 @@ Toda a engenharia de prompt vive em `app/core/prompt.py` — sem lógica, só te
 - **`PROMPT_EXTRATOR_INICIAL`** — instrução da segunda chamada ao LLM que estrutura em JSON o
   relatório automático gerado a partir de `PROMPT_RELATORIO_INICIAL`, e sugere até 3 perguntas de
   acompanhamento — ver [Relatório Automático e Extração do Laudo](extracao_laudo.md).
-- **`TOOL_STATUS_MAP`** — traduz o nome técnico de cada ferramenta na mensagem amigável exibida ao
-  usuário durante a execução (ex.: "🏛️ Consultando dados cadastrais na Receita Federal...").
-
-!!! note "`PROMPT_EXTRATOR`: variante usada só na avaliação"
-    `PROMPT_EXTRATOR` (mais simples que `PROMPT_EXTRATOR_INICIAL` — sem sugestões de pergunta)
-    não é chamado em produção. Existe porque `evaluation/pipeline_avaliacao.py` reusa esse mesmo
-    padrão de extrator para pontuar cada resposta avulsa do golden dataset contra o catálogo de
-    anomalias, fora do fluxo do relatório automático — ver [Avaliação](avaliacao.md).
+O `TOOL_STATUS_MAP` — que traduz o nome técnico de cada ferramenta na mensagem exibida ao usuário
+durante a execução — não é prompt e vive à parte, em
+[`app/config/tool_status_map.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/tool_status_map.py) (ex.: "🏛️ Consultando dados cadastrais na Receita Federal...").
 
 ## Exemplo real: o que o modelo recebe no primeiro turno
 
-`SYSTEM_PROMPT` (abertura, `app/core/prompt.py` — texto literal, só cortado com `[...]` onde o
+`SYSTEM_PROMPT` (abertura, [`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py) — texto literal, só cortado com `[...]` onde o
 prompt continua):
 
 ```text

@@ -60,7 +60,7 @@ cenário específico (aqui, uma sanção) sem precisar de um edital real que já
     comunidade) para `faithfulness`/`context_recall`, mantém `aderencia_tools` como comparação
     **determinística sem LLM** (mais confiável que julgamento subjetivo para esse caso), e
     `recall_anomalias` como fração reaproveitando o mesmo mecanismo de extração estruturada da
-    produção (`PROMPT_EXTRATOR`/`RespostaLaudo`, em `app/core/prompt.py`/`app/models/laudo.py` —
+    produção (`PROMPT_EXTRATOR`/`RespostaLaudo`, em [`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py)/[`app/api/schemas/laudo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/laudo.py) —
     réplica dedicada à avaliação, ver [Relatório Automático e Extração de Laudo](extracao_laudo.md)).
     É uma decisão de engenharia, não desvio por falta de tempo — vale como resposta para "por que a
     implementação diverge do plano original?".

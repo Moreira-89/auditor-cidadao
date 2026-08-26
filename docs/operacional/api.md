@@ -103,7 +103,7 @@ final, em vez do streaming token a token. `thread_id: null` no primeiro turno fa
 um UUID novo; turnos seguintes da mesma conversa devem reenviar o `thread_id` recebido para o
 LangGraph recuperar o histórico (ver [Arquitetura](../arquitetura/visao_geral.md)).
 
-**O stream de eventos** (cada linha é um evento SSE — tipos definidos em `app/services/ai_engine.py`):
+**O stream de eventos** (cada linha é um evento SSE — tipos definidos em [`app/agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)):
 
 ```text
 data: {"type": "status", "content": "⚖️ Verificando sanções da empresa nos cadastros CEIS e CNEP..."}

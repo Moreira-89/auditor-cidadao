@@ -1,7 +1,7 @@
 # Fluxo de Dados
 
-Esta página detalha, ponta a ponta, os dois pipelines de dados do Auditor Cidadão: a ingestão de
-um edital (upload) e a conversa com o agente (pergunta → laudo).
+Os dois pipelines do Auditor Cidadão, ponta a ponta: a ingestão de um edital (upload) e a conversa
+com o agente (pergunta → laudo).
 
 ## Ingestão do edital (`POST /upload/`)
 
@@ -17,7 +17,7 @@ config:
     fontSize: '28px'
 ---
 flowchart TB
-    U["Usuário"] -->|"Upload do PDF + estado/município + thread_id"| UP["POST /upload/"]
+    U["Usuário"] -->|"PDF + estado/município + thread_id"| UP["POST /upload/"]
     UP --> PDF["pdfplumber extrai texto"]
     PDF --> CHUNK["RecursiveCharacterTextSplitter<br>chunks de 2000 chars, overlap 200"]
     CHUNK --> EMB["OpenAI text-embedding-3-small"]
@@ -27,27 +27,42 @@ flowchart TB
     REL --> U
 ```
 
-O PDF é lido inteiro em memória (sem tocar disco), rejeitado com `415`/`413` se não for PDF ou
-passar de 20 MB (`app/api/root_upload.py`), e tem o texto extraído via `pdfplumber`. O
-`GerenciadorVetorial` chunkiza o texto (separadores hierárquicos: parágrafo → linha → frase →
-palavra), gera os embeddings e faz o upsert no Pinecone com `estado`/`municipio`/`arquivo`
-replicados como metadado em cada chunk — é esse metadado que permite filtrar a busca por edital
-depois. Os CNPJs do texto são extraídos por regex e devolvidos ao frontend, que os reenvia em
-cada pergunta subsequente.
+O PDF é lido inteiro em memória, sem tocar o disco. É rejeitado com `415` se não for PDF e `413` se
+passar de 20 MB
+([`app/api/endpoints/upload.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/upload.py)),
+e tem o texto extraído por `pdfplumber`
+([`app/ingestion/pdf.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf.py)).
 
-Com a indexação concluída, `gerar_relatorio_inicial()` roda como o **primeiro turno** da thread
-identificada pelo `thread_id` recebido no upload — sem esperar nenhuma pergunta do usuário — e
-devolve um laudo completo já estruturado (ver
-[Relatório Automático e Extração de Laudo](../ia/extracao_laudo.md)). Perguntas seguintes do usuário
-em `/conversar-com-auditor/` reusam esse mesmo `thread_id` e continuam a mesma conversa no
-checkpointer, em vez de começar do zero. Exemplo real de request/response (`curl`):
-[Referência de API](../operacional/api.md#post-upload-indexar-um-edital).
+O `GerenciadorVetorial`
+([`app/storage/vetorial.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py))
+chunkiza o texto com separadores hierárquicos (parágrafo → linha → frase → palavra), gera os
+embeddings e faz o upsert no Pinecone replicando `estado`/`municipio`/`arquivo` como metadado em
+cada chunk — é esse metadado que permite filtrar a busca pelo edital certo depois.
+
+Em paralelo, os CNPJs do texto são extraídos por regex e validados
+([`app/ingestion/cnpj.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/cnpj.py)),
+e devolvidos ao frontend, que os reenvia em cada pergunta seguinte.
+
+Com a indexação concluída, `gerar_relatorio_inicial()`
+([`app/agents/relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py))
+roda como o **primeiro turno** da thread identificada pelo `thread_id` recebido no upload — sem
+esperar nenhuma pergunta — e devolve um laudo já estruturado (ver
+[Relatório Automático e Extração de Laudo](../ia/extracao_laudo.md)). Perguntas seguintes em
+`/conversar-com-auditor/` reusam esse mesmo `thread_id` e continuam a conversa no checkpointer, em
+vez de começar do zero.
+
+Exemplo real de request/response: [Referência de API](../operacional/api.md#post-upload-indexar-um-edital).
+
+!!! warning "Esta requisição é longa por natureza"
+    O relatório automático executa um turno completo do agente — várias chamadas de LLM e de tools,
+    com `recursion_limit=50` — **dentro** do request HTTP de upload, antes da resposta sair. Some-se
+    a isso a indexação no Pinecone. O cliente segura a conexão durante todo esse tempo sem receber
+    sinal de progresso, o que a torna sensível a timeout de proxy em editais grandes.
 
 ## Conversa com o agente (`POST /conversar-com-auditor/`)
 
-Esse fluxo é dividido em dois diagramas: o **caminho da requisição** (a "casca" — como a pergunta
-entra e a resposta sai) e o **leque de ferramentas** que o agente pode acionar por dentro dela.
-Juntos num diagrama só, ficavam grandes demais para ler; separados, cada um cabe numa leitura só.
+Dividida em dois diagramas: o **caminho da requisição** (como a pergunta entra e a resposta sai) e o
+**leque de ferramentas** que o agente pode acionar por dentro dela.
 
 ### O caminho da requisição
 
@@ -64,20 +79,25 @@ config:
 ---
 flowchart LR
     U["Usuário"] -->|"Pergunta sobre o edital"| CHAT["POST /conversar-com-auditor/"]
-    CHAT --> AGENTE["Loop do agente<br>model ↔ tools (create_agent)"]
+    CHAT --> AGENTE["Grafo do agente<br>agente ↔ ferramentas"]
     AGENTE --> SSE["StreamingResponse (SSE)"]
-    SSE -->|"tokens + status + done"| U
+    SSE -->|"token + status + done"| U
 ```
 
-A resposta é transmitida via Server-Sent Events (SSE): tokens de texto conforme são gerados, e
-mensagens de status quando uma ferramenta é acionada (ex.: "Consultando Receita Federal..."). Não há
-extração estruturada nem card de laudo nessa conversa — o único laudo estruturado da thread é o
-[relatório automático](../ia/extracao_laudo.md) gerado uma vez, logo após o upload; ver também
-[Visão Geral](visao_geral.md#streaming-o-que-sai-pelo-sse-de-conversa). Exemplo real do stream de
-eventos (`curl -N` + o JSON completo de cada tipo de evento):
+O endpoint
+([`app/api/endpoints/chat.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/chat.py))
+é uma casca fina: valida o corpo com `PerguntaRequest`, aplica o rate limiter e entrega o gerador de
+`run_agent()` a um `StreamingResponse`. A resposta é transmitida via Server-Sent Events — tokens
+conforme são gerados e mensagens de status quando uma ferramenta é acionada (ex.: *"🏛️ Consultando
+dados cadastrais na Receita Federal..."*).
+
+Não há extração estruturada nessa conversa; o único laudo estruturado da thread é o
+[relatório automático](../ia/extracao_laudo.md) do upload. Detalhes do stream em
+[Visão Geral](visao_geral.md#streaming-o-que-sai-pelo-sse-de-conversa), e o JSON completo de cada
+tipo de evento em
 [Referência de API](../operacional/api.md#post-conversar-com-auditor-perguntar-sobre-o-edital).
 
-### O que o agente pode acionar dentro do loop
+### O que o agente pode acionar dentro do ciclo
 
 ```mermaid
 ---
@@ -91,15 +111,19 @@ config:
     fontSize: '30px'
 ---
 flowchart TB
-    AGENTE["Loop do agente<br>model ↔ tools (create_agent)"] --> RF["consultar_receita_federal"]
-    AGENTE --> RAG["buscar_contexto_edital"]
-    AGENTE --> SANC["consultar_sancoes_empresa"]
-    AGENTE --> WEB["buscar_informacao_web"]
-    AGENTE --> MCP["11 tools PNCP via MCP"]
+    AGENTE["Nó agente<br>(decide)"] --> FERR["Nó ferramentas<br>(ToolNode)"]
+    FERR --> RF["consultar_receita_federal"]
+    FERR --> RAG["buscar_contexto_edital"]
+    FERR --> SANC["consultar_sancoes_empresa"]
+    FERR --> WEB["buscar_informacao_web"]
+    FERR --> MCP["11 tools PNCP via MCP"]
     RAG -.->|"similarity_search<br>filtro estado+município"| PC[("Pinecone")]
 ```
 
-O `StateGraph` decide sozinho quais dessas ferramentas chamar, em qualquer ordem e quantas vezes
-forem necessárias, antes de responder — o funcionamento interno desse loop de decisão (`call_llm`
-↔ `tool_node` ↔ `router`) está detalhado em
-[Visão Geral](visao_geral.md#o-ciclo-de-decisao-do-agente).
+O nó `agente` decide sozinho quais ferramentas chamar, em qualquer ordem e quantas vezes forem
+necessárias, antes de responder. O funcionamento desse ciclo está em
+[Visão Geral](visao_geral.md#o-grafo-do-agente).
+
+Toda chamada de ferramenta passa antes pelo cache no Redis (TTL 24h) — uma consulta repetida ao
+mesmo CNPJ dentro do dia não gera tráfego novo para a fonte externa. Ver
+[Cache das ferramentas](protocolo_mcp.md#cache-das-ferramentas-aplicar_cache).

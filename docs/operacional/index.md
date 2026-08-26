@@ -21,43 +21,44 @@ config:
     fontSize: '28px'
 ---
 flowchart TB
- subgraph railway["Railway — um único container (Dockerfile)"]
+ subgraph railway["Railway — um projeto, dois serviços"]
     direction TB
-        fastapi["FastAPI + Uvicorn<br>serve o frontend estático e a API"]
+        front["Serviço frontend<br>Root Directory /frontend"]
+        fastapi["Serviço backend<br>FastAPI + Uvicorn (Dockerfile)"]
         mcp["Subprocesso Node.js 20<br>npx @licinexusbr/mcp"]
   end
  subgraph external["Serviços externos gerenciados"]
     direction TB
         openai["OpenAI<br>LLM + embeddings"]
         pinecone[("Pinecone<br>banco vetorial")]
-        redis[("Redis<br>histórico + rate limit")]
+        redis[("Redis<br>histórico + rate limit + cache")]
         cgu["Portal da Transparência / CGU<br>CEIS · CNEP"]
         receita["BrasilAPI<br>Receita Federal"]
         tavily["Tavily<br>busca web"]
         pncp["PNCP<br>licitações, contratos, atas"]
   end
     fastapi <-- MCP via stdio --> mcp
-    browser["Navegador do usuário"] <-- HTTPS --> fastapi
+    browser["Navegador do usuário"] <-- HTTPS --> front
+    browser <-- HTTPS --> fastapi
     fastapi --> openai & pinecone & redis & cgu & receita & tavily
     mcp --> pncp
 ```
 
-Pontos que vale destacar:
+Pontos que valem destaque:
 
-- **Um único container, dois processos** — o mesmo `Dockerfile` que você usa localmente (ver
-  [Docker & Deploy](docker.md)) é o que roda em produção. Não há um serviço de frontend separado:
-  o FastAPI serve os arquivos estáticos (`frontend/`) e a API na mesma porta. É uma decisão
-  consciente de simplicidade para o estágio atual do projeto — já está em backlog migrar o frontend
-  para uma stack dedicada (React), o que separaria esse diagrama em dois serviços
-  (frontend e backend) e traria uma experiência mais rica para o usuário final.
-- **Redis é o único estado próprio da aplicação** (não vem embutido no container — é um serviço
-  externo, um add-on gerenciado no Railway). Guarda duas coisas independentes: o histórico de
-  conversa por `thread_id` (`AsyncRedisSaver`, ver [Visão Geral](../arquitetura/visao_geral.md)) e a
-  contagem de requisições do rate limiter (ver [Limitações conhecidas](../governanca/limitacoes.md)).
-  Isso substituiu o antigo `InMemorySaver` (RAM do processo) — a troca resolveu de uma vez a perda
-  de histórico a cada restart **e** o pré-requisito de estado compartilhado entre múltiplas
-  réplicas, viabilizando o escalonamento horizontal hoje em produção (2 réplicas, 1 worker cada —
-  ver [Docker & Deploy](docker.md#escalonamento-replicas-e-limites-de-recurso)).
+- **Monorepo, dois serviços.** `backend/` e `frontend/` são publicados separadamente, distinguidos
+  pelo **Root Directory** de cada serviço no Railway, ambos acompanhando a mesma branch — a
+  separação é por diretório, não por branch, o que mantém um histórico único no Git. Ver
+  [Docker & Deploy](docker.md#deploy-em-producao-railway).
+- **Dois processos dentro do serviço de backend** — o FastAPI e o subprocesso Node.js do MCP, que o
+  `lifespan` sobe no startup para carregar as 11 ferramentas do PNCP.
+- **Redis é o único estado próprio da aplicação.** Não vem embutido no container: é um add-on
+  gerenciado, provisionado à parte. Guarda três coisas independentes — o histórico de conversa por
+  `thread_id`, a contagem do rate limiter e o cache de ferramentas (TTL 24h). É esse estado
+  externalizado que viabiliza as 2 réplicas em produção, já que o Railway não oferece sticky
+  sessions (ver [Docker & Deploy](docker.md#escalonamento-replicas-e-limites-de-recurso)).
+- **Pinecone guarda os editais indexados**, consultados sob demanda pela tool de RAG — o conteúdo do
+  edital nunca é pré-carregado no contexto do agente.
 - **Variáveis de ambiente** são cadastradas diretamente no painel do Railway (mesmas chaves de
   [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas.
 

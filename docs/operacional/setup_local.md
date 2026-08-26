@@ -1,21 +1,38 @@
 # Setup local
 
 !!! tip "Prefere não instalar nada?"
-    A forma mais recomendada de acessar o Auditor Cidadão é pela instância já publicada em produção:
-    **[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**.
-    O setup local abaixo é voltado para quem quer inspecionar o código, rodar o framework de
-    avaliação ou contribuir com o projeto.
+    A forma mais rápida de conhecer o Auditor Cidadão é pela instância publicada:
+    **[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**. O setup
+    abaixo é para quem quer inspecionar o código ou contribuir.
 
-Passo a passo para rodar o Auditor Cidadão diretamente na sua máquina, sem Docker. Se preferir isolar o ambiente, veja [Docker & Deploy](docker.md).
+Passo a passo para rodar na sua máquina, sem Docker. Para o caminho containerizado, veja
+[Docker & Deploy](docker.md).
+
+## Estrutura do repositório
+
+O repositório é um monorepo com duas partes independentes, cada uma publicada como um serviço
+próprio:
+
+```
+auditor-cidadao/
+├── backend/          # FastAPI + agente — é aqui que os comandos abaixo rodam
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── main.py
+│   └── app/
+├── frontend/         # HTML/CSS/JS servido como estático
+├── docs/             # esta documentação (MkDocs)
+└── mkdocs.yml
+```
 
 ## Pré-requisitos
 
 | Ferramenta | Versão | Por quê |
 |---|---|---|
 | Python | 3.12+ | Runtime da aplicação FastAPI |
-| Node.js | 20 LTS | O agente carrega as 11 ferramentas do PNCP via MCP, que sobe um subprocesso `npx @licinexusbr/mcp` — **sem Node.js instalado, o boot da aplicação falha ao conectar no MCP** |
-| Redis | — | Persiste o histórico de conversa (`AsyncRedisSaver`), conta requisições do rate limiter e guarda o cache de ferramentas (TTL 24h) — **sem um Redis acessível, o boot também falha**. Não vem embutido no `Dockerfile`; ver o passo 4.1 abaixo |
-| Chaves de API | — | OpenAI (obrigatória), Pinecone (obrigatória), CGU e Tavily (obrigatórias para as tools nativas de sanções e busca web) — ver [Variáveis de ambiente](variaveis_ambiente.md) |
+| Node.js | 20 LTS | O agente carrega 11 ferramentas do PNCP via MCP, que sobe um subprocesso `npx @licinexusbr/mcp` — **sem Node.js, o boot falha ao conectar no MCP** |
+| Redis | — | Guarda o histórico de conversa, a contagem do rate limiter e o cache de ferramentas — **sem um Redis acessível, o boot também falha**. Ver o passo 4.1 |
+| Chaves de API | — | OpenAI e Pinecone são obrigatórias; CGU e Tavily são exigidas pelas tools de sanções e busca web. Ver [Variáveis de ambiente](variaveis_ambiente.md) |
 
 ## 1. Clonar o repositório
 
@@ -27,28 +44,23 @@ cd auditor-cidadao
 ## 2. Criar e ativar o ambiente virtual
 
 ```bash
-python -m venv venv
+python -m venv .venv
 
 # Linux/macOS
-source venv/bin/activate
+source .venv/bin/activate
 
 # Windows (PowerShell)
-venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1
 ```
 
-## 3. Instalar dependências Python
+## 3. Instalar dependências
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-Isso instala só o necessário para rodar a API (o mesmo conjunto que vai para a imagem Docker/
-produção). Para gerar esta documentação (MkDocs) ou rodar o framework de avaliação (RAGAS), instale
-também `requirements-dev.txt`:
-
-```bash
-pip install -r requirements-dev.txt
-```
+É um arquivo único: além das dependências de runtime da API, ele traz o `mkdocs`/`mkdocs-material`
+usado para gerar esta documentação.
 
 ## 4. Configurar variáveis de ambiente
 
@@ -56,47 +68,68 @@ pip install -r requirements-dev.txt
 cp .env.example .env
 ```
 
-Preencha o `.env` com suas chaves reais. Todos os campos e seus efeitos estão documentados em [Variáveis de ambiente](variaveis_ambiente.md) — os obrigatórios para o boot
-funcionar são `OPENAI_API_KEY`, `PINECONE_API_KEY` e um `REDIS_URI` que aponte para um Redis de
-verdade (ver 4.1 abaixo). Em dev local, confira também que `AMBIENTE_PRODUCAO=False` — com `True`
-(o default), o cookie de sessão usado pelo rate limiter não persiste em `http://localhost` sem TLS.
+Preencha o `.env` na raiz do repositório com suas chaves. Todos os campos estão documentados em
+[Variáveis de ambiente](variaveis_ambiente.md); os obrigatórios para o boot são `OPENAI_API_KEY`,
+`PINECONE_API_KEY` e um `REDIS_URI` apontando para um Redis de verdade.
+
+Em desenvolvimento local, confira que **`AMBIENTE_PRODUCAO=False`**. Com `True` (o default), o
+cookie de sessão sai com a flag `Secure` e o navegador nunca o reenvia em `http://localhost` — o
+rate limiter deixa de reconhecer o mesmo cliente entre requisições, sem emitir erro nenhum.
 
 !!! warning "Nunca versione o `.env` real"
-    Ele já está listado no `.gitignore`. Só `.env.example` (sem chaves reais) deve ir para o Git.
+    Ele já está no `.gitignore`. Só o `.env.example`, sem chaves reais, vai para o Git.
 
 ### 4.1. Subir um Redis local
 
-Sem Docker instalado, dá para baixar o Redis nativamente (`apt`, `brew`, etc.) e rodar `redis-server`.
-Com Docker, é mais simples:
+Com Docker:
 
 ```bash
 docker run -d --name redis-auditor -p 6379:6379 redis:latest
 ```
 
-Isso sobe um Redis em `redis://localhost:6379` — que já é o default de `REDIS_URI` se você não
-sobrescrever no `.env`.
+Isso sobe um Redis em `redis://localhost:6379`, que já é o default de `REDIS_URI`. Sem Docker, dá
+para instalar nativamente (`apt`, `brew`, `dnf`) e rodar `redis-server`.
 
 ## 5. Subir a aplicação
 
+Os comandos rodam **de dentro de `backend/`** — é a raiz do pacote Python, e é também o
+diretório que o Railway usa como Root Directory do serviço:
+
 ```bash
+cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-A aplicação sobe em `http://localhost:8000`. O `lifespan` (`app/services/lifespan.py`) conecta ao
-MCP, inicializa o grafo do agente e o modelo extrator antes de aceitar requisições — se alguma
-chave obrigatória estiver ausente, o erro aparece nos logs de boot, não numa requisição.
+O `lifespan`
+([`app/api/lifespan.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/lifespan.py))
+conecta ao Redis, monta as ferramentas e compila o grafo antes de aceitar requisições. Se uma chave
+obrigatória faltar, o erro aparece nos logs de boot, não numa requisição. Um startup saudável
+termina assim:
+
+```
+INFO | Client Redis (rate limiter + cache de ferramentas) conectado.
+INFO | npx encontrado em: /usr/local/bin/npx
+INFO | MCP conectado — 11/18 ferramentas selecionadas para o agente.
+INFO | Total de ferramentas disponíveis para o agente: 15
+INFO | Checkpointer Redis pronto (TTL=1440 min).
+INFO | Servidor pronto para receber requests.
+INFO | Application startup complete.
+```
+
+Qualquer `WARNING` entre essas linhas aponta uma divergência de configuração — uma tool sem mensagem
+de status, ou um nome de whitelist que o servidor MCP não expôs.
 
 ## 6. Verificar que está no ar
 
 - Interface web: `http://localhost:8000` (upload de edital + chat)
-- Health/rota de teste: `http://localhost:8000/docs` (Swagger UI gerado pelo FastAPI)
+- Swagger UI: `http://localhost:8000/docs`
 
-## Rodando a documentação (este site)
+## Rodando esta documentação
+
+O `mkdocs` já veio no `requirements.txt` do passo 3. Da raiz do repositório:
 
 ```bash
-pip install -r requirements-dev.txt   # mkdocs + mkdocs-material
-mkdocs serve
+mkdocs serve -a localhost:8001
 ```
 
-Sobe em `http://localhost:8000` por padrão — **se a aplicação principal já estiver rodando nessa
-porta, use** `mkdocs serve -a localhost:8001`.
+A porta `8001` evita conflito com a aplicação, que usa a `8000` por padrão.

@@ -16,7 +16,7 @@ responder sobre um documento que o modelo nunca viu.
 ## O pipeline de indexação
 
 Quando o usuário faz upload de um edital (`POST /upload/`), o `GerenciadorVetorial`
-(`app/services/gerenciadorvetorial.py`) executa:
+([`app/storage/vetorial.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py)) executa:
 
 1. **Chunking** — `RecursiveCharacterTextSplitter` divide o texto em pedaços de até **2000
    caracteres com 200 de sobreposição**, tentando separadores hierárquicos (parágrafo → linha →
@@ -39,12 +39,12 @@ mesmo índice.
 
 ## Limpeza de dados expirados
 
-`app/jobs/limpeza_pinecone.py` é um script standalone (pensado para rodar como cron, ex.: no
+[`app/jobs/limpeza_pinecone.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_pinecone.py) é um script standalone (pensado para rodar como cron, ex.: no
 Railway) que apaga do índice os registros com `origem = "upload_usuario"` cujo
 `timestamp_indexacao` seja mais antigo que `PINECONE_RETENCAO_DIAS` (default 7 dias). O filtro
 combinado (`timestamp_indexacao` + `origem`) garante que só editais de upload manual expiram —
 registros de outras origens (ex.: futura indexação automática) não são afetados por esse job. Ver
-[Retenção de editais no Pinecone](../governanca/lgpd.md#retencao-de-editais-no-pinecone) para o
+[Retenção de editais no Pinecone](../governanca/lgpd.md#retencao-de-editais-no-pinecone-decisao-deliberada-e-agora-com-prazo-configuravel) para o
 racional por trás dessa política.
 
 Em caso de falha (ex.: `PINECONE_API_KEY` expirada, índice renomeado), o script encerra com

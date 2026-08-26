@@ -27,7 +27,7 @@ busca (`context_recall = 0.60` na avaliação, ver [Avaliação](../ia/avaliacao
 
 ### Rate limiting por cookie, não por identidade real
 `/upload/` (5 requisições/dia) e `/conversar-com-auditor/` (50 requisições/dia) são limitados por
-cliente via um cookie httpOnly assinado (`app/services/rate_limiter.py`, `app/utils/cookie_manager.py`),
+cliente via um cookie httpOnly assinado ([`app/api/rate_limiter.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/rate_limiter.py), [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/cookies.py)),
 não por conta de usuário — o projeto não tem autenticação. Isso resolve manipulação (o usuário não
 edita o valor via DevTools, já que é assinado com uma chave secreta do servidor), mas resolve só
 metade do problema de custo: **não impede reset**. Limpar cookies, aba anônima ou trocar de
@@ -47,19 +47,13 @@ O sistema depende de BrasilAPI, Portal da Transparência, PNCP e Tavily. Falhas 
 quando uma fonte está indisponível. O PNCP em especial tem rate limit agressivo, mitigado por cache
 de 24h — ver [Protocolo MCP](../arquitetura/protocolo_mcp.md).
 
-### Uma ferramenta de PNCP implementada mas desativada
-`buscar_contratos_fornecedor_pncp` está pronta mas fora do agente: a varredura de todas as
-modalidades de um órgão pode levar minutos sob o rate limit do PNCP, e o streaming SSE não emite
-eventos durante a execução de uma tool, arriscando timeout de proxy. Documentada como limitação
-consciente em vez de arriscar quebrar o streaming.
-
 ## Backlog V2
 
 ### Escalabilidade e persistência
 | Componente | V1 (atual) | V2 (alvo) |
 |---|---|---|
 | Histórico de conversas | `AsyncRedisSaver` (Redis) — já persistente e compartilhado entre as 2 réplicas em produção | — (resolvido) |
-| Controle de custo | Rate limiting por cookie (`app/services/rate_limiter.py`), sem resistência a reset de cookie | Autenticação mínima, para que a quota resista a limpeza de cookie/aba anônima |
+| Controle de custo | Rate limiting por cookie ([`app/api/rate_limiter.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/rate_limiter.py)), sem resistência a reset de cookie | Autenticação mínima, para que a quota resista a limpeza de cookie/aba anônima |
 | Cache de ferramentas | Redis compartilhado (TTL 24h) — resolvido, ver [Protocolo MCP](../arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache) | — (resolvido) |
 
 ### Indexação automática via PNCP (Fase 7)

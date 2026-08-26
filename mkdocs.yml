@@ -42,7 +42,6 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Codemap: codemap.md
   - Operacional:
       - Visão geral: operacional/index.md
       - Setup local: operacional/setup_local.md
