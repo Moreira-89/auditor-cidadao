@@ -1,14 +1,10 @@
-"""
-Ponto de entrada da aplicação FastAPI. Aqui montamos o "app": registramos os endpoints
-de upload e de conversa, servimos o frontend estático (a home e a página de chat) e
-instalamos uma rede de segurança global que captura qualquer erro não tratado e responde
-500 sem vazar stack trace ao cliente. A inicialização pesada (MCP, grafo do agente, modelo
-extrator) é delegada ao lifespan em app/api/lifespan.py.
-"""
-
 import logging
 from pathlib import Path
 
+from app.api.endpoints.chat import router as perguntar_router
+from app.api.endpoints.upload import router as upload_router
+from app.api.lifespan import lifespan
+from app.config.logging import logger
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import (
     http_exception_handler,
@@ -18,11 +14,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from app.api.endpoints.chat import router as perguntar_router
-from app.api.endpoints.upload import router as upload_router
-from app.config.logging import logger
-from app.api.lifespan import lifespan
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
 )
@@ -31,7 +22,7 @@ app = FastAPI(
     title="Auditor Cidadão",
     description="Auditor Cidadão é uma plataforma baseada em Inteligência Artificial (RAG e Agentes) "
     "que permite analisar editais, extrair CNPJs e responder a perguntas com contexto enriquecido.",
-    version="1.2.0",
+    version="1.0.0",
     lifespan=lifespan,
 )
 

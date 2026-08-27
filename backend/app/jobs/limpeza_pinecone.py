@@ -1,24 +1,10 @@
-"""
-Job standalone de limpeza do banco vetorial (Pinecone).
-
-Apaga do índice apenas os registros indexados via upload de usuário
-("origem": "upload_usuario") cujo timestamp_indexacao seja mais antigo que o
-prazo de retenção configurado — preserva registros de outras origens (ex.:
-futura tool "agente_busca") e qualquer registro ainda dentro do prazo.
-
-Pensado para rodar como cron job isolado (ex.: no Railway), por isso não
-depende do GerenciadorVetorial nem de nenhum outro módulo da API: só carrega
-o .env e fala direto com o Pinecone, no mesmo espírito de
-testes_locais/limpar_banco.py.
-"""
-
 import os
 import sys
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from pinecone import Pinecone
-from pinecone.exceptions import NotFoundException
+from pinecone.exceptions import NotFoundException, PineconeException
 
 # Carrega as variáveis de ambiente (como PINECONE_API_KEY) do arquivo .env
 load_dotenv()
@@ -30,18 +16,18 @@ NAMESPACE = os.getenv("PINECONE_NAMESPACE", "production")
 def limpar_registros_expirados() -> None:
     api_key = os.getenv("PINECONE_API_KEY")
     if not api_key:
-        print("❌ PINECONE_API_KEY não encontrada no .env")
+        print("Erro: PINECONE_API_KEY não encontrada no .env.")
         sys.exit(1)
 
     # Quantos dias um registro de upload de usuário pode ficar indexado antes
-    # de ser considerado expirado. Default de 7 dias cobre o caso comum de
+    # de ser considerado expirado. Default de 2 dias cobre o caso comum de
     # análise de um edital dentro de uma mesma semana.
     dias_retencao = int(os.getenv("PINECONE_RETENCAO_DIAS", "2"))
     cutoff = int(
         (datetime.now(timezone.utc) - timedelta(days=dias_retencao)).timestamp()
     )
 
-    print("-> Conectando ao Pinecone...")
+    print(f"Conectando ao Pinecone (índice '{INDEX_NAME}', namespace '{NAMESPACE}')...")
     pc = Pinecone(api_key=api_key)
 
     try:
@@ -53,8 +39,8 @@ def limpar_registros_expirados() -> None:
         }
 
         print(
-            f"🗑️ Apagando registros de upload_usuario com timestamp_indexacao <= {cutoff} "
-            f"(retenção de {dias_retencao} dias) do namespace '{NAMESPACE}' do índice '{INDEX_NAME}'..."
+            "Apagando registros de origem 'upload_usuario' indexados há mais de "
+            f"{dias_retencao} dias (timestamp_indexacao <= {cutoff})..."
         )
         # O Pinecone não retorna quantos registros foram afetados por um delete
         # com filtro (só confirma se a chamada foi aceita) — por isso o log
@@ -66,11 +52,13 @@ def limpar_registros_expirados() -> None:
             # não há nenhum registro em NAMESPACE, o delete retorna 404 em
             # vez de "0 registros apagados". Não há nada a limpar, então
             # trata como sucesso em vez de derrubar o job.
-            print(f"ℹ️ Namespace '{NAMESPACE}' ainda não existe — nada a limpar.")
+            print(
+                f"Namespace '{NAMESPACE}' ainda não existe — nenhum registro a limpar."
+            )
 
-        print("✅ Limpeza concluída sem erros.")
-    except Exception as e:
-        print(f"❌ Erro ao limpar o banco: {e}")
+        print("Limpeza concluída.")
+    except PineconeException as e:
+        print(f"Erro ao limpar o índice '{INDEX_NAME}': {e}")
         sys.exit(1)
 
 

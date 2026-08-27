@@ -1,26 +1,14 @@
-"""
-Endpoint HTTP de upload de editais.
-
-Recebe um PDF, valida (tipo e tamanho), extrai o texto, indexa no banco vetorial
-(Pinecone) e devolve os CNPJs encontrados no documento — que o frontend guarda para
-usar nas perguntas seguintes. A extração de texto e a indexação ficam em módulos
-dedicados; aqui é só a "borda" HTTP: validar a entrada e traduzir falhas em respostas
-com o código HTTP certo (415 tipo inválido, 413 grande demais, 422 PDF ilegível,
-502 falha ao indexar).
-"""
-
 import asyncio
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-
-from app.api.dependencies import get_client_id
-from app.storage.vetorial import get_gerenciador
-from app.config.logging import logger
 from app.agents.relatorio import gerar_relatorio_inicial
+from app.api.dependencies import get_client_id
 from app.api.rate_limiter import RateLimiter
+from app.config.logging import logger
 from app.ingestion.cnpj import extrair_cnpj
 from app.ingestion.pdf import ErroExtracaoPDF, extrair_texto_pdf
+from app.storage.vetorial import get_gerenciador
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 # Roteador com prefixo "/upload" — agrupa os endpoints de ingestão de editais
 router = APIRouter(prefix="/upload", tags=["Upload"])
@@ -119,14 +107,14 @@ async def upload_edital(
                 "municipio": municipio,
                 "estado": estado,
                 "arquivo": file.filename,
-                "timestamp_indexacao": int(
-                    datetime.now(timezone.utc).timestamp()
-                ),
+                "timestamp_indexacao": int(datetime.now(timezone.utc).timestamp()),
                 "origem": "upload_usuario",
             },
         )
     except Exception:  # noqa: BLE001 — qualquer falha aqui vira um 502 amigável pro frontend
-        logger.exception("Falha ao indexar edital no Pinecone | arquivo=%s", file.filename)
+        logger.exception(
+            "Falha ao indexar edital no Pinecone | arquivo=%s", file.filename
+        )
         raise HTTPException(
             status_code=502,
             detail="Falha ao indexar o edital no banco vetorial. Tente novamente em instantes.",

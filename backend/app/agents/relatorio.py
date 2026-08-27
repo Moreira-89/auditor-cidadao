@@ -1,6 +1,7 @@
 from app.agents.envelope import escape_xml, montar_primeiro_turno
 from app.agents.graph import get_graph
 from app.agents.prompt import PROMPT_EXTRATOR_INICIAL, PROMPT_RELATORIO_INICIAL
+from app.api.schemas.laudo import RelatorioInicial
 from app.config.logging import logger
 from app.config.settings import (
     EXTRATOR_MAX_RETRIES,
@@ -9,7 +10,6 @@ from app.config.settings import (
     EXTRATOR_TIMEOUT_SEGUNDOS,
 )
 from app.llm import retornar_cliente_llm
-from app.api.schemas.laudo import RelatorioInicial
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 

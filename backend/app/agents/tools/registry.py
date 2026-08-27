@@ -3,10 +3,6 @@ import re
 import shutil
 import sys
 
-from langchain_core.tools import BaseTool
-from langchain.tools import ToolRuntime
-from redis.asyncio import Redis
-
 from app.agents.tools.busca_web import buscar_informacao_web
 from app.agents.tools.cache import aplicar_cache
 from app.agents.tools.contexto_edital import buscar_contexto_edital
@@ -15,6 +11,9 @@ from app.agents.tools.receita_federal import consultar_receita_federal
 from app.agents.tools.sancoes import consultar_sancoes_empresa
 from app.config.logging import logger
 from app.config.tool_status_map import TOOL_STATUS_MAP
+from langchain.tools import ToolRuntime
+from langchain_core.tools import BaseTool
+from redis.asyncio import Redis
 
 TTL_CACHE_TOOLS_SEGUNDOS = 86400
 

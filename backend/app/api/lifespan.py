@@ -1,18 +1,17 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
 
 from app.agents.graph import initialize_graph
 from app.agents.tools.registry import montar_tools
-from app.config.logging import logger
 from app.api.rate_limiter import inicializar_rate_limiter
+from app.config.logging import logger
 from app.storage.checkpointer import abrir_checkpointer
 from app.storage.redis import abrir_client_redis
+from fastapi import FastAPI
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Monta os recursos da aplicação no startup e os libera no shutdown."""
     logger.info("Iniciando servidor — carregando ferramentas e grafo...")
 

@@ -1,24 +1,10 @@
-"""
-Dependencies do FastAPI reutilizadas entre os endpoints HTTP (routers em app/api/).
-
-Hoje contém a identificação de cliente via cookie assinado — usada como base para
-o rate limiting (ver app/api/rate_limiter.py) em vez do IP, porque IP é um
-identificador fraco: fácil de trocar (rede móvel, VPN, proxy) e fácil de
-compartilhar sem querer (vários usuários atrás do mesmo NAT/Wi-Fi de escritório
-caindo no mesmo limite). O cookie assinado (ver app/api/cookies.py)
-identifica o NAVEGADOR do cliente de forma estável entre requisições, e como é
-assinado com uma chave secreta do servidor, o cliente não consegue forjar nem
-adulterar o valor para escapar do limite.
-"""
-
-from fastapi import Request, Response
-
-from app.config.settings import AMBIENTE_PRODUCAO
 from app.api.cookies import (
     IDADE_MAXIMA_COOKIE_SEGUNDOS,
     gerar_cookie_assinado,
     verificar_cookie,
 )
+from app.config.settings import AMBIENTE_PRODUCAO
+from fastapi import Request, Response
 
 # Nome do cookie salvo no navegador do cliente. Prefixo "auditor_" evita colisão
 # com cookies de outras aplicações no mesmo domínio.

@@ -1,7 +1,6 @@
+from app.config.logging import logger
 from pydantic import BaseModel, Field, field_validator
 from validate_docbr import CNPJ
-
-from app.config.logging import logger
 
 # Limite de CNPJs aceitos por requisição — protege contra um cliente adulterado
 # mandando dezenas de CNPJs de uma vez só e disparando o custo de tokens do agente.
@@ -28,12 +27,11 @@ class PerguntaRequest(BaseModel):
     - `thread_id`   — identifica a conversa; é o que permite ao LangGraph recuperar o
       histórico e dar continuidade entre uma pergunta e a seguinte.
     """
+
     pergunta: str = Field(description="Pergunta sobre o edital.")
     estado: str = Field(description="Estado do edital.")
     municipio: str = Field(description="Município do edital.")
-    lista_cnpjs: list[str] = Field(
-        description="Lista de CNPJs encontrados no edital."
-    )
+    lista_cnpjs: list[str] = Field(description="Lista de CNPJs encontrados no edital.")
     thread_id: str | None = Field(
         default=None, description="Identificador único da thread/sessão de conversa."
     )

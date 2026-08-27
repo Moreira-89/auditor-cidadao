@@ -1,28 +1,8 @@
-"""
-Geração e verificação de cookies assinados, usados para identificar um cliente
-entre requisições sem precisar de login/senha (ex.: reconhecer o mesmo navegador
-em requisições futuras).
-
-COMO FUNCIONA A ASSINATURA:
-O valor do cookie não é só um ID aleatório — é um ID + uma "assinatura" calculada
-com uma chave secreta que só o servidor conhece (COOKIE_SECRET_KEY, em
-app/config/settings.py). Isso significa que:
-- O cliente PODE LER o valor do cookie (ele não é criptografado, só assinado).
-- O cliente NÃO CONSEGUE forjar nem adulterar o valor, porque não tem a chave
-  secreta para gerar uma assinatura válida. Qualquer alteração no cookie
-  (mudar o ID, tentar se passar por outro usuário) invalida a assinatura.
-
-Usamos `URLSafeTimedSerializer` da lib itsdangerous, que além de assinar já:
-- Codifica o valor em formato seguro para URL/cookie (sem caracteres especiais).
-- Embute um timestamp de criação, permitindo expirar cookies antigos automaticamente.
-"""
-
 import uuid
 
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-
-from app.config.settings import COOKIE_SECRET_KEY
 from app.config.logging import logger
+from app.config.settings import COOKIE_SECRET_KEY
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 # Tempo máximo de vida de um cookie, em segundos, antes de ser considerado expirado
 # (30 dias). Depois desse prazo, verificar_cookie() trata o cookie como inválido
@@ -38,7 +18,9 @@ _SALT_COOKIE_SESSAO = "cookie-sessao-auditor-cidadao"
 # Serializer instanciado uma única vez no import do módulo e reutilizado por todas
 # as chamadas — ele não guarda estado entre uma assinatura e outra, então é seguro
 # compartilhar a mesma instância.
-_serializer = URLSafeTimedSerializer(secret_key=COOKIE_SECRET_KEY, salt=_SALT_COOKIE_SESSAO)
+_serializer = URLSafeTimedSerializer(
+    secret_key=COOKIE_SECRET_KEY, salt=_SALT_COOKIE_SESSAO
+)
 
 
 def gerar_cookie_assinado() -> tuple[str, str]:
@@ -74,5 +56,7 @@ def verificar_cookie(valor: str) -> str | None:
     except BadSignature:
         # Cobre assinatura inválida, valor adulterado ou formato corrompido —
         # tudo que a lib classifica como "não é um cookie que nós emitimos".
-        logger.warning("Cookie de sessão com assinatura inválida (possível adulteração).")
+        logger.warning(
+            "Cookie de sessão com assinatura inválida (possível adulteração)."
+        )
         return None

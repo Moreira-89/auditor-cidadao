@@ -1,18 +1,5 @@
-"""
-Endpoint HTTP de conversa com o agente.
-
-Recebe a pergunta do usuário (já validada pelo schema PerguntaRequest) e devolve a
-resposta do agente em STREAMING via Server-Sent Events (SSE) — assim o texto aparece
-no frontend aos poucos, token a token, sem o usuário esperar a resposta inteira ficar
-pronta. Aqui é só a "borda" HTTP: a lógica de verdade mora em run_agent
-(app/agents/conversa.py).
-"""
-
 import json
 from collections.abc import AsyncGenerator
-
-from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
 
 from app.agents.conversa import run_agent
 from app.agents.eventos import (
@@ -27,6 +14,8 @@ from app.api.rate_limiter import RateLimiter
 from app.api.schemas.pergunta import PerguntaRequest
 from app.config.logging import logger
 from app.config.tool_status_map import TOOL_STATUS_MAP
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
 MENSAGEM_ERRO_GENERICA = "Ocorreu um erro ao processar sua pergunta. Tente novamente."
 
@@ -54,7 +43,9 @@ def _para_sse(evento: EventoDoTurno) -> str:
             return _linha_sse("error", MENSAGEM_ERRO_GENERICA)
 
 
-async def _stream_sse(eventos: AsyncGenerator[EventoDoTurno, None]) -> AsyncGenerator[str, None]:
+async def _stream_sse(
+    eventos: AsyncGenerator[EventoDoTurno, None],
+) -> AsyncGenerator[str, None]:
     """Converte o fluxo de eventos do agente no fluxo de linhas SSE enviado ao navegador."""
     async for evento in eventos:
         yield _para_sse(evento)

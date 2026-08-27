@@ -1,8 +1,3 @@
-from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.graph import END, START, StateGraph
-from langgraph.graph.state import CompiledStateGraph
-from langgraph.prebuilt import ToolNode, tools_condition
-
 from app.agents.nodes.agente import criar_no_agente
 from app.agents.state import AgentState
 from app.config.settings import (
@@ -13,6 +8,10 @@ from app.config.settings import (
     LLM_TIMEOUT_SEGUNDOS,
 )
 from app.llm import retornar_cliente_llm
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
 
 # Criado uma vez no startup pelo lifespan e reutilizado em todos os requests —
 # compilar o grafo a cada pergunta seria caro e recriaria a conexão do checkpointer.

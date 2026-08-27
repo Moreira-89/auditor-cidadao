@@ -1,32 +1,8 @@
-"""
-Rate limiting (limitação de taxa) por cliente, usando Redis.
-
-Protege endpoints caros da API (upload de edital, conversa com o agente — ambos
-disparam chamadas a LLM, Pinecone e serviços externos) contra abuso: um mesmo
-cliente não pode fazer mais que N requisições dentro de uma janela de tempo. Sem
-isso, um cliente malicioso (ou um bug no frontend em loop) poderia gerar custo de
-LLM sem limite algum.
-
-COMO FUNCIONA A CONTAGEM (o script Lua):
-A forma "ingênua" de fazer isso seria em Python: ler o contador (GET), checar se já
-passou do limite e, se não, incrementar (INCR). O problema é que, com duas
-requisições do MESMO cliente chegando ao mesmo tempo, as duas podem executar o GET
-antes de qualquer uma delas incrementar — as duas "veem" o contador abaixo do
-limite e as duas passam, mesmo que juntas estourem a cota (condição de corrida).
-
-A solução é rodar a checagem + incremento como UM ÚNICO comando atômico dentro do
-próprio Redis, via um script Lua. O Redis processa comandos um de cada vez (é
-single-threaded para execução de comandos), então enquanto o script está rodando
-nenhuma outra operação consegue "entrar no meio" — a checagem e o incremento
-acontecem como se fossem uma coisa só.
-"""
-
+from app.api.dependencies import get_client_id
+from app.config.logging import logger
 from fastapi import Depends, HTTPException
 from redis.asyncio import Redis
 from redis.commands.core import AsyncScript
-
-from app.api.dependencies import get_client_id
-from app.config.logging import logger
 
 # Texto do script Lua — não é código Python, é interpretado pelo próprio Redis.
 #
@@ -172,7 +148,9 @@ class RateLimiter:
         script = get_rate_limiter()
         # keys=[...] vira KEYS no Lua, args=[...] vira ARGV — a ordem de args deve
         # bater exatamente com a ordem em que o script lê ARGV[1] e ARGV[2]
-        contador = await script(keys=[chave_redis], args=[self.limit, self.window_seconds])
+        contador = await script(
+            keys=[chave_redis], args=[self.limit, self.window_seconds]
+        )
 
         if contador == -1:
             logger.warning(
