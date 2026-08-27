@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 from app.api.endpoints.chat import router as perguntar_router
 from app.api.endpoints.upload import router as upload_router
@@ -13,8 +12,7 @@ from fastapi.exception_handlers import (
 )
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, Response
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
@@ -97,55 +95,9 @@ async def tratar_excecao_nao_prevista(request: Request, exc: Exception):
     return _reaplicar_cookie_pendente(request, resposta)
 
 
-# Serve o front-end (index.html, chat.html, css/, js/) como arquivos estáticos —
-# não há build step nem framework, é HTML/CSS/JS puro na mesma origem da API.
-# Sem Cache-Control, o navegador aplica cache heurístico e pode continuar servindo
-# HTML/JS/CSS antigos por conta própria mesmo depois de um deploy novo — daí o
-# no-store aqui: nesta fase (sem build/hash de asset) é preferível servir sempre a
-# versão atual do disco a economizar uma requisição.
-_HEADERS_NO_CACHE = {"Cache-Control": "no-store"}
-
-
-class StaticFilesSemCache(StaticFiles):
-    """Mesma coisa que StaticFiles, mas força no-store em toda resposta — evita
-    que o navegador guarde uma versão velha de /static/js/chat.js ou
-    /static/css/style.css e ignore as mudanças feitas em disco."""
-
-    def file_response(self, *args, **kwargs):
-        resposta = super().file_response(*args, **kwargs)
-        resposta.headers["Cache-Control"] = "no-store"
-        return resposta
-
-
-# Resolvido a partir deste arquivo, não do diretório de trabalho do processo: o
-# main.py mora em backend/ e o frontend na raiz do repositório, então um caminho
-# relativo ao CWD só funcionaria se o uvicorn fosse lançado de um lugar específico.
-#
-# PROVISÓRIO: quando o frontend virar serviço próprio no Railway, ele não estará no
-# contexto de build desta imagem e este bloco inteiro sai daqui (ver
-# docs/arquitetura/proposta_reestruturacao.md, §4.3). Até lá, montar só se existir
-# mantém o backend subindo nos dois cenários.
-DIRETORIO_FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
-
-if DIRETORIO_FRONTEND.is_dir():
-    app.mount(
-        "/static", StaticFilesSemCache(directory=DIRETORIO_FRONTEND), name="static"
-    )
-else:
-    logger.warning(
-        "Diretório do frontend não encontrado em %s — a API sobe normalmente, mas "
-        "as rotas / e /chat não serão servidas por este serviço.",
-        DIRETORIO_FRONTEND,
-    )
-
-
-@app.get("/", include_in_schema=False, response_class=FileResponse)
-async def serve_home():
-    """Serve a landing page (apresentação do produto)."""
-    return FileResponse(DIRETORIO_FRONTEND / "index.html", headers=_HEADERS_NO_CACHE)
-
-
-@app.get("/chat", include_in_schema=False, response_class=FileResponse)
-async def serve_chat():
-    """Serve a página de chat (upload de edital + conversa com o agente)."""
-    return FileResponse(DIRETORIO_FRONTEND / "chat.html", headers=_HEADERS_NO_CACHE)
+# O frontend é um serviço próprio no Railway (ver docs/operacional/docker.md) e não
+# faz parte do contexto de build desta imagem — este serviço só serve a API.
+@app.get("/", include_in_schema=False)
+async def health_check():
+    """Sem UI própria: usado só como health check (Railway, curl manual)."""
+    return {"status": "ok", "service": "auditor-cidadao-backend"}
