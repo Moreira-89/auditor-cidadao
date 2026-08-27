@@ -11,13 +11,18 @@
  *
  * Fallbacks (sempre para o estado final estático, que já está no HTML):
  *   - prefers-reduced-motion → o inline script do <head> nem adiciona a
- *     classe .hero-anim; este arquivo retorna cedo.
- *   - GSAP indisponível (CDN bloqueada) ou markup inesperado → remove a
- *     classe e o laudo pronto aparece direto.
+ *     classe .hero-anim; esta função retorna cedo.
+ *   - markup inesperado (algum ref não montou) → remove a classe e o laudo
+ *     pronto aparece direto.
+ *
+ * Chamada uma única vez por <Home/>, num useEffect sem dependências — GSAP
+ * agora é dependência de build (import), não mais um <script> de CDN que
+ * pudesse falhar em runtime.
  * =============================================================================
  */
-(function () {
-'use strict';
+import gsap from 'gsap';
+
+export function runHeroAnimation() {
 
 const root = document.documentElement;
 
@@ -27,11 +32,6 @@ if (!root.classList.contains('hero-anim')) return;
 /** Reverte para o estado final estático escrito no HTML — rede de segurança. */
 function mostrarEstadoFinal() {
     root.classList.remove('hero-anim');
-}
-
-if (!window.gsap) {
-    mostrarEstadoFinal();
-    return;
 }
 
 const $ = (id) => document.getElementById(id);
@@ -198,4 +198,4 @@ tl.call(() => {
     els.status.classList.add('is-done');
 }, null, tFim + 0.14);
 
-})();
+}

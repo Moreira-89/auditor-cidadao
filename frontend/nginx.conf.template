@@ -1,0 +1,31 @@
+# Template processado por docker-entrypoint.sh (envsubst) na hora de subir o
+# container — $PORT vem do Railway em runtime, não existe em build time, então
+# não dá pra hardcodar aqui como um "listen 8080;" fixo.
+server {
+    listen ${PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # SPA de duas páginas reais (sem client-side router) — cada uma serve seu
+    # próprio arquivo. /chat sem extensão ainda é aceito por compatibilidade
+    # com links antigos, apontando pro mesmo dist/chat.html.
+    location = / {
+        try_files /index.html =404;
+    }
+
+    location = /chat {
+        try_files /chat.html =404;
+    }
+
+    location / {
+        try_files $uri =404;
+    }
+
+    # Bundle do Vite tem hash no nome do arquivo (ex.: chat-a1b2c3.js) — pode
+    # cachear por muito tempo, um deploy novo gera nomes novos. Os dois
+    # entrypoints HTML (index.html, chat.html) ficam de fora dessa regra.
+    location ~* \.(?:js|css|svg|woff2?)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}

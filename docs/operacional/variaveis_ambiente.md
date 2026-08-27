@@ -74,3 +74,11 @@ limiting (ver [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidad
     da aplicação são `OPENAI_API_KEY`, `PINECONE_API_KEY` e `REDIS_URI` (esta última tem um default
     válido para uso local, `redis://localhost:6379`, mas precisa de um Redis de verdade escutando
     nesse endereço).
+
+## Frontend
+
+O template versionado é [`frontend/.env.example`](https://github.com/Moreira-89/auditor-cidadao/blob/main/frontend/.env.example) — só uma variável, lida pelo Vite em **tempo de build**, não de runtime.
+
+| Variável | Obrigatória | Default | Descrição |
+|---|---|---|---|
+| `VITE_API_BASE_URL` | Não | `http://localhost:8000` | URL do backend que o app chama (upload + streaming SSE). Em produção, definida no serviço de frontend no Railway com a URL pública do serviço de backend — repassada como build arg ao `Dockerfile` (ver [Docker & Deploy](docker.md#frontend--build-da-imagem)) |

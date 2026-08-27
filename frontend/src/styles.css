@@ -59,6 +59,15 @@ body {
     padding: 0;
 }
 
+/* React monta tudo dentro de <div id="root">, que antes não existia — sem
+ * "display: contents" ele viraria uma caixa a mais no fluxo, quebrando
+ * .chat-body (display: flex direto no <body>, esperando header/main/modal
+ * como filhos imediatos). "contents" remove a caixa do #root da árvore de
+ * render mas mantém os filhos nela — layout idêntico a antes do React. */
+#root {
+    display: contents;
+}
+
 body {
     font-family: var(--font-sans);
     font-feature-settings: 'calt', 'rlig';
