@@ -1,0 +1,1646 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../fluxo_dados/">
+      
+      
+        <link rel="next" href="../../ia/modelos_prompts/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Protocolo MCP - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#protocolo-mcp" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Protocolo MCP
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operacional/" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../visao_geral/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ia/modelos_prompts/" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/variaveis_ambiente/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../visao_geral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-que-e-mcp-e-por-que-usa-lo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que é MCP e por que usá-lo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-as-ferramentas-mcp-entram-no-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como as ferramentas MCP entram no agente
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ajuste-de-compatibilidade-de-tipos-patch_mcp_tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ajuste de compatibilidade de tipos (patch_mcp_tools)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cache-das-ferramentas-aplicar_cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache das ferramentas (aplicar_cache)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cache das ferramentas (aplicar_cache)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#serializacao-com-marcacao-de-tipo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialização com marcação de tipo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#normalizacao-da-chave-normalizadores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Normalização da chave (normalizadores)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reconstrucao-da-tool-e-o-args_schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reconstrução da tool e o args_schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tolerancia-a-falha-do-redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tolerância a falha do Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logs-emitidos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs emitidos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limit-do-pncp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rate limit do PNCP
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/modelos_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/rag_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/extracao_laudo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Relatório automático e extração de laudo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/avaliacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (RAGAS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-que-e-mcp-e-por-que-usa-lo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que é MCP e por que usá-lo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-as-ferramentas-mcp-entram-no-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como as ferramentas MCP entram no agente
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ajuste-de-compatibilidade-de-tipos-patch_mcp_tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ajuste de compatibilidade de tipos (patch_mcp_tools)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cache-das-ferramentas-aplicar_cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache das ferramentas (aplicar_cache)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cache das ferramentas (aplicar_cache)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#serializacao-com-marcacao-de-tipo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialização com marcação de tipo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#normalizacao-da-chave-normalizadores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Normalização da chave (normalizadores)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reconstrucao-da-tool-e-o-args_schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reconstrução da tool e o args_schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tolerancia-a-falha-do-redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tolerância a falha do Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logs-emitidos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs emitidos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limit-do-pncp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rate limit do PNCP
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="protocolo-mcp">Protocolo MCP</h1>
+<p>Além das 4 ferramentas nativas, o agente ganha 11 ferramentas de consulta ao <strong>PNCP</strong> (Portal
+Nacional de Contratações Públicas) sem que uma linha de integração com o PNCP exista no
+repositório — elas vêm de um servidor <strong>MCP</strong> externo. Esta página cobre o protocolo, os dois
+ajustes de compatibilidade que ele exigiu e o cache que envolve todas as ferramentas do sistema.</p>
+<h2 id="o-que-e-mcp-e-por-que-usa-lo">O que é MCP e por que usá-lo</h2>
+<p>O <strong>Model Context Protocol (MCP)</strong> é um padrão aberto para expor ferramentas a um agente de IA. Em
+vez de reimplementar a integração com a API do PNCP (paginação, schemas, filtros, tratamento de
+erro), o Auditor Cidadão consome o pacote npm <code>@licinexusbr/mcp</code>, que já entrega essas ferramentas
+prontas.</p>
+<div class="admonition note">
+<p class="admonition-title">Trade-off: 11 ferramentas prontas × dependência de subprocesso Node.js</p>
+<p>Adotar o MCP significa reaproveitar 11 ferramentas de PNCP validadas em vez de escrever e
+manter essa integração internamente. O custo é uma dependência de runtime não-Python: o
+servidor MCP roda como subprocesso <code>npx @licinexusbr/mcp</code>, e por isso <strong>o Node.js 20 é
+obrigatório</strong> tanto no <a href="../../operacional/setup_local/">Setup local</a> quanto na imagem Docker.
+Sem ele, o boot é abortado com erro explícito — fail-fast, de propósito.</p>
+</div>
+<h2 id="como-as-ferramentas-mcp-entram-no-agente">Como as ferramentas MCP entram no agente</h2>
+<p>Todo o carregamento acontece uma vez no startup, em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/registry.py"><code>app/agents/tools/registry.py</code></a>.</p>
+<pre class="mermaid-diagram"><code>---
+config:
+  layout: dagre
+  theme: redux-dark
+  look: handDrawn
+  fontFamily: '''Source Code Pro Variable'', monospace'
+  themeVariables:
+    fontFamily: '''Source Code Pro Variable'', monospace'
+    fontSize: '28px'
+---
+flowchart TB
+    START["Startup (lifespan)"] --&gt; NPX["_localizar_npx()"]
+    NPX --&gt; CONN["MultiServerMCPClient&lt;br&gt;conecta via stdio"]
+    CONN --&gt; GET["get_tools()&lt;br&gt;todas as tools do MCP"]
+    GET --&gt; FILTER["Filtra TOOLS_MCP_SELECIONADAS&lt;br&gt;11 de 18"]
+    FILTER --&gt; PATCH["patch_mcp_tools&lt;br&gt;afrouxa schemas"]
+    PATCH --&gt; CACHE["aplicar_cache&lt;br&gt;Redis, TTL 24h"]
+    CACHE --&gt; MERGE["Combina com as&lt;br&gt;4 tools nativas"]
+    MERGE --&gt; GRAFO["initialize_graph"]</code></pre>
+<ol>
+<li><strong>Localiza o <code>npx</code></strong> (<code>registry.py:66</code>) — no Windows injeta o caminho do Node.js no <code>PATH</code> do
+   processo; em qualquer plataforma, aborta o boot com erro claro se não encontrar.</li>
+<li><strong>Conecta ao MCP</strong> via <code>MultiServerMCPClient</code> (transporte <code>stdio</code>) e chama <code>get_tools()</code>.</li>
+<li><strong>Filtra a whitelist</strong> — só as 11 tools de <code>TOOLS_MCP_SELECIONADAS</code> (<code>registry.py:30</code>) entram no
+   agente. Nome pedido que o servidor não expôs vira <code>WARNING</code> no log, com o nome exato.</li>
+<li><strong>Aplica o patch de schema</strong> (<code>patch_mcp_tools</code>, abaixo).</li>
+<li><strong>Envolve com cache no Redis, TTL 24h</strong> — o mesmo cache cobre as tools nativas.</li>
+<li><strong>Combina</strong> as 11 MCP com as 4 nativas e entrega ao grafo.</li>
+</ol>
+<div class="highlight"><pre><span></span><code>2026-08-26 15:49:34 | INFO | MCP conectado — 11/18 ferramentas selecionadas para o agente.
+2026-08-26 15:49:34 | INFO | Total de ferramentas disponíveis para o agente: 15
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Nenhum subprocesso persistente para encerrar no shutdown</p>
+<p>Na versão usada do <code>langchain-mcp-adapters</code> (0.3.0), o <code>MultiServerMCPClient</code> <strong>não</strong> mantém um
+subprocesso Node.js vivo entre chamadas — cada <code>get_tools()</code> e cada execução de ferramenta abre
+e fecha a própria sessão. Por isso o <code>lifespan</code> não faz cleanup explícito de MCP: não há
+recurso de longa duração para liberar.</p>
+</div>
+<h2 id="ajuste-de-compatibilidade-de-tipos-patch_mcp_tools">Ajuste de compatibilidade de tipos (<code>patch_mcp_tools</code>)</h2>
+<p>Um LLM frequentemente envia números como texto — <code>"2024"</code> em vez de <code>2024</code>. Isso cria um conflito
+entre duas camadas de validação: o Pydantic, do lado Python, rejeitaria o texto antes mesmo de a
+ferramenta ser chamada; e o servidor MCP (Node.js, validado via Zod) rejeitaria o texto do outro
+lado.
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/mcp.py"><code>app/agents/tools/mcp.py</code></a>
+resolve os dois pontos:</p>
+<ol>
+<li><strong>Afrouxa o schema</strong> — reconstrói o schema de cada tool tornando os tipos permissivos (<code>int</code>
+   passa a aceitar <code>int | str</code>, <code>float</code> idem, <code>array</code> idem). O valor do LLM passa na validação do
+   Pydantic em vez de ser barrado.</li>
+<li><strong>Coage os valores de volta</strong> — imediatamente antes de chamar o MCP, converte cada valor para o
+   tipo do schema <strong>original</strong> (<code>"2024"</code> → <code>2024</code>), para o servidor Node.js aceitar.</li>
+</ol>
+<p>O mesmo wrapper <strong>trunca o retorno de cada tool em 4000 caracteres</strong>: com várias chamadas MCP por
+turno, retornos volumosos acumulam tokens rapidamente, elevando custo e degradando a atenção do
+modelo.</p>
+<h2 id="cache-das-ferramentas-aplicar_cache">Cache das ferramentas (<code>aplicar_cache</code>)</h2>
+<p>Cada chamada MCP dispara uma requisição ao PNCP, e esses dados mudam pouco ao longo do dia.
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/cache.py"><code>app/agents/tools/cache.py</code></a>
+guarda os resultados no <strong>Redis</strong> — no mesmo client compartilhado com o rate limiter — sob a chave
+<code>mcp_cache:{nome_da_tool}_{MD5(argumentos)}</code>, com validade de 24h (<code>TTL_CACHE_TOOLS_SEGUNDOS</code>,
+<code>registry.py:19</code>). O Redis expira a chave sozinho; não há limpeza manual.</p>
+<p>O Redis é a escolha em vez de um cache em memória porque atende dois requisitos que um <code>TTLCache</code>
+local não atende: sobreviver a restart e ser compartilhado entre as
+<a href="../../operacional/docker/#escalonamento-replicas-e-limites-de-recurso">2 réplicas em produção</a>.</p>
+<h3 id="serializacao-com-marcacao-de-tipo">Serialização com marcação de tipo</h3>
+<p>O Redis só guarda texto, mas o retorno de uma tool nem sempre é um <code>dict</code>/<code>list</code>. As tools MCP (via
+<code>langchain-mcp-adapters</code>, que usa <code>response_format="content_and_artifact"</code>) devolvem uma <strong>tupla</strong>
+<code>(conteúdo, artefato)</code>, e <code>json.loads</code> nunca reconstrói uma tupla — sempre devolve lista.</p>
+<p>Adivinhar o tipo pela estrutura na leitura seria ambíguo (uma tool nativa poderia, por
+coincidência, devolver uma lista de 2 elementos). Por isso o tipo é marcado explicitamente na
+escrita:</p>
+<div class="highlight"><span class="filename">app/agents/tools/cache.py</span><pre><span></span><code><span class="p">{</span><span class="s2">"__tipo__"</span><span class="p">:</span> <span class="s2">"tupla"</span><span class="p">,</span> <span class="s2">"valor"</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]}</span>   <span class="c1"># quando o resultado é uma tuple</span>
+<span class="p">{</span><span class="s2">"__tipo__"</span><span class="p">:</span> <span class="s2">"bruto"</span><span class="p">,</span> <span class="s2">"valor"</span><span class="p">:</span> <span class="o">...</span><span class="p">}</span>     <span class="c1"># dict, list, str — sem transformação</span>
+</code></pre></div>
+<p>A leitura usa a marca para decidir se reconstrói a tupla, sem nunca inspecionar o dado em si.</p>
+<h3 id="normalizacao-da-chave-normalizadores">Normalização da chave (<code>normalizadores</code>)</h3>
+<p>A chave é calculada a partir dos argumentos <strong>exatos</strong> que o LLM envia — e o LLM não é determinístico
+na formatação. As tools de CNPJ tiram a pontuação <em>dentro</em> da tool, ou seja, depois que a chave já
+teria sido calculada. Sem tratamento, <code>"11.222.333/0001-81"</code> e <code>"11222333000181"</code> — a mesma
+consulta — geram chaves diferentes e o cache nunca dá HIT entre uma formatação e outra.</p>
+<p><code>aplicar_cache</code> aceita <code>normalizadores: dict[str, dict[str, Callable]]</code> (<code>tool_name -&gt; {arg: função}</code>),
+aplicado <strong>só para calcular a chave</strong>, sem alterar o valor que chega à tool. O mapa é declarado em
+<code>registry.py:58</code>, que é quem sabe o que é um CNPJ — <code>cache.py</code> permanece genérico:</p>
+<div class="highlight"><span class="filename">app/agents/tools/registry.py:58-63</span><pre><span></span><code><span class="n">CACHE_KEY_NORMALIZERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"consultar_receita_federal"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"cnpj"</span><span class="p">:</span> <span class="n">_normalizar_cnpj_para_cache</span><span class="p">},</span>
+    <span class="s2">"consultar_sancoes_empresa"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"cnpj"</span><span class="p">:</span> <span class="n">_normalizar_cnpj_para_cache</span><span class="p">},</span>
+    <span class="s2">"buscar_contexto_edital"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"runtime"</span><span class="p">:</span> <span class="n">_extrair_estado_municipio_para_cache</span><span class="p">},</span>
+    <span class="s2">"buscar_informacao_web"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"runtime"</span><span class="p">:</span> <span class="n">_extrair_estado_municipio_para_cache</span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title"><code>ToolRuntime</code> não é serializável em JSON — e por isso precisa de normalizador próprio</p>
+<p><code>buscar_contexto_edital</code> e <code>buscar_informacao_web</code> recebem o contexto geográfico via um
+parâmetro <code>runtime: ToolRuntime</code>, que é um objeto (<code>state</code>, <code>config</code>, <code>store</code>, <code>tools</code>...), não
+uma string. Sem tratamento, o cálculo da chave quebra com
+<code>TypeError: Object of type ToolRuntime is not JSON serializable</code> em <strong>toda</strong> chamada dessas duas
+tools.</p>
+<p><code>_extrair_estado_municipio_para_cache</code> (<code>registry.py:49</code>) resolve extraindo só <code>estado</code> e
+<code>municipio</code> do <code>runtime.state</code>. Os dois <strong>precisam</strong> continuar na chave: a mesma pergunta em
+municípios diferentes tem que gerar MISS, nunca reaproveitar o resultado de outro edital.</p>
+</div>
+<h3 id="reconstrucao-da-tool-e-o-args_schema">Reconstrução da tool e o <code>args_schema</code></h3>
+<p><code>StructuredTool</code> é imutável, então <code>aplicar_cache</code> reconstrói cada tool do zero
+(<code>name</code>/<code>description</code>/<code>args_schema</code>/<code>coroutine</code> copiados um a um) em vez de só trocar a coroutine.</p>
+<p>A anotação que dispara a injeção do <code>ToolRuntime</code> vive no <code>args_schema</code> — ela depende de esse
+objeto sobreviver <strong>por referência</strong> na reconstrução. Se <code>aplicar_cache</code> um dia passar a
+reconstruir o <code>args_schema</code> em vez de copiá-lo, a injeção quebra em silêncio: a tool passa a
+receber <code>runtime=None</code>, sem erro explícito.</p>
+<h3 id="tolerancia-a-falha-do-redis">Tolerância a falha do Redis</h3>
+<p>Se o Redis estiver indisponível, a chamada da tool não é derrubada: a falha é registrada com
+<code>logger.exception</code> e a execução segue direto para a tool original, tanto na leitura (GET) quanto na
+escrita (SET). A tool sempre responde — apenas sem o benefício do cache naquela chamada.</p>
+<h3 id="logs-emitidos">Logs emitidos</h3>
+<table>
+<thead>
+<tr>
+<th>Evento</th>
+<th>Nível</th>
+<th>Quando</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Cache Redis aplicado a N ferramenta(s): ...</code></td>
+<td>INFO</td>
+<td>Uma vez no startup, ao envolver as tools</td>
+</tr>
+<tr>
+<td><code>Cache HIT (Redis) \| tool=... \| chave=...</code></td>
+<td>INFO</td>
+<td>Chave já existia — a tool original não foi chamada</td>
+</tr>
+<tr>
+<td><code>Cache MISS (Redis) \| tool=... \| chave=...</code></td>
+<td>INFO</td>
+<td>Chave não existia — a tool original foi chamada</td>
+</tr>
+<tr>
+<td><code>Resultado gravado no Redis \| tool=... \| ttl=...</code></td>
+<td>DEBUG</td>
+<td>Escrita concluída após um MISS</td>
+</tr>
+<tr>
+<td><code>Falha ao ler/gravar no Redis \| tool=...</code></td>
+<td>ERROR (com traceback)</td>
+<td>Redis indisponível — a chamada seguiu sem cache</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rate-limit-do-pncp">Rate limit do PNCP</h2>
+<p>A API do PNCP aplica um rate limit agressivo a nível de WAF: bloqueio de vários minutos após poucas
+requisições simultâneas. O cache de 24h mitiga o caso comum — consultas repetidas sobre o mesmo
+órgão ou contrato dentro de um dia não geram tráfego novo.</p>
+<div class="admonition info">
+<p class="admonition-title">Requisitos do case cobertos por este pilar</p>
+<table>
+<thead>
+<tr>
+<th>Requisito</th>
+<th>O que esta página resolve</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>T3</strong> — Uso de dados (preparação, armazenamento)</td>
+<td>Cache TTL no Redis e truncamento de retorno</td>
+</tr>
+<tr>
+<td><strong>T5</strong> — Arquitetura com agentes (trade-offs)</td>
+<td>Reuso via MCP × dependência de Node.js; cache local × distribuído</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1618 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../docker/">
+      
+      
+        <link rel="next" href="../../arquitetura/visao_geral/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Variáveis de ambiente - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#variaveis-de-ambiente" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Variáveis de ambiente
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../arquitetura/visao_geral/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ia/modelos_prompts/" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chaves-de-api-dos-provedores-de-llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chaves de API dos provedores de LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#banco-de-dados-vetorial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Banco de dados vetorial
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-checkpointer-do-grafo-rate-limiting-cache-de-ferramentas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis (checkpointer do grafo + rate limiting + cache de ferramentas)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#seguranca-cookie-de-identificacao-de-cliente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segurança: cookie de identificação de cliente
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fontes-de-dados-oficiais-tools-nativas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fontes de dados oficiais (tools nativas)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visao_geral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/protocolo_mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/modelos_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/rag_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/extracao_laudo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Relatório automático e extração de laudo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/avaliacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (RAGAS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chaves-de-api-dos-provedores-de-llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chaves de API dos provedores de LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#banco-de-dados-vetorial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Banco de dados vetorial
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-checkpointer-do-grafo-rate-limiting-cache-de-ferramentas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis (checkpointer do grafo + rate limiting + cache de ferramentas)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#seguranca-cookie-de-identificacao-de-cliente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segurança: cookie de identificação de cliente
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fontes-de-dados-oficiais-tools-nativas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fontes de dados oficiais (tools nativas)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="variaveis-de-ambiente">Variáveis de ambiente</h1>
+<p>Referência completa de cada chave usada pelo Auditor Cidadão. O template versionado é o <code>.env.example</code> na raiz do repositório — copie para <code>.env</code> e preencha antes de rodar (veja <a href="../setup_local/">Setup local</a>).</p>
+<p>Todas são lidas uma única vez em <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py"><code>app/config/settings.py</code></a>, que aplica os defaults e os casts. Esse módulo não abre conexão nem instancia cliente: importar configuração é barato e livre de efeito colateral.</p>
+<h2 id="llm">LLM</h2>
+<table>
+<thead>
+<tr>
+<th>Variável</th>
+<th>Obrigatória</th>
+<th>Default</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LLM_MODEL</code></td>
+<td>Não</td>
+<td><code>openai:gpt-4o-mini</code></td>
+<td>Modelo do agente principal, no formato <code>provider:model-name</code>. Trocável para <code>groq:gpt-oss-120b</code> ou <code>google_genai:gemini-2.0-flash</code> sem mudar código — o provider precisa ter a chave correspondente preenchida e o pacote <code>langchain-&lt;provider&gt;</code> instalado</td>
+</tr>
+<tr>
+<td><code>LLM_TEMPERATURE</code></td>
+<td>Não</td>
+<td><code>0.1</code></td>
+<td>Temperatura do agente principal</td>
+</tr>
+<tr>
+<td><code>LLM_MAX_TOKENS</code></td>
+<td>Não</td>
+<td><code>4096</code></td>
+<td>Limite de tokens de saída do agente principal</td>
+</tr>
+<tr>
+<td><code>LLM_TIMEOUT_SEGUNDOS</code></td>
+<td>Não</td>
+<td><code>60</code></td>
+<td>Timeout por chamada ao LLM — sem ele, uma resposta lenta da OpenAI pode segurar o turno (e o streaming SSE) indefinidamente. Reusado pelo extrator (ver abaixo)</td>
+</tr>
+<tr>
+<td><code>LLM_MAX_RETRIES</code></td>
+<td>Não</td>
+<td><code>2</code></td>
+<td>Nº de retries por chamada ao LLM — menor que o default da lib (6) de propósito: no caminho síncrono de resposta ao usuário, falhar mais rápido (e deixar o evento <code>error</code> do SSE avisar) é preferível a segurar a requisição por vários minutos de retry. Reusado pelo extrator</td>
+</tr>
+<tr>
+<td><code>EXTRATOR_MODEL</code></td>
+<td>Não</td>
+<td><code>openai:gpt-4o-mini</code></td>
+<td>Modelo usado só para extrair o laudo estruturado (JSON) a partir do Markdown já gerado. Separado do <code>LLM_MODEL</code> para permitir trocar um sem afetar o outro</td>
+</tr>
+<tr>
+<td><code>EXTRATOR_TEMPERATURE</code></td>
+<td>Não</td>
+<td><code>0.0</code></td>
+<td>Temperatura do extrator — fixa em zero porque a tarefa é extração determinística, não geração criativa</td>
+</tr>
+</tbody>
+</table>
+<h2 id="chaves-de-api-dos-provedores-de-llm">Chaves de API dos provedores de LLM</h2>
+<table>
+<thead>
+<tr>
+<th>Variável</th>
+<th>Obrigatória</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OPENAI_API_KEY</code></td>
+<td><strong>Sim, sempre</strong></td>
+<td>Mesmo que <code>LLM_MODEL</code>/<code>EXTRATOR_MODEL</code> usem outro provider, os embeddings do RAG (<code>text-embedding-3-small</code>) sempre passam pela OpenAI</td>
+</tr>
+<tr>
+<td><code>GROQ_API_KEY</code></td>
+<td>Só se usar Groq</td>
+<td>Obrigatória apenas se <code>LLM_MODEL</code> ou <code>EXTRATOR_MODEL</code> apontarem para <code>groq:...</code></td>
+</tr>
+<tr>
+<td><code>GOOGLE_API_KEY</code></td>
+<td>Só se usar Gemini</td>
+<td>Obrigatória apenas se <code>LLM_MODEL</code> ou <code>EXTRATOR_MODEL</code> apontarem para <code>google_genai:...</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="banco-de-dados-vetorial">Banco de dados vetorial</h2>
+<table>
+<thead>
+<tr>
+<th>Variável</th>
+<th>Obrigatória</th>
+<th>Default</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PINECONE_API_KEY</code></td>
+<td><strong>Sim</strong></td>
+<td>—</td>
+<td>Chave de acesso ao Pinecone</td>
+</tr>
+<tr>
+<td><code>PINECONE_INDEX_NAME</code></td>
+<td>Não</td>
+<td><code>auditor-cidadao</code></td>
+<td>Índice usado pelo <code>GerenciadorVetorial</code> (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py"><code>app/storage/vetorial.py</code></a>) e pelo job de limpeza. Criado automaticamente pelo Pinecone se não existir</td>
+</tr>
+<tr>
+<td><code>PINECONE_NAMESPACE</code></td>
+<td>Não</td>
+<td><code>production</code></td>
+<td>Namespace do Pinecone usado para indexar e buscar editais. Permite isolar conjuntos de dados (ex.: um namespace de testes) sem tocar no índice de produção</td>
+</tr>
+<tr>
+<td><code>PINECONE_RETENCAO_DIAS</code></td>
+<td>Não</td>
+<td><code>7</code></td>
+<td>Dias de retenção antes de um registro com <code>origem: "upload_usuario"</code> ser apagado pelo job de limpeza (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_pinecone.py"><code>app/jobs/limpeza_pinecone.py</code></a>, ver <a href="../../ia/rag_dados/#limpeza-de-dados-expirados">Uso de Dados e RAG</a>). Não afeta registros com outra origem</td>
+</tr>
+<tr>
+<td><code>TOP_K_EDITAL</code></td>
+<td>Não</td>
+<td><code>3</code></td>
+<td>Quantos trechos do edital a busca semântica (RAG) traz por pergunta — ver a tool <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py"><code>buscar_contexto_edital</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="redis-checkpointer-do-grafo-rate-limiting-cache-de-ferramentas">Redis (checkpointer do grafo + rate limiting + cache de ferramentas)</h2>
+<table>
+<thead>
+<tr>
+<th>Variável</th>
+<th>Obrigatória</th>
+<th>Default</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>REDIS_URI</code></td>
+<td><strong>Sim</strong></td>
+<td><code>redis://localhost:6379</code></td>
+<td>Precisa de uma instância Redis acessível (local, Docker ou gerenciada) — sem ela o <strong>boot falha</strong>. Duas conexões independentes usam essa mesma URI: o <code>AsyncRedisSaver</code> do histórico de conversa (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/checkpointer.py"><code>app/storage/checkpointer.py</code></a>) e um client <code>Redis</code> (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/redis.py"><code>app/storage/redis.py</code></a>) compartilhado entre o rate limiter (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/rate_limiter.py"><code>app/api/rate_limiter.py</code></a>) e o cache de ferramentas (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/cache.py"><code>app/agents/tools/cache.py</code></a>, ver <a href="../../arquitetura/protocolo_mcp/#cache-das-ferramentas-aplicar_cache">Protocolo MCP</a>)</td>
+</tr>
+<tr>
+<td><code>TTL_CHECKPOINT_MINUTOS</code></td>
+<td>Não</td>
+<td><code>1440</code> (24h)</td>
+<td>Minutos de <strong>inatividade</strong> até o histórico de uma conversa expirar no Redis. Não é um TTL fixo desde a criação: cada leitura renova a contagem (<code>refresh_on_read=True</code>), então uma conversa em uso nunca expira no meio — só threads abandonadas são limpas. Use <code>-1</code> para desativar a expiração</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Redis não vem embutido no container</p>
+<p>O <code>Dockerfile</code> não instala Redis — é um serviço externo à aplicação (container separado
+localmente, add-on gerenciado no Railway). Ver <a href="../setup_local/">Setup local</a> para como subir um
+Redis local rapidamente, e <a href="../docker/#deploy-em-producao-railway">Docker &amp; Deploy</a> para o passo
+a passo de provisionar o add-on no Railway (esquecer <code>REDIS_URI</code> lá gera um crash-loop
+característico no boot, documentado nessa página).</p>
+</div>
+<h2 id="seguranca-cookie-de-identificacao-de-cliente">Segurança: cookie de identificação de cliente</h2>
+<p>Usado para reconhecer o mesmo navegador entre requisições sem exigir login, como base do rate
+limiting (ver <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/cookies.py"><code>app/api/cookies.py</code></a> e <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/dependencies.py"><code>app/api/dependencies.py</code></a>).</p>
+<table>
+<thead>
+<tr>
+<th>Variável</th>
+<th>Obrigatória</th>
+<th>Default</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COOKIE_SECRET_KEY</code></td>
+<td><strong>Sim, em produção</strong></td>
+<td>chave aleatória gerada em memória no boot</td>
+<td>Assina o cookie httpOnly <code>auditor_client_id</code>. Sem essa env var definida, cada processo gera sua própria chave aleatória no boot — em produção, com as 2 réplicas ativas hoje (ver <a href="../docker/#escalonamento-replicas-e-limites-de-recurso">Docker &amp; Deploy</a>), isso quebra a validação do cookie de forma intermitente, dependendo de qual réplica atende a requisição, sem sticky sessions no Railway. Defina sempre em produção</td>
+</tr>
+<tr>
+<td><code>AMBIENTE_PRODUCAO</code></td>
+<td>Não</td>
+<td><code>True</code></td>
+<td>Controla as flags <code>secure</code> e <code>samesite</code> do cookie. <code>True</code> (HTTPS, produção) usa <code>secure=True, samesite="none"</code> — necessário porque frontend e backend são serviços/domínios separados no Railway, o que torna a chamada do frontend uma requisição cross-site. Em dev local (<code>uvicorn</code> sem TLS), <strong>precisa ser <code>False</code></strong> (<code>secure=False, samesite="lax"</code>) — com <code>True</code> fixo, o cookie nunca persiste entre requisições em <code>http://localhost</code>, e o rate limiter nunca reconhece o mesmo cliente duas vezes (bug silencioso: nenhum erro aparece, o limite simplesmente nunca dispara)</td>
+</tr>
+<tr>
+<td><code>CORS_ORIGINS</code></td>
+<td><strong>Sim, em produção</strong></td>
+<td>vazio (nenhuma origem cross-site liberada)</td>
+<td>URL(s) pública(s) do serviço de frontend no Railway autorizadas a chamar a API, separadas por vírgula (ex.: <code>https://auditorcidadao.up.railway.app</code>). Sem essa variável, o navegador bloqueia toda chamada do frontend por CORS — a API só responde a requisições same-origin (dev local)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="fontes-de-dados-oficiais-tools-nativas">Fontes de dados oficiais (tools nativas)</h2>
+<table>
+<thead>
+<tr>
+<th>Variável</th>
+<th>Obrigatória</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TAVILY_API_KEY</code></td>
+<td>Sim (para busca web)</td>
+<td>Usada pela tool <code>buscar_informacao_web</code></td>
+</tr>
+<tr>
+<td><code>CGU_API_KEY</code></td>
+<td>Sim (para sanções)</td>
+<td>Usada pela tool <code>consultar_sancoes_empresa</code> (CEIS/CNEP). Obtida em <code>api.portaldatransparencia.gov.br/swagger-ui.html</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">O que acontece se uma chave opcional faltar?</p>
+<p>A aplicação sobe normalmente, mas a tool correspondente retorna um erro estruturado
+(<code>{"error": ...}</code>) em vez de derrubar a resposta inteira — o agente é instruído a tratar fonte
+indisponível como "não verificado", nunca como "sem irregularidades" (ver
+<a href="../../governanca/guardrails/">Guardrails</a>). As únicas chaves cuja ausência impede o <strong>boot</strong>
+da aplicação são <code>OPENAI_API_KEY</code>, <code>PINECONE_API_KEY</code> e <code>REDIS_URI</code> (esta última tem um default
+válido para uso local, <code>redis://localhost:6379</code>, mas precisa de um Redis de verdade escutando
+nesse endereço).</p>
+</div>
+<h2 id="frontend">Frontend</h2>
+<p>O template versionado é <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/frontend/.env.example"><code>frontend/.env.example</code></a> — só uma variável, lida pelo Vite em <strong>tempo de build</strong>, não de runtime.</p>
+<table>
+<thead>
+<tr>
+<th>Variável</th>
+<th>Obrigatória</th>
+<th>Default</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VITE_API_BASE_URL</code></td>
+<td>Não</td>
+<td><code>http://localhost:8000</code></td>
+<td>URL do backend que o app chama (upload + streaming SSE). Em produção, definida no serviço de frontend no Railway com a URL pública do serviço de backend — repassada como build arg ao <code>Dockerfile</code> (ver <a href="../docker/#frontend--build-da-imagem">Docker &amp; Deploy</a>)</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

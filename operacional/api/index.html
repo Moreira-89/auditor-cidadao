@@ -1,0 +1,1432 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../setup_local/">
+      
+      
+        <link rel="next" href="../docker/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Referência de API - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#referencia-de-api" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Referência de API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../arquitetura/visao_geral/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ia/modelos_prompts/" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#post-upload-indexar-um-edital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /upload/ — indexar um edital
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-conversar-com-auditor-perguntar-sobre-o-edital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /conversar-com-auditor/ — perguntar sobre o edital
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../variaveis_ambiente/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visao_geral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/protocolo_mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/modelos_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/rag_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/extracao_laudo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Relatório automático e extração de laudo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/avaliacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (RAGAS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#post-upload-indexar-um-edital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /upload/ — indexar um edital
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-conversar-com-auditor-perguntar-sobre-o-edital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /conversar-com-auditor/ — perguntar sobre o edital
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="referencia-de-api">Referência de API</h1>
+<p>Os dois endpoints que o frontend consome, com exemplo real de request/response para cada um.
+Referência interativa completa (gerada automaticamente pelo FastAPI a partir dos schemas
+Pydantic): <code>http://localhost:8000/docs</code> (Swagger UI) depois de subir a aplicação — ver
+<a href="../setup_local/">Setup local</a>.</p>
+<p>Os exemplos de <code>curl</code> abaixo assumem a aplicação rodando em <code>http://localhost:8000</code>. Contra a
+instância publicada, troque o host.</p>
+<h2 id="post-upload-indexar-um-edital"><code>POST /upload/</code> — indexar um edital</h2>
+<p>Recebe um PDF, extrai o texto, indexa no Pinecone e devolve os CNPJs encontrados.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rate limit</td>
+<td>5 requisições/dia por <code>client_id</code> (cookie)</td>
+</tr>
+<tr>
+<td>Corpo</td>
+<td><code>multipart/form-data</code>: <code>file</code> (PDF), <code>estado</code>, <code>municipio</code>, <code>thread_id</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>thread_id</code> é gerado pelo frontend (UUID) antes do upload e identifica a conversa que vai receber o
+relatório automático como primeiro turno — a mesma thread deve ser reenviada em
+<code>/conversar-com-auditor/</code> para que as perguntas seguintes continuem essa conversa em vez de começar
+uma nova.</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/upload/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">"file=@edital_saoluis.pdf"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">"estado=Maranhão (MA)"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">"municipio=São Luís"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">"thread_id=3fa85f64-5717-4562-b3fc-2c963f66afa6"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-c<span class="w"> </span>cookies.txt
+</code></pre></div>
+<p><code>-c cookies.txt</code> salva o cookie <code>auditor_client_id</code> que o servidor emite — reenvie-o
+(<code>-b cookies.txt</code>) nas próximas chamadas para o rate limiting contar como o mesmo cliente
+(ver <a href="../../governanca/guardrails/">Guardrails</a> e <a href="../../governanca/lgpd/">LGPD</a>).</p>
+<p><strong>Resposta em sucesso (<code>200</code>):</strong></p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"mensagem"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Edital indexado!"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"cnpjs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"38504819000169"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"relatorio_inicial"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"texto"</span><span class="p">:</span><span class="w"> </span><span class="s2">"## Resumo Executivo\n[...]"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"laudo"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"cnpjs_analisados"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"38504819000169"</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"anomalias"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">"nivel_risco_geral"</span><span class="p">:</span><span class="w"> </span><span class="s2">"MÉDIO"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"resumo_executivo"</span><span class="p">:</span><span class="w"> </span><span class="s2">"[...]"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"recomendacoes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"[...]"</span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"sugestoes_perguntas"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"Existe alguma sanção vigente para a empresa 38.504.819/0001-69?"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"Qual o prazo entre a publicação do edital e a abertura das propostas?"</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>O frontend guarda a lista de <code>cnpjs</code> e a reenvia em <code>lista_cnpjs</code> a cada pergunta subsequente — o
+backend não os re-extrai do texto a cada turno. <code>relatorio_inicial</code> traz o primeiro laudo completo
+da conversa, gerado automaticamente a partir do edital recém-indexado (ver
+<a href="../../ia/extracao_laudo/">Relatório Automático e Extração de Laudo</a>); pode vir <code>null</code> se a geração
+falhar — o upload em si não falha por causa disso, e o frontend cai de volta no estado vazio normal.</p>
+<p><strong>Respostas de erro:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Quando</th>
+<th>Corpo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>415</code></td>
+<td><code>Content-Type</code> não é <code>application/pdf</code></td>
+<td><code>{"detail": "Formato inválido: '...'. Apenas arquivos PDF são aceitos."}</code></td>
+</tr>
+<tr>
+<td><code>413</code></td>
+<td>Arquivo maior que 20 MB</td>
+<td><code>{"detail": "Arquivo muito grande: N bytes. O limite é de 20971520 bytes."}</code></td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td>PDF corrompido ou protegido por senha</td>
+<td><code>{"detail": "Não foi possível ler o PDF. O arquivo pode estar corrompido ou protegido por senha."}</code></td>
+</tr>
+<tr>
+<td><code>429</code></td>
+<td>Rate limit excedido (5/dia)</td>
+<td><code>{"detail": "Você excedeu o limite de upload diário. Volte em ..."}</code></td>
+</tr>
+<tr>
+<td><code>502</code></td>
+<td>Falha ao indexar no Pinecone</td>
+<td><code>{"detail": "Falha ao indexar o edital no banco vetorial. Tente novamente em instantes."}</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="post-conversar-com-auditor-perguntar-sobre-o-edital"><code>POST /conversar-com-auditor/</code> — perguntar sobre o edital</h2>
+<p>Recebe a pergunta e devolve a resposta do agente em <strong>streaming SSE</strong> (Server-Sent Events) — o
+corpo da resposta não é um JSON único, é uma sequência de eventos <code>data: {...}\n\n</code>.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rate limit</td>
+<td>50 requisições/dia por <code>client_id</code> (cookie)</td>
+</tr>
+<tr>
+<td>Corpo</td>
+<td>JSON: <code>pergunta</code>, <code>estado</code>, <code>municipio</code>, <code>lista_cnpjs</code>, <code>thread_id</code> (opcional)</td>
+</tr>
+<tr>
+<td><code>Content-Type</code> da resposta</td>
+<td><code>text/event-stream</code></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-N<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/conversar-com-auditor/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">"Content-Type: application/json"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-b<span class="w"> </span>cookies.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">'{</span>
+<span class="s1">    "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",</span>
+<span class="s1">    "estado": "Maranhão (MA)",</span>
+<span class="s1">    "municipio": "São Luís",</span>
+<span class="s1">    "lista_cnpjs": ["38504819000169"],</span>
+<span class="s1">    "thread_id": null</span>
+<span class="s1">  }'</span>
+</code></pre></div>
+<p><code>-N</code> desativa o buffer do <code>curl</code> — sem isso, você só veria a resposta inteira de uma vez ao
+final, em vez do streaming token a token. <code>thread_id: null</code> no primeiro turno faz o backend gerar
+um UUID novo; turnos seguintes da mesma conversa devem reenviar o <code>thread_id</code> recebido para o
+LangGraph recuperar o histórico (ver <a href="../../arquitetura/visao_geral/">Arquitetura</a>).</p>
+<p><strong>O stream de eventos</strong> (cada linha é um evento SSE — tipos definidos em <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py"><code>app/agents/conversa.py</code></a>):</p>
+<div class="highlight"><pre><span></span><code>data: {"type": "status", "content": "⚖️ Verificando sanções da empresa nos cadastros CEIS e CNEP..."}
+
+data: {"type": "token", "content": "A"}
+
+data: {"type": "token", "content": " empresa"}
+
+data: {"type": "token", "content": " vencedora"}
+
+[... um evento "token" por fragmento de texto gerado, até a resposta terminar ...]
+
+data: {"type": "done"}
+</code></pre></div>
+<p>Esse endpoint nunca emite laudo estruturado — o único laudo estruturado de uma thread é o
+<a href="../../ia/extracao_laudo/">relatório automático</a> devolvido por <code>/upload/</code>, uma única vez. Toda
+resposta aqui, mesmo que o usuário peça explicitamente outra auditoria, chega só como Markdown em
+streaming (<code>token</code>(s), o(s) <code>status</code> de qualquer tool chamada, e <code>done</code> no final) — sem chamada
+extra de extração por turno.</p>
+<p><strong>Se algo falhar no meio do streaming:</strong></p>
+<div class="highlight"><pre><span></span><code>data: {"type": "error", "content": "Ocorreu um erro ao processar sua pergunta. Tente novamente."}
+</code></pre></div>
+<p>Esse evento substitui o <code>done</code> (não emitidos juntos) — o frontend trata os dois como sinal de "a
+resposta terminou", um com sucesso e outro com falha.</p>
+<p><strong>Erro antes do streaming começar (<code>429</code>, rate limit):</strong> como o corpo da resposta normal já é
+<code>text/event-stream</code>, um 429 vem como resposta HTTP comum (não SSE), igual ao <code>/upload/</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"detail"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Você excedeu o limite de perguntas diárias ao auditor. Volte em ..."</span><span class="p">}</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

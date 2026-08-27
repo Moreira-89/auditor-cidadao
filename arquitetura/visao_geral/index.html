@@ -1,0 +1,1753 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../operacional/variaveis_ambiente/">
+      
+      
+        <link rel="next" href="../anatomia_de_um_turno/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Visão geral - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#arquitetura-do-sistema" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Visão geral
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operacional/" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ia/modelos_prompts/" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/variaveis_ambiente/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-grafo-do-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O grafo do agente
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="O grafo do agente">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-no-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O nó agente
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o-no-ferramentas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O nó ferramentas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-estado-do-grafo-agentstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O estado do grafo (AgentState)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#persistencia-da-conversa-checkpointer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Persistência da conversa (checkpointer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ferramentas-disponiveis-ao-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ferramentas disponíveis ao agente
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ferramentas disponíveis ao agente">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#montagem-montar_tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Montagem: montar_tools()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#os-dois-fluxos-que-chamam-o-grafo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Os dois fluxos que chamam o grafo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Os dois fluxos que chamam o grafo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#streaming-eventos-de-dominio-e-o-formato-de-fio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming: eventos de domínio e o formato de fio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitacoes-conhecidas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitações conhecidas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocolo_mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/modelos_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/rag_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/extracao_laudo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Relatório automático e extração de laudo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/avaliacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (RAGAS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ia/anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-grafo-do-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O grafo do agente
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="O grafo do agente">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-no-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O nó agente
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o-no-ferramentas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O nó ferramentas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-estado-do-grafo-agentstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O estado do grafo (AgentState)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#persistencia-da-conversa-checkpointer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Persistência da conversa (checkpointer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ferramentas-disponiveis-ao-agente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ferramentas disponíveis ao agente
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ferramentas disponíveis ao agente">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#montagem-montar_tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Montagem: montar_tools()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#os-dois-fluxos-que-chamam-o-grafo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Os dois fluxos que chamam o grafo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Os dois fluxos que chamam o grafo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#streaming-eventos-de-dominio-e-o-formato-de-fio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming: eventos de domínio e o formato de fio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitacoes-conhecidas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitações conhecidas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="arquitetura-do-sistema">Arquitetura do Sistema</h1>
+<p>Este pilar cobre a topologia <strong>lógica</strong> do Auditor Cidadão: como a pergunta de um usuário vira um
+laudo de auditoria — o grafo do agente, o estado que ele carrega e as ferramentas que pode acionar.
+Se você procura <em>onde</em> cada peça roda (Railway, container, serviços externos), isso está no pilar
+<a href="../../operacional/">Operacional</a>; aqui o foco é o <strong>raciocínio</strong>, não a infraestrutura.</p>
+<p>Todo o código do agente vive em
+<a href="https://github.com/Moreira-89/auditor-cidadao/tree/main/backend/app/agents"><code>backend/app/agents/</code></a>.</p>
+<h2 id="o-grafo-do-agente">O grafo do agente</h2>
+<p>O núcleo é um <code>StateGraph</code> do LangGraph montado explicitamente em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/graph.py"><code>app/agents/graph.py</code></a>:
+dois nós e uma aresta condicional entre eles, compilados uma vez no startup.</p>
+<div class="highlight"><span class="filename">app/agents/graph.py:41-53</span><pre><span></span><code><span class="n">grafo</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"agente"</span><span class="p">,</span> <span class="n">criar_no_agente</span><span class="p">(</span><span class="n">modelo</span><span class="p">))</span>
+<span class="c1"># ToolNode executa a tool pedida e é quem injeta o ToolRuntime nas que o declaram.</span>
+<span class="n">grafo</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"ferramentas"</span><span class="p">,</span> <span class="n">ToolNode</span><span class="p">(</span><span class="n">tools</span><span class="p">))</span>
+
+<span class="n">grafo</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">START</span><span class="p">,</span> <span class="s2">"agente"</span><span class="p">)</span>
+<span class="c1"># tools_condition devolve "tools" quando a última AIMessage traz tool_calls; o dict</span>
+<span class="c1"># traduz esse retorno para o nome que o nó tem aqui.</span>
+<span class="n">grafo</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span>
+    <span class="s2">"agente"</span><span class="p">,</span> <span class="n">tools_condition</span><span class="p">,</span> <span class="p">{</span><span class="s2">"tools"</span><span class="p">:</span> <span class="s2">"ferramentas"</span><span class="p">,</span> <span class="n">END</span><span class="p">:</span> <span class="n">END</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="n">grafo</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"ferramentas"</span><span class="p">,</span> <span class="s2">"agente"</span><span class="p">)</span>
+
+<span class="k">return</span> <span class="n">grafo</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">checkpointer</span><span class="o">=</span><span class="n">checkpointer</span><span class="p">)</span>
+</code></pre></div>
+<pre class="mermaid-diagram"><code>---
+config:
+  layout: dagre
+  theme: redux-dark
+  look: handDrawn
+  fontFamily: '''Source Code Pro Variable'', monospace'
+  themeVariables:
+    fontFamily: '''Source Code Pro Variable'', monospace'
+    fontSize: 25px
+---
+flowchart LR
+    ENTRADA(["Pergunta do usuário"]) ==&gt; LLM["agente"]
+    LLM -- tem tool_calls? --&gt; ROUTER{"tools_condition"}
+    ROUTER -- sim --&gt; TOOLS["ferramentas"]
+    ROUTER -- não --&gt; FIM(["__end__ → SSE"])
+    TOOLS -- resultado da ferramenta --&gt; LLM</code></pre>
+<p>É o ciclo <strong>ReAct</strong>: o modelo decide, as ferramentas executam, o modelo lê o resultado e decide de
+novo, até responder sem pedir mais nada. <code>recursion_limit=50</code> (definido nas chamadas em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py"><code>conversa.py</code></a>
+e <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py"><code>relatorio.py</code></a>)
+é o teto que impede um loop infinito entre os dois nós.</p>
+<p>O desenho completo dos dois pipelines ponta a ponta está em <a href="../fluxo_dados/">Fluxo de Dados</a>.</p>
+<h3 id="o-no-agente">O nó <code>agente</code></h3>
+<p><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/nodes/agente.py"><code>app/agents/nodes/agente.py</code></a>
+é o único ponto do projeto onde o modelo principal é invocado. É uma função-fábrica: recebe o
+modelo já com <code>bind_tools</code> aplicado e devolve o nó, o que deixa a assinatura que o LangGraph
+inspeciona reduzida a <code>(state)</code> e torna o nó testável passando qualquer modelo.</p>
+<div class="highlight"><span class="filename">app/agents/nodes/agente.py:16-21</span><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">no_agente</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">AgentState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">resposta</span> <span class="o">=</span> <span class="k">await</span> <span class="n">modelo</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">SystemMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">SYSTEM_PROMPT</span><span class="p">),</span> <span class="o">*</span><span class="n">state</span><span class="p">[</span><span class="s2">"messages"</span><span class="p">]]</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[</span><span class="n">resposta</span><span class="p">]}</span>
+</code></pre></div>
+<p>O <code>SYSTEM_PROMPT</code> é <strong>preposto a cada chamada</strong>, não gravado no histórico. Três consequências
+diretas: ele não é persistido pelo checkpointer, não se duplica a cada turno, e uma alteração no
+prompt vale imediatamente até para conversas já em andamento.</p>
+<h3 id="o-no-ferramentas">O nó <code>ferramentas</code></h3>
+<p>É o <code>ToolNode</code> de <code>langgraph.prebuilt</code>, sem customização. Além de executar a ferramenta pedida, é
+ele quem <strong>injeta o <code>ToolRuntime</code></strong> nas tools que declaram esse parâmetro — o mecanismo que leva o
+contexto geográfico até a busca no Pinecone, descrito na seção seguinte.</p>
+<h2 id="o-estado-do-grafo-agentstate">O estado do grafo (<code>AgentState</code>)</h2>
+<p><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/state.py"><code>app/agents/state.py</code></a>
+estende <code>MessagesState</code> do LangGraph — que já traz <code>messages</code> com o reducer <code>add_messages</code>, ou seja,
+cada nó <strong>anexa</strong> ao histórico em vez de sobrescrevê-lo — com duas chaves próprias:</p>
+<div class="highlight"><span class="filename">app/agents/state.py:4-16</span><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AgentState</span><span class="p">(</span><span class="n">MessagesState</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Estado compartilhado entre os nós do grafo durante um turno de conversa."""</span>
+
+    <span class="n">estado</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">municipio</span><span class="p">:</span> <span class="nb">str</span>
+</code></pre></div>
+<p><code>estado</code> e <code>municipio</code> são o contexto geográfico do edital em análise. Eles não fazem parte da
+conversa e o LLM nunca os lê diretamente: quem os consome são as tools que declaram
+<code>runtime: ToolRuntime</code>, lendo <code>runtime.state["estado"]</code>. É esse par que filtra a busca semântica
+para o edital certo (ver <a href="../../ia/rag_dados/">Uso de Dados e RAG</a>).</p>
+<p>Como o checkpointer só persiste as chaves declaradas no schema, e quem sabe o estado/município é
+quem chama o grafo, os dois são <strong>reenviados a cada turno</strong> —
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py"><code>conversa.py:103-111</code></a>.</p>
+<h2 id="persistencia-da-conversa-checkpointer">Persistência da conversa (checkpointer)</h2>
+<p>Um <code>AsyncRedisSaver</code> guarda o histórico por <code>thread_id</code>, aberto em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/checkpointer.py"><code>app/storage/checkpointer.py</code></a>
+e mantido vivo pelo <code>lifespan</code> durante toda a execução do processo. Isso faz a conversa sobreviver a
+restarts e ficar acessível às duas réplicas em produção
+(ver <a href="../../operacional/docker/#escalonamento-replicas-e-limites-de-recurso">Docker &amp; Deploy</a>).</p>
+<p>A persistência não é indefinida. Cada thread expira após <code>TTL_CHECKPOINT_MINUTOS</code> de
+<strong>inatividade</strong> (default 24h), e <code>refresh_on_read=True</code> renova essa contagem a cada leitura — uma
+conversa em uso nunca expira no meio, só threads abandonadas são limpas.</p>
+<div class="highlight"><span class="filename">app/storage/checkpointer.py:21</span><pre><span></span><code><span class="n">ttl_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"default_ttl"</span><span class="p">:</span> <span class="n">TTL_CHECKPOINT_MINUTOS</span><span class="p">,</span> <span class="s2">"refresh_on_read"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+</code></pre></div>
+<p>O grafo só pode ser compilado <strong>dentro</strong> desse contexto — é ali que a conexão existe. Por isso o
+<code>lifespan</code> (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/lifespan.py"><code>app/api/lifespan.py</code></a>)
+mantém o <code>async with</code> aberto envolvendo o <code>yield</code>:</p>
+<div class="highlight"><span class="filename">app/api/lifespan.py:19-27</span><pre><span></span><code><span class="k">async</span> <span class="k">with</span> <span class="n">abrir_client_redis</span><span class="p">()</span> <span class="k">as</span> <span class="n">redis_client</span><span class="p">:</span>
+    <span class="n">tools</span> <span class="o">=</span> <span class="k">await</span> <span class="n">montar_tools</span><span class="p">(</span><span class="n">redis_client</span><span class="p">)</span>
+    <span class="n">inicializar_rate_limiter</span><span class="p">(</span><span class="n">redis_client</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">with</span> <span class="n">abrir_checkpointer</span><span class="p">()</span> <span class="k">as</span> <span class="n">checkpointer</span><span class="p">:</span>
+        <span class="n">initialize_graph</span><span class="p">(</span><span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span> <span class="n">checkpointer</span><span class="o">=</span><span class="n">checkpointer</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Servidor pronto para receber requests."</span><span class="p">)</span>
+
+        <span class="k">yield</span>
+</code></pre></div>
+<h2 id="ferramentas-disponiveis-ao-agente">Ferramentas disponíveis ao agente</h2>
+<table>
+<thead>
+<tr>
+<th>Origem</th>
+<th>Ferramenta</th>
+<th>O que faz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nativa</td>
+<td><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/receita_federal.py"><code>consultar_receita_federal</code></a></td>
+<td>Situação cadastral, CNAE, data de fundação (BrasilAPI)</td>
+</tr>
+<tr>
+<td>Nativa</td>
+<td><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py"><code>buscar_contexto_edital</code></a></td>
+<td>Busca semântica no edital indexado (Pinecone, RAG)</td>
+</tr>
+<tr>
+<td>Nativa</td>
+<td><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/sancoes.py"><code>consultar_sancoes_empresa</code></a></td>
+<td>Sanções ativas no CEIS/CNEP (Portal da Transparência)</td>
+</tr>
+<tr>
+<td>Nativa</td>
+<td><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/busca_web.py"><code>buscar_informacao_web</code></a></td>
+<td>Contexto complementar via Tavily</td>
+</tr>
+<tr>
+<td>MCP (<code>@licinexusbr/mcp</code>)</td>
+<td>11 tools de PNCP</td>
+<td>Licitações, contratos, itens, resultados, atas de RP — ver <a href="../protocolo_mcp/">Protocolo MCP</a></td>
+</tr>
+</tbody>
+</table>
+<p>Cada tool nativa é <strong>um arquivo só</strong>, contendo as duas metades: o <code>@tool</code> que o LLM enxerga (schema
+<code>Annotated</code>/<code>Field</code>, a docstring — que é o texto lido pelo modelo para decidir se chama a
+ferramenta —, validação de CNPJ e a tradução de falhas) e, abaixo, a função de rede pura, que
+levanta exceção nativa e não sabe o que é um LLM.</p>
+<p>Nenhuma tool nativa deixa exceção subir crua: todas devolvem <code>{"error": ...}</code> estruturado para o
+LLM decidir como reagir, em vez de derrubar o turno.</p>
+<div class="admonition warning">
+<p class="admonition-title">A função registrada no grafo não é a que está no arquivo da tool</p>
+<p>Antes de chegarem ao grafo, todas as tools passam por <code>aplicar_cache()</code> em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/registry.py"><code>app/agents/tools/registry.py</code></a>,
+e o que o agente executa é o wrapper resultante. Ao depurar o comportamento de uma ferramenta,
+o <code>registry.py</code> é o segundo arquivo a abrir — ver
+<a href="../protocolo_mcp/#cache-das-ferramentas-aplicar_cache">Cache das ferramentas</a>.</p>
+</div>
+<h3 id="montagem-montar_tools">Montagem: <code>montar_tools()</code></h3>
+<p><code>registry.py</code> é o único lugar que responde "quais ferramentas o agente tem". Ele reúne as nativas,
+conecta ao MCP, filtra a whitelist, aplica o patch de schema e envolve tudo com cache:</p>
+<div class="highlight"><span class="filename">app/agents/tools/registry.py:147-163</span><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">montar_tools</span><span class="p">(</span><span class="n">redis_client</span><span class="p">:</span> <span class="n">Redis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">]:</span>
+    <span class="n">tools_mcp</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_obter_tools_mcp</span><span class="p">()</span>
+
+    <span class="n">tools</span> <span class="o">=</span> <span class="n">aplicar_cache</span><span class="p">(</span>
+        <span class="n">tools</span><span class="o">=</span><span class="n">TOOLS_NATIVAS</span><span class="p">,</span>
+        <span class="n">redis_client</span><span class="o">=</span><span class="n">redis_client</span><span class="p">,</span>
+        <span class="n">ttl_segundos</span><span class="o">=</span><span class="n">TTL_CACHE_TOOLS_SEGUNDOS</span><span class="p">,</span>
+        <span class="n">normalizadores</span><span class="o">=</span><span class="n">CACHE_KEY_NORMALIZERS</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">+</span> <span class="n">aplicar_cache</span><span class="p">(</span>
+        <span class="n">tools</span><span class="o">=</span><span class="n">tools_mcp</span><span class="p">,</span>
+        <span class="n">redis_client</span><span class="o">=</span><span class="n">redis_client</span><span class="p">,</span>
+        <span class="n">ttl_segundos</span><span class="o">=</span><span class="n">TTL_CACHE_TOOLS_SEGUNDOS</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">_conferir_mensagens_de_status</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Total de ferramentas disponíveis para o agente: </span><span class="si">%d</span><span class="s2">"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tools</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tools</span>
+</code></pre></div>
+<p>Duas verificações rodam no startup e transformam falhas silenciosas em avisos no log:</p>
+<ul>
+<li><strong><code>_conferir_mensagens_de_status</code></strong> (<code>registry.py:126</code>) compara os nomes das tools montadas com as
+  chaves de
+  <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/tool_status_map.py"><code>app/config/tool_status_map.py</code></a>,
+  nos dois sentidos. Sem ela, uma tool sem mensagem cai no fallback <code>"Analisando..."</code> do streaming
+  sem que ninguém perceba, e uma entrada órfã no mapa fica invisível.</li>
+<li><strong>Whitelist MCP não atendida</strong> (<code>registry.py:114</code>): se um nome de <code>TOOLS_MCP_SELECIONADAS</code> não
+  vier do servidor — porque o pacote renomeou a ferramenta, por exemplo —, sai um <code>WARNING</code> com o
+  nome exato. Sem isso, a ferramenta simplesmente desapareceria do agente.</li>
+</ul>
+<h2 id="os-dois-fluxos-que-chamam-o-grafo">Os dois fluxos que chamam o grafo</h2>
+<p>O grafo tem dois consumidores, com necessidades opostas. Eles estão em arquivos separados porque
+não compartilham nada além do envelope de mensagem.</p>
+<table>
+<thead>
+<tr>
+<th>Arquivo</th>
+<th>Entrada</th>
+<th>Saída</th>
+<th>Como chama o grafo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py"><code>agents/conversa.py</code></a></td>
+<td>Pergunta do usuário</td>
+<td>Markdown em streaming (SSE)</td>
+<td><code>astream_events()</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py"><code>agents/relatorio.py</code></a></td>
+<td>Disparo automático pós-upload</td>
+<td>JSON estruturado, síncrono</td>
+<td><code>ainvoke()</code> + extrator</td>
+</tr>
+</tbody>
+</table>
+<p>O que os dois compartilham vive em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/envelope.py"><code>agents/envelope.py</code></a>:
+<code>escape_xml()</code> (guardrail anti prompt-injection, ver <a href="../../governanca/guardrails/">Guardrails</a>) e
+<code>montar_primeiro_turno()</code>, que monta o <code>PROMPT_DINAMICO</code> com CNPJs, estado, município e data — o
+primeiro <code>HumanMessage</code> de toda thread nova, seja ela aberta por uma pergunta ou pelo relatório
+automático.</p>
+<h3 id="streaming-eventos-de-dominio-e-o-formato-de-fio">Streaming: eventos de domínio e o formato de fio</h3>
+<p><code>run_agent()</code> consome <code>grafo.astream_events(version="v2")</code> e traduz o que acontece no grafo
+em <strong>eventos de domínio</strong> — objetos que dizem o que aconteceu, sem saber como serão transmitidos.
+O vocabulário está em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/eventos.py"><code>app/agents/eventos.py</code></a>: <code>TokenGerado</code>, <code>FerramentaIniciada</code>,
+<code>TurnoConcluido</code> e <code>ErroNoTurno</code>.</p>
+<div class="highlight"><span class="filename">app/agents/conversa.py:116-129</span><pre><span></span><code><span class="k">if</span> <span class="n">evento</span><span class="p">[</span><span class="s2">"event"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"on_chat_model_stream"</span><span class="p">:</span>
+    <span class="c1"># getattr com default: chunks intermediários podem não ter o atributo tool_calls</span>
+    <span class="n">chunk</span> <span class="o">=</span> <span class="n">evento</span><span class="p">[</span><span class="s2">"data"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chunk"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">chunk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chunk</span><span class="o">.</span><span class="n">content</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="s2">"tool_calls"</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">TokenGerado</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">evento</span><span class="p">[</span><span class="s2">"event"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"on_tool_start"</span><span class="p">:</span>
+    <span class="k">yield</span> <span class="n">FerramentaIniciada</span><span class="p">(</span><span class="n">evento</span><span class="p">[</span><span class="s2">"name"</span><span class="p">])</span>
+
+<span class="k">yield</span> <span class="n">TurnoConcluido</span><span class="p">()</span>
+</code></pre></div>
+<p>O filtro <code>not getattr(chunk, "tool_calls", None)</code> é o que impede que fragmentos de uma chamada de
+ferramenta apareçam como texto na tela. <code>evento["name"]</code>, no <code>on_tool_start</code>, é o nome técnico da
+<strong>tool</strong>.</p>
+<p>Quem transforma esses eventos em bytes é o endpoint,
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/chat.py"><code>app/api/endpoints/chat.py</code></a> — a única camada que sabe o que é
+Server-Sent Events. É também onde o nome técnico vira o texto que o usuário lê:</p>
+<div class="highlight"><span class="filename">app/api/endpoints/chat.py:43-54</span><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_para_sse</span><span class="p">(</span><span class="n">evento</span><span class="p">:</span> <span class="n">EventoDoTurno</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">match</span> <span class="n">evento</span><span class="p">:</span>
+        <span class="k">case</span> <span class="n">TokenGerado</span><span class="p">(</span><span class="n">texto</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_linha_sse</span><span class="p">(</span><span class="s2">"token"</span><span class="p">,</span> <span class="n">texto</span><span class="p">)</span>
+        <span class="k">case</span> <span class="n">FerramentaIniciada</span><span class="p">(</span><span class="n">nome</span><span class="p">):</span>
+            <span class="c1"># É aqui que o nome técnico da tool vira o texto que o usuário lê.</span>
+            <span class="k">return</span> <span class="n">_linha_sse</span><span class="p">(</span><span class="s2">"status"</span><span class="p">,</span> <span class="n">TOOL_STATUS_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">nome</span><span class="p">,</span> <span class="s2">"Analisando..."</span><span class="p">))</span>
+        <span class="k">case</span> <span class="n">TurnoConcluido</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_linha_sse</span><span class="p">(</span><span class="s2">"done"</span><span class="p">)</span>
+        <span class="k">case</span> <span class="n">ErroNoTurno</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_linha_sse</span><span class="p">(</span><span class="s2">"error"</span><span class="p">,</span> <span class="n">MENSAGEM_ERRO_GENERICA</span><span class="p">)</span>
+</code></pre></div>
+<p>Essa fronteira é o que permite consumir o agente sem HTTP: um teste afirma
+<code>FerramentaIniciada("buscar_contexto_edital")</code> em vez de comparar strings <code>data: ...</code>, e um
+consumidor futuro (uma fila, um WebSocket) recebe objetos em vez de bytes de SSE.</p>
+<p>Essa conversa não faz extração estruturada: a resposta chega ao frontend como Markdown livre. O
+único laudo estruturado de uma thread é o
+<a href="../../ia/extracao_laudo/">relatório automático</a> gerado uma vez, logo após o upload.</p>
+<div class="admonition note">
+<p class="admonition-title">Histórico interrompido no meio de uma <code>tool_call</code></p>
+<p>Se o usuário interromper a execução de uma ferramenta, o checkpointer fica com uma <code>AIMessage</code>
+cujos <code>tool_calls</code> nunca foram respondidos — e a OpenAI rejeita qualquer mensagem nova nessa
+thread com <code>400</code> enquanto isso não for corrigido.</p>
+<p><code>_curar_tool_calls_pendentes()</code>
+(<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py"><code>conversa.py:15</code></a>)
+detecta esse estado no início do próximo turno: compara os <code>tool_calls</code> da última <code>AIMessage</code>
+com os <code>tool_call_id</code> já respondidos e injeta uma <code>ToolMessage</code> sintética
+(<code>"Chamada cancelada..."</code>) para cada pendência, via <code>grafo.aupdate_state()</code>. O histórico volta a
+ser válido sem descartar a conversa.</p>
+</div>
+<h2 id="limitacoes-conhecidas">Limitações conhecidas</h2>
+<p>As limitações desta arquitetura — incluindo o alcance real do rate limiting e o que o sistema
+sinaliza mas não prova — estão consolidadas em
+<a href="../../governanca/limitacoes/">Limitações conhecidas</a>, junto das demais.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

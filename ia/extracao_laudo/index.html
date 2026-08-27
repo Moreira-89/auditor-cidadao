@@ -1,0 +1,1466 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../rag_dados/">
+      
+      
+        <link rel="next" href="../avaliacao/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Relatório automático e extração de laudo - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#relatorio-automatico-e-extracao-do-laudo" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Relatório automático e extração de laudo
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operacional/" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../arquitetura/visao_geral/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../modelos_prompts/" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/variaveis_ambiente/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visao_geral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/protocolo_mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modelos_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rag_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Relatório automático e extração de laudo
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Relatório automático e extração de laudo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-schema-relatorioinicial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O schema (RelatorioInicial)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="O schema (RelatorioInicial)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemplo-de-saida" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemplo de saída
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-a-extracao-acontece" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como a extração acontece
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decisoes-de-engenharia-trade-offs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decisões de engenharia (trade-offs)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../avaliacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (RAGAS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-schema-relatorioinicial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O schema (RelatorioInicial)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="O schema (RelatorioInicial)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemplo-de-saida" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemplo de saída
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-a-extracao-acontece" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como a extração acontece
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decisoes-de-engenharia-trade-offs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decisões de engenharia (trade-offs)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="relatorio-automatico-e-extracao-do-laudo">Relatório Automático e Extração do Laudo</h1>
+<p>Assim que o upload de um edital termina de indexar, o sistema gera sozinho — sem esperar nenhuma
+pergunta do usuário — um primeiro laudo completo sobre aquele edital, o <strong>relatório automático</strong>.
+Esse laudo é entregue em duas formas: o <strong>Markdown</strong> que aparece como a primeira mensagem do chat, e
+um <strong>JSON estruturado</strong> que o frontend usa para desenhar os cards de anomalia e de risco. Esta
+página explica como o JSON é extraído do Markdown e as decisões de engenharia por trás disso.</p>
+<div class="admonition info">
+<p class="admonition-title">Só existe um laudo estruturado por thread</p>
+<p>O relatório automático é a única vez, numa conversa, em que o agente produz um laudo completo
+estruturado. Perguntas seguintes do usuário — mesmo pedindo explicitamente outra auditoria —
+recebem resposta em Markdown livre via <code>run_agent()</code> (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py"><code>app/agents/conversa.py</code></a>), sem passar
+por extração estruturada nem gerar um novo card. A decisão é de produto, não uma limitação
+técnica: o usuário raramente sabe que pode pedir outro laudo, e refazê-lo custaria uma chamada
+extra ao LLM para reconstruir uma análise já entregue no início da conversa.</p>
+</div>
+<h2 id="o-schema-relatorioinicial">O schema (<code>RelatorioInicial</code>)</h2>
+<p>O formato do JSON é um schema Pydantic em <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/laudo.py"><code>app/api/schemas/laudo.py</code></a>:</p>
+<ul>
+<li><strong><code>RelatorioInicial</code></strong> — o envelope do relatório automático. Tem dois campos: <code>laudo</code>, que é
+  <code>LaudoEstruturado</code> <strong>ou <code>None</code></strong> (<code>None</code> sinaliza que o texto gerado não era um laudo — ex.: o
+  agente recusou a solicitação), e <code>sugestoes_perguntas</code>, até 3 perguntas de acompanhamento
+  específicas ao conteúdo lido.</li>
+<li><strong><code>LaudoEstruturado</code></strong> — <code>cnpjs_analisados</code>, <code>anomalias</code>, <code>nivel_risco_geral</code>, <code>resumo_executivo</code>,
+  <code>recomendacoes</code>.</li>
+<li><strong><code>Anomalia</code></strong> — <code>codigo</code> (uma letra <code>A</code>–<code>I</code> do <a href="../anomalias/">catálogo</a>), <code>descricao</code>,
+  <code>evidencias</code> e <code>nivel_risco</code> (<code>BAIXO</code>/<code>MÉDIO</code>/<code>ALTO</code>/<code>CRÍTICO</code>).</li>
+</ul>
+<p>Os textos em <code>Field(description=...)</code> não são só documentação — o próprio LLM extrator os lê para
+saber o que preencher em cada campo.</p>
+<h3 id="exemplo-de-saida">Exemplo de saída</h3>
+<p>Ilustrativo, construído a partir do <code>caso_01</code> do golden dataset (empresa com sanção vigente em
+CEIS/CNEP, ver <a href="../avaliacao/">Avaliação</a>) — não é um output literal capturado em produção, mas
+segue o schema real campo a campo:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"laudo"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"cnpjs_analisados"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"38504819000169"</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"anomalias"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"codigo"</span><span class="p">:</span><span class="w"> </span><span class="s2">"H"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"descricao"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Empresa vencedora do certame consta com sanção vigente no CEIS."</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"evidencias"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="s2">"CNPJ 38.504.819/0001-69 possui registro de Suspensão ativo no CEIS."</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">"Registro classificado com Tipo: \"Suspensão\", fonte: Portal da Transparência (CGU)."</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">"nivel_risco"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CRÍTICO"</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"nivel_risco_geral"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CRÍTICO"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"resumo_executivo"</span><span class="p">:</span><span class="w"> </span><span class="s2">"A empresa vencedora da dispensa eletrônica consta com sanção vigente no CEIS (Suspensão), o que configura impedimento legal expresso para contratar com a administração pública (Lei 14.133/2021, art. 14)."</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"recomendacoes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"Suspender a contratação até confirmação formal da vigência da sanção junto ao órgão sancionador."</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"Verificar manualmente se há decisão judicial suspendendo os efeitos da sanção."</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"sugestoes_perguntas"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"A sanção vigente da empresa 38.504.819/0001-69 já foi confirmada junto ao órgão sancionador?"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"Existe decisão judicial suspendendo os efeitos dessa sanção?"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"Quais outras empresas participaram dessa licitação além da vencedora?"</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Se o agente não produzir um laudo (ex.: recusa por fora de escopo, mensagem de erro), o extrator
+devolve <code>laudo: null</code>, mas ainda preenche <code>sugestoes_perguntas</code> com perguntas genéricas úteis para
+começar a explorar o edital.</p>
+<h2 id="como-a-extracao-acontece">Como a extração acontece</h2>
+<p><code>gerar_relatorio_inicial()</code> (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py"><code>app/agents/relatorio.py</code></a>) roda logo após <code>POST /upload/</code> terminar de
+indexar o edital no Pinecone (ver <a href="../../arquitetura/fluxo_dados/">Fluxo de Dados</a>). Ela dispara o
+<strong>primeiro turno da thread</strong> com <code>PROMPT_RELATORIO_INICIAL</code> como se fosse a pergunta do usuário
+(via <code>grafo.ainvoke()</code>, sem streaming — a resposta faz parte do corpo síncrono de <code>/upload/</code>, não do
+canal SSE de conversa), e então faz uma <strong>segunda chamada ao LLM</strong> — o <em>extrator</em> — que recebe o
+<code>PROMPT_EXTRATOR_INICIAL</code> como <code>SystemMessage</code> e o texto do laudo como <code>HumanMessage</code>, devolvendo o
+<code>RelatorioInicial</code> via <code>with_structured_output</code>. O extrator roda a <code>temperature=0.0</code> (extração é
+tarefa determinística, não criativa) e é uma instância dedicada, criada no <code>lifespan</code> e recuperada
+via <code>get_extrator()</code>.</p>
+<pre class="mermaid-diagram"><code>---
+config:
+  layout: dagre
+  theme: redux-dark
+  look: handDrawn
+  fontFamily: '''Source Code Pro Variable'', monospace'
+  themeVariables:
+    fontFamily: '''Source Code Pro Variable'', monospace'
+    fontSize: '30px'
+---
+flowchart TB
+    UP["POST /upload/&lt;br&gt;indexação concluída"] --&gt; TURNO["1º turno sintético&lt;br&gt;PROMPT_RELATORIO_INICIAL"]
+    TURNO --&gt; LAUDO["Laudo em Markdown&lt;br&gt;(grafo.ainvoke, sem streaming)"]
+    LAUDO --&gt; EXTRATOR["2ª chamada LLM (extrator)&lt;br&gt;temperature 0.0"]
+    EXTRATOR --&gt; RESP["RelatorioInicial&lt;br&gt;laudo + sugestoes_perguntas"]
+    RESP --&gt; FRONT["resposta de /upload/&lt;br&gt;relatorio_inicial"]</code></pre>
+<p>A função inteira está isolada num <code>try/except</code>: qualquer falha (LLM, extração, timeout) é logada e
+vira <code>None</code> — o upload não pode falhar por causa do relatório automático, que é um "bônus" de UX,
+não um requisito do fluxo de indexação. Nesse caso o frontend simplesmente não mostra a primeira
+mensagem automática, e o usuário parte do estado vazio normal.</p>
+<h2 id="decisoes-de-engenharia-trade-offs">Decisões de engenharia (trade-offs)</h2>
+<div class="admonition note">
+<p class="admonition-title">Por que uma segunda chamada ao LLM, em vez de extrair no meio do streaming</p>
+<p>O relatório automático não usa streaming (<code>grafo.ainvoke()</code>, não <code>astream_events()</code>) — ele faz
+parte da resposta síncrona de <code>/upload/</code>, então o texto completo do laudo já está disponível de
+uma vez antes de chamar o extrator. Isso evita o problema que existiria se a extração tentasse
+acumular texto turno a turno em paralelo ao streaming: o modelo pode emitir conteúdo parcial
+<em>antes</em> de decidir chamar uma ferramenta, e só a mensagem final (sem <code>tool_calls</code>) deve virar
+laudo.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Schema define forma, prompt define comportamento</p>
+<p><code>with_structured_output</code> garante que a saída <em>valida</em> contra o schema — mas não decide sozinho
+<em>quando</em> usar <code>laudo: null</code> nem como formular <code>sugestoes_perguntas</code>. Foi preciso um
+<code>SystemMessage</code> dedicado (o <code>PROMPT_EXTRATOR_INICIAL</code>) com o critério de decisão explícito e a
+instrução de que as sugestões precisam ser específicas ao conteúdo lido, nunca genéricas. É um
+exemplo prático de que o schema Pydantic sozinho não basta — o comportamento vem do prompt (T2).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Por que não uma heurística de texto ou de tool chamada</p>
+<p>Duas alternativas mais baratas foram testadas e descartadas: (1) detectar o laudo por um marcador
+no Markdown — quebra assim que o formato do <code>SYSTEM_PROMPT</code> muda; (2) decidir pela presença de
+uma tool de auditoria no turno — gera falso positivo. A decisão final foi delegar ao próprio LLM
+extrator, via o critério explícito do <code>PROMPT_EXTRATOR_INICIAL</code>, em vez de uma heurística fixa
+no código.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Por que não <code>response_format=</code> do create_agent</p>
+<p><code>create_agent</code> (ver <a href="../../arquitetura/visao_geral/">Arquitetura</a>) aceita um parâmetro
+<code>response_format=</code> que faz o próprio agente devolver uma saída validada contra um schema Pydantic
+— em tese, dava para passar <code>RelatorioInicial</code> ali e eliminar a segunda chamada ao LLM. Avaliado
+e descartado por dois motivos, confirmados inspecionando o grafo compilado (<code>agent.get_graph()</code>)
+com <code>response_format</code> ativo:</p>
+<ol>
+<li><strong><code>response_format</code> se aplica a toda invocação, não só ao relatório automático.</strong> O mesmo
+   agente (<code>get_graph()</code>) também responde perguntas conversacionais comuns via <code>run_agent()</code> —
+   <code>response_format</code> forçaria toda resposta final a validar contra o schema do laudo, mesmo as
+   puramente conversacionais.</li>
+<li><strong>Muda o que conta como "resposta final".</strong> Com <code>response_format</code> ativo, o nó <code>model</code> ganha
+   uma aresta condicional de auto-loop (<code>model → model</code>) para validar/repetir a saída
+   estruturada — isso quebraria o streaming token-a-token que <code>run_agent()</code> usa nas perguntas
+   comuns, ou exigiria desenhar dois caminhos de resposta dentro do mesmo agente.</li>
+</ol>
+<p>Manter a segunda chamada (extrator dedicado, fora do grafo principal, usado só em
+<code>gerar_relatorio_inicial()</code>) preserva os dois comportamentos — streaming de Markdown livre nas
+perguntas comuns + JSON estruturado só no relatório automático — ao custo de uma chamada extra ao
+LLM, paga uma única vez por thread.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">A extração roda uma vez por thread, não a cada turno</p>
+<p>O card estruturado é exclusivo do relatório automático do upload. Perguntas seguintes recebem só
+a resposta em Markdown do streaming, sem chamada extra ao LLM por turno — o que mantém o custo em
+uma única extração por thread e evita a confusão de dois laudos estruturados na mesma conversa.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>
