@@ -2,7 +2,7 @@
 
 !!! tip "Prefere não instalar nada?"
     A forma mais rápida de conhecer o Auditor Cidadão é pela instância publicada:
-    **[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**. O setup
+    **[Plataforma Auditor Cidadão](https://auditorcidadao.up.railway.app/)**. O setup
     abaixo é para quem quer inspecionar o código ou contribuir.
 
 Passo a passo para rodar na sua máquina, sem Docker. Para o caminho containerizado, veja

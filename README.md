@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.137-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![LangGraph](https://img.shields.io/badge/LangGraph-agentic-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
-**[🚀 Testar a aplicação](https://auditor-cidadao-production.up.railway.app/)** · **[📚 Documentação técnica](https://moreira-89.github.io/auditor-cidadao/)**
+**[🚀 Testar a aplicação](https://auditorcidadao.up.railway.app/)** · **[📚 Documentação técnica](https://moreira-89.github.io/auditor-cidadao/)**
 
 </div>
 
