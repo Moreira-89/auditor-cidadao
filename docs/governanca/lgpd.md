@@ -30,7 +30,7 @@ racional de retenção diferente e documentado à parte).
 ## O cookie de sessão é um identificador pseudônimo, não dado pessoal identificável
 
 Desde a introdução do rate limiting (ver [Limitações conhecidas](limitacoes.md)), o navegador do
-usuário recebe um cookie httpOnly (`auditor_client_id`, ver `app/utils/cookie_manager.py`) contendo
+usuário recebe um cookie httpOnly (`auditor_client_id`, ver [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/cookies.py)) contendo
 um UUID gerado aleatoriamente — sem relação com nome, e-mail, CPF ou qualquer outro dado que
 identifique a pessoa diretamente. Ele existe só para contar requisições por navegador dentro de uma
 janela de tempo (5/dia em `/upload/`, 50/dia em `/conversar-com-auditor/`) e expira em 30 dias.
@@ -50,7 +50,7 @@ Vale registrar por transparência, mesmo sendo um identificador de baixo risco:
 
 Uma decisão explícita de minimização de dados: a coleta do nome do usuário foi **removida de ponta a
 ponta** — do schema de requisição (`PerguntaRequest`), dos endpoints, do `SYSTEM_PROMPT` e do
-formulário do frontend. O `PerguntaRequest` hoje (`app/models/pergunta_request.py`) carrega apenas
+formulário do frontend. O `PerguntaRequest` hoje ([`app/api/schemas/pergunta.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/pergunta.py)) carrega apenas
 `pergunta`, `estado`, `municipio`, `lista_cnpjs` e `thread_id` — nenhum campo identifica a pessoa que
 está usando o sistema. Isso reduz a superfície de dado pessoal coletado ao mínimo necessário para a
 função.
@@ -58,7 +58,7 @@ função.
 ## Retenção de editais no Pinecone: decisão deliberada, e agora com prazo configurável
 
 Os editais indexados via upload (`origem: "upload_usuario"`) têm retenção configurável, não
-indeterminada: `app/jobs/limpeza_pinecone.py`, rodado periodicamente (ex.: cron no Railway), apaga
+indeterminada: [`app/jobs/limpeza_pinecone.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_pinecone.py), rodado periodicamente (ex.: cron no Railway), apaga
 os registros cujo `timestamp_indexacao` seja mais antigo que `PINECONE_RETENCAO_DIAS` (default 7
 dias — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)). O racional:
 

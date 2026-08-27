@@ -9,14 +9,14 @@ página explica como o JSON é extraído do Markdown e as decisões de engenhari
 !!! info "Só existe um laudo estruturado por thread"
     O relatório automático é a única vez, numa conversa, em que o agente produz um laudo completo
     estruturado. Perguntas seguintes do usuário — mesmo pedindo explicitamente outra auditoria —
-    recebem resposta em Markdown livre via `run_agent()` (`app/services/ai_engine.py`), sem passar
+    recebem resposta em Markdown livre via `run_agent()` ([`app/agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)), sem passar
     por extração estruturada nem gerar um novo card. A decisão é de produto, não uma limitação
     técnica: o usuário raramente sabe que pode pedir outro laudo, e refazê-lo custaria uma chamada
     extra ao LLM para reconstruir uma análise já entregue no início da conversa.
 
 ## O schema (`RelatorioInicial`)
 
-O formato do JSON é um schema Pydantic em `app/models/laudo.py`:
+O formato do JSON é um schema Pydantic em [`app/api/schemas/laudo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/laudo.py):
 
 - **`RelatorioInicial`** — o envelope do relatório automático. Tem dois campos: `laudo`, que é
   `LaudoEstruturado` **ou `None`** (`None` sinaliza que o texto gerado não era um laudo — ex.: o
@@ -72,7 +72,7 @@ começar a explorar o edital.
 
 ## Como a extração acontece
 
-`gerar_relatorio_inicial()` (`app/services/ai_engine.py`) roda logo após `POST /upload/` terminar de
+`gerar_relatorio_inicial()` ([`app/agents/relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py)) roda logo após `POST /upload/` terminar de
 indexar o edital no Pinecone (ver [Fluxo de Dados](../arquitetura/fluxo_dados.md)). Ela dispara o
 **primeiro turno da thread** com `PROMPT_RELATORIO_INICIAL` como se fosse a pergunta do usuário
 (via `grafo.ainvoke()`, sem streaming — a resposta faz parte do corpo síncrono de `/upload/`, não do
@@ -151,13 +151,7 @@ mensagem automática, e o usuário parte do estado vazio normal.
     perguntas comuns + JSON estruturado só no relatório automático — ao custo de uma chamada extra ao
     LLM, paga uma única vez por thread.
 
-!!! note "Por que essa extração não roda mais a cada turno de conversa"
-    Numa versão anterior, `run_agent()` chamava um extrator equivalente (`RespostaLaudo`/
-    `PROMPT_EXTRATOR`) depois de **toda** resposta do agente, para decidir se valia a pena montar um
-    card estruturado. Na prática isso significava até dois laudos completos estruturados na mesma
-    thread — o automático do upload, e outro caso o usuário pedisse "faça uma análise" de novo — sem
-    o usuário sequer saber que a segunda opção existia. Foi removido de `run_agent()`: o card
-    estruturado agora é exclusivo do relatório automático, e perguntas seguintes recebem só a
-    resposta em Markdown do streaming, sem chamada extra ao LLM por turno. `RespostaLaudo`/
-    `PROMPT_EXTRATOR` continuam no código, mas só como réplica usada pelo pipeline de avaliação (ver
-    [Avaliação](avaliacao.md)) — não são mais chamados em nenhum caminho de produção.
+!!! note "A extração roda uma vez por thread, não a cada turno"
+    O card estruturado é exclusivo do relatório automático do upload. Perguntas seguintes recebem só
+    a resposta em Markdown do streaming, sem chamada extra ao LLM por turno — o que mantém o custo em
+    uma única extração por thread e evita a confusão de dois laudos estruturados na mesma conversa.

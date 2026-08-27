@@ -42,7 +42,6 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Codemap: codemap.md
   - Operacional:
       - Visão geral: operacional/index.md
       - Setup local: operacional/setup_local.md
@@ -51,6 +50,7 @@ nav:
       - Variáveis de ambiente: operacional/variaveis_ambiente.md
   - Arquitetura:
       - Visão geral: arquitetura/visao_geral.md
+      - Anatomia de um turno: arquitetura/anatomia_de_um_turno.md
       - Fluxo de dados: arquitetura/fluxo_dados.md
       - Protocolo MCP: arquitetura/protocolo_mcp.md
   - Engenharia de IA:

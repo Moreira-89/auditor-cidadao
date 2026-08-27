@@ -7,7 +7,7 @@ assets/external/
 !requirements.txt
 !requirements-dev.txt
 avaliacao_log.json
-testes_locais/
+arquivos_locais/
 .claude/*
 apresentacao_data_master
 .vscode/

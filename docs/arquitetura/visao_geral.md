@@ -1,24 +1,34 @@
 # Arquitetura do Sistema
 
-Este pilar cobre a topologia **lógica** do Auditor Cidadão: como o pedido de um usuário vira um
-laudo de auditoria — o ciclo do agente, as ferramentas disponíveis e o pipeline de RAG. Se você
-procura *onde* cada peça roda (Railway, container, serviços externos), isso já está no pilar
+Este pilar cobre a topologia **lógica** do Auditor Cidadão: como a pergunta de um usuário vira um
+laudo de auditoria — o grafo do agente, o estado que ele carrega e as ferramentas que pode acionar.
+Se você procura *onde* cada peça roda (Railway, container, serviços externos), isso está no pilar
 [Operacional](../operacional/index.md); aqui o foco é o **raciocínio**, não a infraestrutura.
 
-## O ciclo de decisão do agente
+Todo o código do agente vive em
+[`backend/app/agents/`](https://github.com/Moreira-89/auditor-cidadao/tree/main/backend/app/agents).
 
-O núcleo do sistema é um agente `create_agent` (`langchain.agents`, montado em
-`app/services/build_graph.py`): internamente ainda é um `StateGraph` do LangGraph, mas
-construído pela lib em vez de montado nó a nó à mão — o agente alterna entre um nó `model`
-e um nó `tools` até o modelo responder sem pedir mais nenhuma ferramenta, incluindo o
-roteamento por `tool_calls` e o `bind_tools`, que `create_agent` já faz sozinho. Um
-`AsyncRedisSaver` (Redis, ver `app/services/lifespan.py`) guarda esse histórico por `thread_id`,
-persistindo entre restarts e compartilhado entre as réplicas com que a aplicação roda em produção
-hoje (2 réplicas, 1 worker cada, ver [Docker & Deploy](../operacional/docker.md#escalonamento-replicas-e-limites-de-recurso)) —
-substituiu o `InMemorySaver` original (RAM do processo, perdido a cada restart). A persistência não
-é indefinida: cada thread expira após `TTL_CHECKPOINT_MINUTOS` minutos de **inatividade** (default
-24h) — toda leitura renova essa contagem, então uma conversa em uso nunca expira no meio, só threads
-abandonadas são limpas (ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)).
+## O grafo do agente
+
+O núcleo é um `StateGraph` do LangGraph montado explicitamente em
+[`app/agents/graph.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/graph.py):
+dois nós e uma aresta condicional entre eles, compilados uma vez no startup.
+
+```python title="app/agents/graph.py:41-53"
+grafo.add_node("agente", criar_no_agente(modelo))
+# ToolNode executa a tool pedida e é quem injeta o ToolRuntime nas que o declaram.
+grafo.add_node("ferramentas", ToolNode(tools))
+
+grafo.add_edge(START, "agente")
+# tools_condition devolve "tools" quando a última AIMessage traz tool_calls; o dict
+# traduz esse retorno para o nome que o nó tem aqui.
+grafo.add_conditional_edges(
+    "agente", tools_condition, {"tools": "ferramentas", END: END}
+)
+grafo.add_edge("ferramentas", "agente")
+
+return grafo.compile(checkpointer=checkpointer)
+```
 
 ```mermaid
 ---
@@ -32,142 +42,244 @@ config:
     fontSize: 25px
 ---
 flowchart LR
-    ENTRADA(["Pergunta do usuário"]) ==> LLM["model"]
-    LLM -- tem tool_calls? --> ROUTER{"roteamento interno"}
-    ROUTER -- sim --> TOOLS["tools"]
+    ENTRADA(["Pergunta do usuário"]) ==> LLM["agente"]
+    LLM -- tem tool_calls? --> ROUTER{"tools_condition"}
+    ROUTER -- sim --> TOOLS["ferramentas"]
     ROUTER -- não --> FIM(["__end__ → SSE"])
     TOOLS -- resultado da ferramenta --> LLM
 ```
 
-Este é só o ciclo de decisão — o desenho completo dos dois pipelines ponta a ponta (upload de
-edital e conversa, incluindo as ferramentas e o streaming) está em
-[Fluxo de Dados](fluxo_dados.md).
+É o ciclo **ReAct**: o modelo decide, as ferramentas executam, o modelo lê o resultado e decide de
+novo, até responder sem pedir mais nada. `recursion_limit=50` (definido nas chamadas em
+[`conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)
+e [`relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py))
+é o teto que impede um loop infinito entre os dois nós.
 
-!!! note "Migração de StateGraph manual para create_agent"
-    Até uma versão anterior, esse ciclo era um `StateGraph` montado nó a nó à mão (`call_llm`,
-    `tool_node`, um `router` condicional escrito no projeto, `bind_tools` chamado explicitamente).
-    Era um bom exercício para entender o mecanismo por baixo do capô, mas reimplementava algo que o
-    LangChain 1.x já oferece pronto via `create_agent` — mesmo loop ReAct, mesmas customizações que o
-    projeto precisa (`state_schema` próprio para `estado`/`municipio`, `checkpointer`, `system_prompt`),
-    numa fração do código. A migração preservou a assinatura de `build_graph()` (mesmos parâmetros,
-    mesmo retorno) para não exigir mudanças em quem já a chamava (`lifespan.py`,
-    `evaluation/pipeline_avaliacao.py`), e o `SYSTEM_PROMPT` deixou de ser injetado manualmente como
-    `SystemMessage` no primeiro turno — `create_agent` o prepõe automaticamente a cada chamada ao
-    modelo via `system_prompt=`.
+O desenho completo dos dois pipelines ponta a ponta está em [Fluxo de Dados](fluxo_dados.md).
 
-!!! note "Essa estrutura de dois nós é propositalmente simples — e já tem expansão planejada"
-    Hoje o agente é o padrão ReAct mínimo: um único nó `model` decidindo tudo e um único nó `tools`
-    executando qualquer ferramenta. Isso funciona bem no tamanho atual, mas fica difícil de ler
-    num diagrama conforme mais ferramentas e mais micro-programas Python (processamento
-    determinístico fora do ciclo de decisão do LLM — pequenas automações, análises que não
-    precisam passar pelo modelo) entrarem no fluxo. O roadmap já prevê separar esse ciclo em nós
-    dedicados (ou middleware, ver abaixo) — por exemplo, um nó só de decisão/orquestração, outro só
-    de geração final, mais nós de processamento determinístico à parte. Não é correção de bug — é
-    uma melhoria de manutenibilidade e clareza planejada para a V2.
+### O nó `agente`
+
+[`app/agents/nodes/agente.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/nodes/agente.py)
+é o único ponto do projeto onde o modelo principal é invocado. É uma função-fábrica: recebe o
+modelo já com `bind_tools` aplicado e devolve o nó, o que deixa a assinatura que o LangGraph
+inspeciona reduzida a `(state)` e torna o nó testável passando qualquer modelo.
+
+```python title="app/agents/nodes/agente.py:16-21"
+async def no_agente(state: AgentState) -> dict:
+    resposta = await modelo.ainvoke(
+        [SystemMessage(content=SYSTEM_PROMPT), *state["messages"]]
+    )
+    return {"messages": [resposta]}
+```
+
+O `SYSTEM_PROMPT` é **preposto a cada chamada**, não gravado no histórico. Três consequências
+diretas: ele não é persistido pelo checkpointer, não se duplica a cada turno, e uma alteração no
+prompt vale imediatamente até para conversas já em andamento.
+
+### O nó `ferramentas`
+
+É o `ToolNode` de `langgraph.prebuilt`, sem customização. Além de executar a ferramenta pedida, é
+ele quem **injeta o `ToolRuntime`** nas tools que declaram esse parâmetro — o mecanismo que leva o
+contexto geográfico até a busca no Pinecone, descrito na seção seguinte.
 
 ## O estado do grafo (`AgentState`)
 
-`app/models/agent_state.py` estende o `AgentState` de `langchain.agents` (que já traz `messages`
-com o reducer `add_messages` — cada nó **anexa**, nunca sobrescreve) com duas chaves próprias:
-`estado` e `municipio`, o contexto geográfico do edital em análise. Tools que declaram um parâmetro
-`runtime: ToolRuntime` recebem esse contexto via `runtime.state["estado"]`/`runtime.state["municipio"]`
-— por isso as duas chaves precisam existir no `AgentState`, mesmo não fazendo parte da conversa em
-si: é assim que o LangGraph sabe de onde tirar o valor para a tool.
+[`app/agents/state.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/state.py)
+estende `MessagesState` do LangGraph — que já traz `messages` com o reducer `add_messages`, ou seja,
+cada nó **anexa** ao histórico em vez de sobrescrevê-lo — com duas chaves próprias:
 
-!!! note "`estado`/`municipio` têm vida útil planejada até a V2"
-    Essas duas chaves existem porque, hoje, o usuário informa manualmente o estado e o município ao
-    indexar um edital, e esse par é o metadado usado para filtrar a busca no Pinecone (ver
-    [Uso de Dados e RAG](../ia/rag_dados.md)). O roadmap já prevê, num futuro não tão distante, a
-    indexação automática via PNCP (sem upload manual) e, junto dela, uma migração do schema de
-    metadado do Pinecone de `municipio`/`estado` para **`cnpjs`** (lista extraída automaticamente do
-    edital). Quando isso
-    acontecer, o `AgentState` deixa de carregar `estado`/`municipio` e passa a carregar `cnpjs`,
-    já que é esse o novo campo que as tools precisarão ler via `ToolRuntime`. Essa mudança
-    também é o que viabiliza a tool `buscar_historico_empresa` planejada para a V2 (cruzamento de
-    um CNPJ entre editais de municípios diferentes já indexados) — hoje impossível, porque a busca
-    é isolada por município.
+```python title="app/agents/state.py:4-16"
+class AgentState(MessagesState):
+    """Estado compartilhado entre os nós do grafo durante um turno de conversa."""
+
+    estado: str
+    municipio: str
+```
+
+`estado` e `municipio` são o contexto geográfico do edital em análise. Eles não fazem parte da
+conversa e o LLM nunca os lê diretamente: quem os consome são as tools que declaram
+`runtime: ToolRuntime`, lendo `runtime.state["estado"]`. É esse par que filtra a busca semântica
+para o edital certo (ver [Uso de Dados e RAG](../ia/rag_dados.md)).
+
+Como o checkpointer só persiste as chaves declaradas no schema, e quem sabe o estado/município é
+quem chama o grafo, os dois são **reenviados a cada turno** —
+[`conversa.py:103-111`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py).
+
+## Persistência da conversa (checkpointer)
+
+Um `AsyncRedisSaver` guarda o histórico por `thread_id`, aberto em
+[`app/storage/checkpointer.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/checkpointer.py)
+e mantido vivo pelo `lifespan` durante toda a execução do processo. Isso faz a conversa sobreviver a
+restarts e ficar acessível às duas réplicas em produção
+(ver [Docker & Deploy](../operacional/docker.md#escalonamento-replicas-e-limites-de-recurso)).
+
+A persistência não é indefinida. Cada thread expira após `TTL_CHECKPOINT_MINUTOS` de
+**inatividade** (default 24h), e `refresh_on_read=True` renova essa contagem a cada leitura — uma
+conversa em uso nunca expira no meio, só threads abandonadas são limpas.
+
+```python title="app/storage/checkpointer.py:21"
+ttl_config = {"default_ttl": TTL_CHECKPOINT_MINUTOS, "refresh_on_read": True}
+```
+
+O grafo só pode ser compilado **dentro** desse contexto — é ali que a conexão existe. Por isso o
+`lifespan` ([`app/api/lifespan.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/lifespan.py))
+mantém o `async with` aberto envolvendo o `yield`:
+
+```python title="app/api/lifespan.py:19-27"
+async with abrir_client_redis() as redis_client:
+    tools = await montar_tools(redis_client)
+    inicializar_rate_limiter(redis_client)
+
+    async with abrir_checkpointer() as checkpointer:
+        initialize_graph(tools=tools, checkpointer=checkpointer)
+        logger.info("Servidor pronto para receber requests.")
+
+        yield
+```
 
 ## Ferramentas disponíveis ao agente
 
 | Origem | Ferramenta | O que faz |
 |---|---|---|
-| Nativa | `consultar_receita_federal` | Situação cadastral, CNAE, data de fundação (BrasilAPI) |
-| Nativa | `buscar_contexto_edital` | Busca semântica no edital indexado (Pinecone, RAG) |
-| Nativa | `consultar_sancoes_empresa` | Sanções ativas no CEIS/CNEP (Portal da Transparência) |
-| Nativa | `buscar_informacao_web` | Contexto complementar via Tavily |
-| MCP (`@licinexusbr/mcp`) | 11 tools de PNCP | Licitações, contratos, itens, resultados, atas de RP — carregadas e filtradas no startup (ver `app/services/lifespan.py`) |
+| Nativa | [`consultar_receita_federal`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/receita_federal.py) | Situação cadastral, CNAE, data de fundação (BrasilAPI) |
+| Nativa | [`buscar_contexto_edital`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py) | Busca semântica no edital indexado (Pinecone, RAG) |
+| Nativa | [`consultar_sancoes_empresa`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/sancoes.py) | Sanções ativas no CEIS/CNEP (Portal da Transparência) |
+| Nativa | [`buscar_informacao_web`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/busca_web.py) | Contexto complementar via Tavily |
+| MCP (`@licinexusbr/mcp`) | 11 tools de PNCP | Licitações, contratos, itens, resultados, atas de RP — ver [Protocolo MCP](protocolo_mcp.md) |
 
-Todas as tools nativas seguem o mesmo padrão: nunca deixam uma exceção subir crua, sempre
-devolvem `{"error": ...}` estruturado para o LLM decidir como reagir, em vez de derrubar o turno.
+Cada tool nativa é **um arquivo só**, contendo as duas metades: o `@tool` que o LLM enxerga (schema
+`Annotated`/`Field`, a docstring — que é o texto lido pelo modelo para decidir se chama a
+ferramenta —, validação de CNPJ e a tradução de falhas) e, abaixo, a função de rede pura, que
+levanta exceção nativa e não sabe o que é um LLM.
 
-!!! note "Migração de InjectedState para ToolRuntime"
-    Até uma versão anterior, `buscar_contexto_edital` e `buscar_informacao_web` recebiam
-    `estado`/`municipio` via `InjectedState("estado")`/`InjectedState("municipio")` (`langgraph.prebuilt`)
-    — um parâmetro anotado por chave. O idioma do LangChain 1.x é o parâmetro único
-    `runtime: ToolRuntime` (`langchain.tools`), que expõe `state`, `config`, `store` e mais num
-    objeto só. A migração expôs um bug real, não hipotético: `ToolRuntime` não é serializável em
-    JSON, e o cache de tools (`aplicar_cache`, ver [Protocolo MCP](protocolo_mcp.md#cache-das-ferramentas-aplicar_cache))
-    tentava serializar todos os argumentos — incluindo o `runtime` — para calcular a chave de cache,
-    quebrando com `TypeError` em toda chamada dessas duas tools. Corrigido com um normalizador que
-    extrai só `estado`/`municipio` do `runtime.state` antes de calcular a chave, preservando a
-    correção original (município diferente → chave diferente).
+Nenhuma tool nativa deixa exceção subir crua: todas devolvem `{"error": ...}` estruturado para o
+LLM decidir como reagir, em vez de derrubar o turno.
 
-!!! note "Uma quinta tool nativa existe, mas está desativada de propósito"
-    `buscar_contratos_fornecedor_pncp` (cruza fornecedor + órgão contratante no PNCP) está
-    implementada em `tools.py`, mas fora da lista `TOOLS` e do `SYSTEM_PROMPT`. Motivo: varrer
-    todas as modalidades de contratação de um órgão pode levar minutos sob o rate limit do PNCP, e
-    o streaming SSE não emite nenhum evento durante a execução de uma tool — arriscando ser
-    encerrado por timeout de proxy antes de terminar. Documentado como limitação conhecida em vez
-    de arriscar quebrar o streaming em produção — ainda estamos avaliando como reativá-la de forma
-    segura (ex.: heartbeats periódicos no SSE ou uma varredura de escopo mais restrito).
+!!! warning "A função registrada no grafo não é a que está no arquivo da tool"
+    Antes de chegarem ao grafo, todas as tools passam por `aplicar_cache()` em
+    [`app/agents/tools/registry.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/registry.py),
+    e o que o agente executa é o wrapper resultante. Ao depurar o comportamento de uma ferramenta,
+    o `registry.py` é o segundo arquivo a abrir — ver
+    [Cache das ferramentas](protocolo_mcp.md#cache-das-ferramentas-aplicar_cache).
 
-## Streaming: o que sai pelo SSE de conversa
+### Montagem: `montar_tools()`
 
-`run_agent()` consome `grafo.astream_events()` e emite eventos SSE (`token`, `status`, `done`/
-`error`) conforme o grafo executa — só repassa fragmentos de texto (`on_chat_model_stream`, filtrando
-chunks que carregam `tool_calls` em vez de conteúdo final) e mensagens de status quando uma
-ferramenta é acionada (`on_tool_start`). Diferente do relatório automático pós-upload (ver
-[Relatório Automático e Extração de Laudo](../ia/extracao_laudo.md)), essa conversa não faz nenhuma
-extração estruturada: a resposta chega ao frontend como Markdown livre, sem card de laudo — o único
-laudo estruturado de uma thread é o gerado uma vez, logo após o upload.
+`registry.py` é o único lugar que responde "quais ferramentas o agente tem". Ele reúne as nativas,
+conecta ao MCP, filtra a whitelist, aplica o patch de schema e envolve tudo com cache:
 
-!!! note "Histórico interrompido no meio de uma tool_call"
-    Se o usuário interromper a execução de uma ferramenta, o
-    checkpointer fica com uma `AIMessage` cujos `tool_calls` nunca foram respondidos — e a
-    OpenAI rejeita qualquer mensagem nova nessa thread com `400` enquanto isso não for corrigido.
-    `_curar_tool_calls_pendentes()` detecta esse estado no início do próximo turno e injeta
-    `ToolMessage`s sintéticas ("chamada cancelada") para cada `tool_call` pendente, restaurando a
-    validade do histórico sem descartar a conversa. Esse comportamento independe de qual
-    checkpointer está por baixo (valia para o antigo `InMemorySaver` e continua valendo para o
-    `AsyncRedisSaver` atual).
+```python title="app/agents/tools/registry.py:147-163"
+async def montar_tools(redis_client: Redis) -> list[BaseTool]:
+    tools_mcp = await _obter_tools_mcp()
 
-## Pontos de extensão: middleware (avaliado, adiado para V2)
+    tools = aplicar_cache(
+        tools=TOOLS_NATIVAS,
+        redis_client=redis_client,
+        ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+        normalizadores=CACHE_KEY_NORMALIZERS,
+    ) + aplicar_cache(
+        tools=tools_mcp,
+        redis_client=redis_client,
+        ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+    )
 
-`create_agent` expõe `middleware=` (`wrap_model_call`, `wrap_tool_call`, entre outros hooks) como o
-mecanismo idiomático da lib para comportamento transversal — interceptar toda chamada ao modelo ou
-toda chamada de ferramenta sem espalhar a lógica pelo código de negócio. Três pontos do projeto hoje
-resolvidos "na mão" são candidatos naturais:
+    _conferir_mensagens_de_status(tools)
+    logger.info("Total de ferramentas disponíveis para o agente: %d", len(tools))
+    return tools
+```
 
-| Hoje (feito à mão) | Middleware equivalente | Onde |
-|---|---|---|
-| `_curar_tool_calls_pendentes` (repara histórico interrompido) | `wrap_model_call` (roda antes da chamada ao modelo) | `app/services/ai_engine.py` |
-| `aplicar_cache` (cache de tool no Redis) | `wrap_tool_call` (intercepta a execução da tool) | `app/utils/cache_mcp.py` |
-| `escape_xml` (guardrail anti prompt-injection) | `wrap_model_call` ou um middleware de input | `app/services/ai_engine.py` |
+Duas verificações rodam no startup e transformam falhas silenciosas em avisos no log:
 
-**Avaliado e adiado para V2, não implementado agora** — motivo: os três mecanismos atuais já
-funcionam, já passaram pela avaliação do Bloco 4 e pela migração para `create_agent` sem regressão
-(golden dataset), e migrar os três de uma vez é justamente o tipo de redesenho que vale fazer junto
-com a separação de nós em [O ciclo de decisão do agente](#o-ciclo-de-decisao-do-agente) — não faz
-sentido reformar a extensibilidade duas vezes (uma agora, incompleta, outra na V2 junto do resto).
-`aplicar_cache` em particular tem uma complicação própria a resolver primeiro: hoje ele intercepta a
-tool na composição da lista (`tools_nativas + mcp_tools`, ver `lifespan.py`), fora do grafo — virar
-`wrap_tool_call` significaria mover essa composição para dentro de `create_agent`, o que só faz
-sentido decidir junto da separação de nós, não isoladamente.
+- **`_conferir_mensagens_de_status`** (`registry.py:126`) compara os nomes das tools montadas com as
+  chaves de
+  [`app/config/tool_status_map.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/tool_status_map.py),
+  nos dois sentidos. Sem ela, uma tool sem mensagem cai no fallback `"Analisando..."` do streaming
+  sem que ninguém perceba, e uma entrada órfã no mapa fica invisível.
+- **Whitelist MCP não atendida** (`registry.py:114`): se um nome de `TOOLS_MCP_SELECIONADAS` não
+  vier do servidor — porque o pacote renomeou a ferramenta, por exemplo —, sai um `WARNING` com o
+  nome exato. Sem isso, a ferramenta simplesmente desapareceria do agente.
 
-## Limitações conhecidas desta arquitetura
+## Os dois fluxos que chamam o grafo
 
-- **Grafo com apenas dois nós** — ver a expansão planejada logo acima, em
-  [O ciclo de decisão do agente](#o-ciclo-de-decisao-do-agente).
-- **Rate limiting por cookie, não por identidade real.** O `client_id` (ver
-  [Limitações conhecidas](../governanca/limitacoes.md)) identifica o navegador, não a pessoa —
-  limpar cookies, aba anônima ou outro navegador geram uma sessão nova e, portanto, uma quota nova.
+O grafo tem dois consumidores, com necessidades opostas. Eles estão em arquivos separados porque
+não compartilham nada além do envelope de mensagem.
+
+| Arquivo | Entrada | Saída | Como chama o grafo |
+|---|---|---|---|
+| [`agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py) | Pergunta do usuário | Markdown em streaming (SSE) | `astream_events()` |
+| [`agents/relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py) | Disparo automático pós-upload | JSON estruturado, síncrono | `ainvoke()` + extrator |
+
+O que os dois compartilham vive em
+[`agents/envelope.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/envelope.py):
+`escape_xml()` (guardrail anti prompt-injection, ver [Guardrails](../governanca/guardrails.md)) e
+`montar_primeiro_turno()`, que monta o `PROMPT_DINAMICO` com CNPJs, estado, município e data — o
+primeiro `HumanMessage` de toda thread nova, seja ela aberta por uma pergunta ou pelo relatório
+automático.
+
+### Streaming: eventos de domínio e o formato de fio
+
+`run_agent()` consome `grafo.astream_events(version="v2")` e traduz o que acontece no grafo
+em **eventos de domínio** — objetos que dizem o que aconteceu, sem saber como serão transmitidos.
+O vocabulário está em
+[`app/agents/eventos.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/eventos.py): `TokenGerado`, `FerramentaIniciada`,
+`TurnoConcluido` e `ErroNoTurno`.
+
+```python title="app/agents/conversa.py:116-129"
+if evento["event"] == "on_chat_model_stream":
+    # getattr com default: chunks intermediários podem não ter o atributo tool_calls
+    chunk = evento["data"].get("chunk")
+    if chunk is not None and chunk.content and not getattr(chunk, "tool_calls", None):
+        yield TokenGerado(chunk.content)
+
+elif evento["event"] == "on_tool_start":
+    yield FerramentaIniciada(evento["name"])
+
+yield TurnoConcluido()
+```
+
+O filtro `not getattr(chunk, "tool_calls", None)` é o que impede que fragmentos de uma chamada de
+ferramenta apareçam como texto na tela. `evento["name"]`, no `on_tool_start`, é o nome técnico da
+**tool**.
+
+Quem transforma esses eventos em bytes é o endpoint,
+[`app/api/endpoints/chat.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/chat.py) — a única camada que sabe o que é
+Server-Sent Events. É também onde o nome técnico vira o texto que o usuário lê:
+
+```python title="app/api/endpoints/chat.py:43-54"
+def _para_sse(evento: EventoDoTurno) -> str:
+    match evento:
+        case TokenGerado(texto):
+            return _linha_sse("token", texto)
+        case FerramentaIniciada(nome):
+            # É aqui que o nome técnico da tool vira o texto que o usuário lê.
+            return _linha_sse("status", TOOL_STATUS_MAP.get(nome, "Analisando..."))
+        case TurnoConcluido():
+            return _linha_sse("done")
+        case ErroNoTurno():
+            return _linha_sse("error", MENSAGEM_ERRO_GENERICA)
+```
+
+Essa fronteira é o que permite consumir o agente sem HTTP: um teste afirma
+`FerramentaIniciada("buscar_contexto_edital")` em vez de comparar strings `data: ...`, e um
+consumidor futuro (uma fila, um WebSocket) recebe objetos em vez de bytes de SSE.
+
+Essa conversa não faz extração estruturada: a resposta chega ao frontend como Markdown livre. O
+único laudo estruturado de uma thread é o
+[relatório automático](../ia/extracao_laudo.md) gerado uma vez, logo após o upload.
+
+!!! note "Histórico interrompido no meio de uma `tool_call`"
+    Se o usuário interromper a execução de uma ferramenta, o checkpointer fica com uma `AIMessage`
+    cujos `tool_calls` nunca foram respondidos — e a OpenAI rejeita qualquer mensagem nova nessa
+    thread com `400` enquanto isso não for corrigido.
+
+    `_curar_tool_calls_pendentes()`
+    ([`conversa.py:15`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py))
+    detecta esse estado no início do próximo turno: compara os `tool_calls` da última `AIMessage`
+    com os `tool_call_id` já respondidos e injeta uma `ToolMessage` sintética
+    (`"Chamada cancelada..."`) para cada pendência, via `grafo.aupdate_state()`. O histórico volta a
+    ser válido sem descartar a conversa.
+
+## Limitações conhecidas
+
+As limitações desta arquitetura — incluindo o alcance real do rate limiting e o que o sistema
+sinaliza mas não prova — estão consolidadas em
+[Limitações conhecidas](../governanca/limitacoes.md), junto das demais.

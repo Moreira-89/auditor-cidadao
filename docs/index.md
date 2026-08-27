@@ -26,7 +26,7 @@ Faça um teste na nossa plataforma! A forma mais recomendada de conhecer o Audit
 
 **[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**
 
-Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/setup_local.md)) é recomendado para quem quer inspecionar o código, rodar o framework de avaliação ou contribuir com o projeto — não é um pré-requisito para experimentar a solução.
+Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/setup_local.md)) é recomendado para quem quer inspecionar o código ou contribuir com o projeto — não é pré-requisito para experimentar a solução.
 
 ---
 
@@ -35,6 +35,6 @@ Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/set
 Esta documentação está dividida em 4 pilares estratégicos para facilitar a avaliação:
 
 1. **[Operacional & Reprodução](operacional/index.md):** instruções passo a passo para clonar, configurar as variáveis de ambiente e rodar o projeto localmente ou via Docker.
-2. **[Arquitetura do Sistema](arquitetura/visao_geral.md):** desenho do pipeline de dados, o funcionamento do grafo do LangGraph, protocolo MCP e streaming via SSE.
-3. **[Engenharia de IA](ia/modelos_prompts.md):** justificativas dos modelos de LLM escolhidos, engenharia de prompts, extração de JSON e o framework de avaliação automatizado com RAGAS.
+2. **[Arquitetura do Sistema](arquitetura/visao_geral.md):** o grafo do agente no LangGraph, o estado que ele carrega, as ferramentas disponíveis, o protocolo MCP e o streaming via SSE.
+3. **[Engenharia de IA](ia/modelos_prompts.md):** justificativa dos modelos escolhidos, engenharia de prompts, catálogo de anomalias e a extração do laudo estruturado em JSON.
 4. **[Governança e Ética](governanca/lgpd.md):** tratamento de dados sob a LGPD, mitigação de alucinações e guardrails de segurança contra injeção de prompts.

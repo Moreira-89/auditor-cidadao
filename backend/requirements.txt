@@ -1,0 +1,50 @@
+# Dependências de runtime — o que a aplicação FastAPI precisa para rodar.
+# É este arquivo (e só ele) que o Dockerfile instala na imagem publicada em
+# produção (Railway). Para documentação (MkDocs) e avaliação (RAGAS), ver
+# requirements-dev.txt — ferramental de desenvolvimento local, fora da imagem.
+
+# Web
+fastapi==0.137.1
+uvicorn==0.49.0
+python-multipart==0.0.9
+itsdangerous==2.2.0
+
+# IA Orquestração
+langchain-groq==1.1.2
+langchain-google-genai==4.2.7
+langgraph==1.2.9
+langchain-mcp-adapters==0.3.0
+mcp==1.28.1
+langchain-openai==1.3.5
+langchain-tavily==0.2.18
+langchain-core==1.4.9
+langgraph-checkpoint-redis==0.5.1
+redis==7.4.1
+
+# Processamento e Vetores
+pdfplumber==0.11.9
+langchain-text-splitters==1.1.2
+
+# Utils
+python-dotenv==1.0.1
+pydantic==2.13.4
+httpx==0.28.1
+typing_extensions==4.16.0
+
+# Vetores e Embeddings
+pinecone-client==6.0.0
+langchain-pinecone==0.2.13
+validate-docbr==2.0.0
+langchain==1.3.1
+
+# Documentação técnica (MkDocs), ver docs/ e mkdocs.yml
+mkdocs==1.6.1
+mkdocs-material==9.7.6
+
+# Avaliação automatizada (RAGAS), ver evaluation/pipeline_avaliacao.py
+ragas==0.3.9
+langchain-community==0.3.31
+
+# Testes
+pytest==9.1.1
+pytest-asyncio==1.4.0

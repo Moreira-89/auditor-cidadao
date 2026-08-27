@@ -277,6 +277,17 @@ IDH, PIB per capita, população, IDEB — contextualiza o valor de uma contrata
 - **Busca web direcionada por endereço (indício de sede "fachada" — residência, terreno baldio, escritório virtual/coworking):** o endereço completo já vem da BrasilAPI e hoje é descartado; dá para enriquecer a query da busca web com o endereço + termos como "sala comercial", "coworking", "endereço fiscal". Isso é diferente de analisar imagem de Street View de verdade (exigiria Google Maps Static API + um modelo de visão — integração nova, custo novo, esforço alto). Separar em duas versões: a "leve" (query enriquecida com endereço, já descartado hoje) é esforço **baixo** e cabe numa V2 próxima; a versão com imagem de rua é módulo futuro.
 - **Monitoramento de mídia local** (termos como "atraso", "denúncia", "paralisada", "MPF" combinados com empresa + município, mirado em municípios pequenos com pouca cobertura de mídia nacional): ajuste de template de query na tool `buscar_informacao_web` já existente. Esforço **baixo**.
 
+### `consultar_dados_municipio` (API IBGE)
+IDH, PIB per capita, população — contextualiza o valor de uma contratação com a capacidade fiscal real do município (ex.: prefeitura com PIB per capita de R$8.000 contratando sistema de TI por R$2 milhões). Indicadores levantados no design inicial e descartados do escopo: **desemprego**, por não ter granularidade municipal no IBGE (PNAD Contínua só desagrega até UF/Região Metropolitana — a amostra não permite recorte por município; incluir esse campo arriscaria o LLM alucinar um número municipal inexistente). Saneamento permanece candidato, mas depende de tabela específica do Censo (2010/2022) via SIDRA — verificar disponibilidade e nomenclatura de variável antes de implementar.
+
+**Resolução de município sem tool nova:** diferente de outras integrações, não é preciso expor ao LLM uma tool separada de lookup nome→código IBGE. O padrão já usado em `buscar_contexto_edital`/`buscar_informacao_web` (`runtime: ToolRuntime`, com `runtime.state["municipio"]`/`["estado"]` já populados pelo estado da conversa) resolve isso de graça — `consultar_dados_municipio` recebe `runtime` como as outras duas, sem exigir que o LLM informe ou "adivinhe" o código do município como argumento.
+
+**Cache em duas camadas, seguindo o padrão existente:**
+- A tabela de municípios do IBGE (~5.570 linhas, nome→código, API de Localidades) é praticamente estática — TTL longo (candidato: 30 dias) no Redis, e não em memória de processo isolada: a decisão consciente aqui é que o Redis já é a peça de infraestrutura que sobrevive a restart/redeploy (mesmo racional do `AsyncRedisSaver` do Bloco 6), enquanto um dict carregado no `lifespan.py` reconstrói do zero a cada boot.
+- A tool em si (`consultar_dados_municipio`) entra na lista `TOOLS` nativa normalmente e herda o cache de 24h já aplicado via `aplicar_cache` em `lifespan.py`, com `CACHE_KEY_NORMALIZERS["consultar_dados_municipio"]` usando o mesmo extrator `_extrair_estado_municipio_para_cache` já existente para `runtime`.
+
+**Fontes prováveis por indicador:** IDH e PIB per capita não vêm da mesma API — confirmar se estão no SIDRA (tabelas do IBGE) ou se IDH exige fonte externa (PNUD/Atlas Brasil, IBGE não é o produtor original do IDH municipal). Verificar antes de comprometer o escopo de implementação.
+
 ---
 
 ## B. 🆕 Reestruturação seguindo os padrões oficiais do LangGraph/LangChain
@@ -287,6 +298,57 @@ Dois pontos levantados na pré-validação original **não faziam parte do escop
 
 - **Padrão singleton do grafo vs. ciclo de vida recomendado pelo FastAPI.** `initialize_graph`/`get_graph` (`app/services/build_graph.py`) usam uma variável módulo-level como singleton. Agora que o checkpointer é `AsyncRedisSaver` (Bloco 6) e o grafo passa por `create_agent` (Bloco 8), vale reavaliar se armazenar a instância em `app.state` (padrão mais idiomático para recursos de ciclo de vida em FastAPI) traria alguma vantagem prática sobre o módulo-level atual — ou se é troca sem ganho real.
 - **Integração MCP (`langchain-mcp-adapters`) vs. o padrão oficial mais atual de registro de tools externas no LangGraph.** Não auditado ainda contra a documentação oficial mais recente.
+
+---
+
+## I. 🆕 Reestruturação: legibilidade, `StateGraph` explícito e desacoplamento do upload por evento
+
+> **Status (2026-08-26): fatias 1 a 5 concluídas e validadas ponta a ponta** (upload, tool de busca web e streaming, com LLM/Redis/Pinecone reais). Pendentes: separar eventos de domínio do formato SSE, suíte de testes e o documento `anatomia_de_um_turno.md`. A estrutura final e o raciocínio de cada decisão estão na documentação técnica em `docs/arquitetura/` — o documento de proposta que guiava a migração foi removido depois de executado.
+
+**Critério da proposta:** o objetivo declarado não é pureza de camadas, é *conseguir reabrir o projeto depois de semanas parado e lembrar como cada coisa funciona*. Cada item abaixo é avaliado por "isso encurta o caminho entre a pergunta que eu vou ter e a resposta?".
+
+### As duas armadilhas de legibilidade (valem mais que qualquer renomeação de pasta)
+
+1. **O fluxo de controle do agente não está em nenhum arquivo do projeto.** `build_graph.py` repassa parâmetros para `create_agent`; o ciclo real está em `langchain/agents/factory.py`, 2007 linhas dentro do `site-packages`. → resolvido pela volta ao `StateGraph` explícito.
+2. **As tools que o agente executa não são as funções de `tools.py`.** No `lifespan.py`, tudo passa por `patch_mcp_tools()` + `aplicar_cache()` antes de chegar ao grafo — o que roda é um wrapper montado no boot, num arquivo que ninguém abre ao ler uma tool. Foi exatamente aqui que nasceu o bug do `ToolRuntime` não-serializável do Bloco 8. → a montagem passa para `agents/tools/registry.py`, ao lado da definição das tools.
+
+Fora disso, duas ações de custo baixo e retorno alto que não têm a ver com diretórios: **nomes que dizem o que o arquivo faz** (`ai_engine.py` → `agents/runtime.py`; os prefixos `root_` e `func_` não carregam informação) e um **`docs/arquitetura/anatomia_de_um_turno.md`** rastreando uma requisição real de ponta a ponta com `arquivo:linha` — o trecho *HTTP → grafo → SSE* é o que falta no `visao_geral.md`.
+
+### Os cinco acoplamentos que motivam a mudança
+
+1. **`app/core/dependencies.py` abre conexão com o Pinecone no import** (instancia `GerenciadorVetorial` no nível do módulo). É a razão estrutural de não existir suíte de testes — nada é importável sem `PINECONE_API_KEY` e rede. Maior retorno da lista.
+2. **`ai_engine.py` mistura orquestração com o formato de fio do SSE** (`f"data: {json.dumps(...)}"` dentro do `run_agent`). É o que impede o "Graph-as-a-Service" de ser real: o agente só sabe falar SSE.
+3. **`ai_engine.py` importa `get_extrator` do `lifespan.py`** — dependência invertida; origem do `import` adiado do `MultiServerMCPClient`. Conecta com o item pendente da Seção B (singleton vs. `app.state`).
+4. **`lifespan.py` acumula infraestrutura** que devia ser camada própria (client Redis, `AsyncRedisSaver`) e uma decisão de produto (`TOOLS_MCP_SELECIONADAS`) escondida no boot.
+5. **`services/` é depósito** com grafo + orquestração + tools + clientes HTTP externos + persistência + rate limiter + boot no mesmo diretório.
+
+### Decisão revista: voltar ao `StateGraph` explícito com `agents/nodes/`
+
+Decidido **adotar** — revertendo a recomendação inicial deste documento, que sugeria manter `create_agent`. Três fatos verificados na versão instalada (`langchain==1.3.14`, `langgraph==1.2.10`) sustentam a mudança:
+
+- **`create_agent` *é* um `StateGraph`** — `factory.py` faz `graph.add_node("model", ...)`, `graph.add_node("tools", ToolNode(...))`, `add_conditional_edges`, `compile`. Não são recomendações concorrentes da doc: a Graph API é o núcleo, `create_agent` é o prebuilt de ciclo ReAct em cima dela. Nenhuma está deprecada.
+- **Para a configuração deste projeto — sem `middleware`, sem `response_format` — o nó de modelo se reduz a `bind_tools` → prepor `SystemMessage` → `ainvoke`.** O `graph.py` manual cabe na tela; o resto das 2007 linhas é maquinaria não usada.
+- **`ToolNode` e `ToolRuntime` vêm de `langgraph.prebuilt`, não do `create_agent`** — a injeção do `ToolRuntime` acontece dentro do próprio `ToolNode`. Um `StateGraph` manual usa o mesmo `ToolNode`: **`tools.py` não é tocado**.
+
+**O Bloco 8 não é desfeito.** Ele teve três partes — `create_agent`, `ToolRuntime` e `timeout`/`max_retries` — e só a primeira está em jogo; as outras duas, inclusive a que revelou o bug real de produção, são ortogonais e permanecem. *(Correção: caracterizar essa migração como "desfazer o Bloco 8" estava errado.)*
+
+Atenção na execução: `AgentState` passa a estender `MessagesState` (perde `jump_to`/`structured_response`, que só o `create_agent` usa — checkpoints antigos no Redis se resolvem sozinhos pelo TTL de 24h); o streaming **não** é afetado, porque `ai_engine.py` filtra `on_chat_model_stream`/`on_tool_start` e usa `evento["name"]`, que é o nome da *tool*, não do nó; revalidar com o golden dataset do Bloco 4. Perde-se o acesso pronto a `middleware` e `response_format` — ambos já avaliados e adiados no Bloco 8, sem perda prática hoje.
+
+Com isso, o **Backlog D ("Separação de nodes no grafo") deixa de ser hipotético**: passa a ser a continuação natural — nós determinísticos fora do ciclo de decisão do LLM — em cima de um grafo já explícito.
+
+### Decisões tomadas para não reabrir
+
+**Manter `app/` como raiz** — trocar por `src/` custa 71 referências na documentação (`AuditorCidadaoRoadmap.md` 19, `docs/codemap.md` 9, `protocolo_mcp.md` 8) mais a ambiguidade com o `WORKDIR /app` do Dockerfile, sem ganho técnico. **Não criar `api/v1/`** com uma versão só. **`app/utils/` e `app/services/` deixam de existir** — cada módulo vai para onde seu chamador o procura.
+
+**Um arquivo por tool, com o `@tool` e a chamada de rede juntos.** Revisão de uma versão anterior desta seção, que separava os `@tool` (`agents/tools/`) dos clientes HTTP por trás deles (`integrations/`). Levantando quem chama o quê, `consulta_receita_federal.py`, `consulta_sancoes.py`, `busca_web.py` e `consulta_pncp.py` são pares **1:1** com uma tool — separá-los em duas pastas de topo obriga a abrir dois arquivos distantes para entender uma ferramenta, exatamente o salto que o critério de legibilidade existe para eliminar. Única exceção: `consulta_pncp.py` (268 linhas de WAF/rate limit) fica como `tools/pncp_client.py` ao lado de `tools/pncp.py`. Regra: junto por padrão, separado quando o cliente crescer a ponto de andar sozinho.
+
+Com isso **`integrations/` desaparece**: sobravam só dois módulos que não são tools — `gerenciadorvetorial.py` (3 chamadores, dois fora do agente → `storage/vetorial.py`) e `retornar_cliente_llm` (grafo + extrator + `evaluation/` → `app/llm.py`, módulo solto; pasta para um arquivo só é cerimônia). *(Correção: a regra "nenhum import de langchain em `integrations/`" era falsa já contra o código atual — `busca_web.py` importa `langchain_tavily` e `gerenciadorvetorial.py` importa `langchain_openai`/`langchain_pinecone`. A linha real não é o namespace `langchain`, é o **framework de agente**: `langchain.agents` e `langgraph` só aparecem em `agents/`.)*
+
+### Sobre "Event-Driven": o candidato legítimo é o upload
+
+O consumo via `astream_events` + SSE já é orientado a eventos internamente, e o acoplamento nº 2 acima torna isso explícito. Mas um `EventBus` em memória não seria arquitetura orientada a eventos — seria indireção entre duas funções que já se chamam.
+
+O caso real é outro: **`POST /upload/` roda um turno completo do agente (`gerar_relatorio_inicial`, `recursion_limit=50`) dentro do request HTTP** — dezenas de segundos sem sinal de progresso, sujeito a timeout de proxy. Desacoplar via Redis Stream (infra que o projeto já tem para checkpointer/rate limiter/cache) responde imediato com os CNPJs e entrega o relatório por evento — e, com as 2 réplicas do Bloco 7, o pub/sub torna irrelevante em qual instância o cliente caiu. Item de backlog próprio: a reorganização o **habilita** (o acoplamento nº 2 é pré-requisito), mas não deve ir no mesmo commit.
 
 ---
 
@@ -311,7 +373,7 @@ O `buffer_temporario` do Bloco 2 assume execução sequencial (uma chamada de LL
 
 ## H. 🆕 Migração do front-end para React/Next.js (static export)
 
-Hoje o front-end (`front-end/`) é HTML/CSS/JS vanilla servido como estático pelo FastAPI — combobox de estado/município, upload de edital com drag-and-drop, streaming SSE consumido via `fetch` + `ReadableStream`, renderização de Markdown com `marked`/`DOMPurify`, animação de hero com GSAP. Funcional e já em produção (Fase 8), mas a evolução da interface (novos estados de laudo, mais componentes de UI, gerenciamento de estado mais rico) fica cara de manter em JS puro conforme a V2 cresce. Proposta: migrar para React via Next.js, mantendo a mesma topologia de deploy — sem subir um servidor Node em produção.
+Hoje o front-end (`frontend/`) é HTML/CSS/JS vanilla servido como estático pelo FastAPI — combobox de estado/município, upload de edital com drag-and-drop, streaming SSE consumido via `fetch` + `ReadableStream`, renderização de Markdown com `marked`/`DOMPurify`, animação de hero com GSAP. Funcional e já em produção (Fase 8), mas a evolução da interface (novos estados de laudo, mais componentes de UI, gerenciamento de estado mais rico) fica cara de manter em JS puro conforme a V2 cresce. Proposta: migrar para React via Next.js, mantendo a mesma topologia de deploy — sem subir um servidor Node em produção.
 
 **Por que isso não é prioridade sobre os itens A–G:** não mapeia a nenhum requisito formal do case (T1–T6, E1–E6) — é manutenibilidade de interface, não critério de avaliação da banca. O item de maior risco que antes competia pelo mesmo tempo (Seção A, "Controle de custo e limite de uso" — Risco **Alto**) já foi resolvido no rate limiting/quota (Bloco 6); a ausência de autenticação propriamente dita (login de usuário, não só identificação de sessão) segue em aberto, mas com risco reduzido. Não bloqueia nem é bloqueado por nenhum outro item deste backlog; pode ser conduzido em paralelo, em commits próprios, sem prazo — mesmo espírito de "sem pressa" já registrado na nota do topo deste documento.
 
@@ -322,7 +384,7 @@ Sem servidor Node em produção. O fluxo é:
 1. `next.config.js` com `output: 'export'` — gera a pasta `out/` com HTML/CSS/JS pré-renderizados no `next build`, sem necessidade de runtime Node para servir.
 2. Build roda **localmente** (ou, no futuro, num passo de CI), nunca dentro do container de produção.
 3. Só a pasta `out/` é versionada e enviada — os arquivos de desenvolvimento do Next (`node_modules`, `.next`, fontes `.tsx`) ficam fora do deploy.
-4. FastAPI passa a servir `out/` via `StaticFiles` no lugar do `front-end/` atual — mesma rota, mesmo container, mesmo domínio (sem CORS a configurar).
+4. FastAPI passa a servir `out/` via `StaticFiles` no lugar do `frontend/` atual — mesma rota, mesmo container, mesmo domínio (sem CORS a configurar).
 
 ⚠️ **Atenção ao `.gitignore`:** o template padrão do Next ignora `/out` por padrão. É preciso remover essa entrada explicitamente, ou o `out/` nunca é versionado e o deploy fica com o front-end desatualizado sem nenhum erro visível.
 
@@ -341,7 +403,7 @@ Sem servidor Node em produção. O fluxo é:
 ### Riscos e limitações
 
 - **Nenhum recurso que dependa de servidor Node em runtime pode ser usado** (SSR, ISR, Server Actions, Route Handlers do App Router) — `output: 'export'` desabilita tudo isso por definição. Não é um risco deste projeto especificamente (o front-end é 100% client-side hoje), mas é uma restrição a documentar para quem for mexer depois, para não introduzir sem querer um recurso incompatível com static export.
-- **Build manual sem CI, por enquanto:** se alguém esquecer de rodar `next build` antes de commitar uma mudança de front-end, o `out/` fica desatualizado silenciosamente — o deploy sobe sem erro, só serve conteúdo antigo. Mitigação simples: um `README` no `front-end/` (ou hook de pre-commit) lembrando o passo, até que valha a pena automatizar via CI.
+- **Build manual sem CI, por enquanto:** se alguém esquecer de rodar `next build` antes de commitar uma mudança de front-end, o `out/` fica desatualizado silenciosamente — o deploy sobe sem erro, só serve conteúdo antigo. Mitigação simples: um `README` no `frontend/` (ou hook de pre-commit) lembrando o passo, até que valha a pena automatizar via CI.
 - **Ganho de desempenho é marginal a nulo, ganho real é de manutenibilidade:** o front-end atual, vanilla e estático, já é o cenário mais rápido possível (sem hidratação, sem bundle de framework). O motivo de migrar é produtividade de desenvolvimento e organização de componentes conforme a V2 cresce, não velocidade de carregamento — importante alinhar essa expectativa antes de justificar o esforço internamente ou na apresentação.
 
 ### Sequência recomendada de execução
@@ -350,7 +412,7 @@ Sem servidor Node em produção. O fluxo é:
 2. Portar página a página (`chat.html` → rota `/chat`, `index.html` → rota `/`), reaproveitando a estrutura de componentes visíveis no HTML atual (nav, modal de upload, combobox, área de chat).
 3. Portar `chat.js` para hooks — começar pelo streaming SSE (parte mais sensível), validando lado a lado com o comportamento atual antes de seguir.
 4. Portar `home.js` (animação GSAP) por último — é cosmético, não bloqueia nenhuma funcionalidade.
-5. Rodar `next build`, validar `out/` servido localmente pelo FastAPI (`StaticFiles`), só então substituir o `front-end/` atual e ajustar o `.gitignore`.
+5. Rodar `next build`, validar `out/` servido localmente pelo FastAPI (`StaticFiles`), só então substituir o `frontend/` atual e ajustar o `.gitignore`.
 6. Atualizar `docs/operacional/` (Bloco 5) com o novo passo de build manual antes do deploy — reprodutibilidade (R2/R3) exige que isso fique documentado, mesmo não sendo requisito formal do case.
 
 ---

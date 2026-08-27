@@ -1,6 +1,8 @@
 # Variáveis de ambiente
 
-Referência completa de cada chave usada pelo Auditor Cidadão. O template versionado está em `.env.example`, na raiz do repositório — copie para `.env` e preencha antes de rodar o projeto (veja [Setup local](setup_local.md)).
+Referência completa de cada chave usada pelo Auditor Cidadão. O template versionado é o `.env.example` na raiz do repositório — copie para `.env` e preencha antes de rodar (veja [Setup local](setup_local.md)).
+
+Todas são lidas uma única vez em [`app/config/settings.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py), que aplica os defaults e os casts. Esse módulo não abre conexão nem instancia cliente: importar configuração é barato e livre de efeito colateral.
 
 ## LLM
 
@@ -27,16 +29,16 @@ Referência completa de cada chave usada pelo Auditor Cidadão. O template versi
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
 | `PINECONE_API_KEY` | **Sim** | — | Chave de acesso ao Pinecone |
-| `PINECONE_INDEX_NAME` | Não | `auditor-cidadao` | Índice usado pelo `GerenciadorVetorial` e pelo job de limpeza (`app/jobs/limpeza_pinecone.py`). Criado automaticamente pelo Pinecone se não existir |
-| `PINECONE_NAMESPACE` | Não | `production` | Namespace usado para indexar/buscar editais. O framework de avaliação sobrescreve essa env var em tempo de execução para isolar dados de teste do namespace de produção |
-| `PINECONE_RETENCAO_DIAS` | Não | `7` | Dias de retenção antes de um registro com `origem: "upload_usuario"` ser apagado pelo job de limpeza (`app/jobs/limpeza_pinecone.py`, ver [Uso de Dados e RAG](../ia/rag_dados.md#limpeza-de-dados-expirados)). Não afeta registros com outra origem |
-| `TOP_K_EDITAL` | Não | `3` | Quantos trechos do edital a busca semântica (RAG) traz por pergunta — ver a tool `buscar_contexto_edital` em `app/services/tools.py` |
+| `PINECONE_INDEX_NAME` | Não | `auditor-cidadao` | Índice usado pelo `GerenciadorVetorial` ([`app/storage/vetorial.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py)) e pelo job de limpeza. Criado automaticamente pelo Pinecone se não existir |
+| `PINECONE_NAMESPACE` | Não | `production` | Namespace do Pinecone usado para indexar e buscar editais. Permite isolar conjuntos de dados (ex.: um namespace de testes) sem tocar no índice de produção |
+| `PINECONE_RETENCAO_DIAS` | Não | `7` | Dias de retenção antes de um registro com `origem: "upload_usuario"` ser apagado pelo job de limpeza ([`app/jobs/limpeza_pinecone.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_pinecone.py), ver [Uso de Dados e RAG](../ia/rag_dados.md#limpeza-de-dados-expirados)). Não afeta registros com outra origem |
+| `TOP_K_EDITAL` | Não | `3` | Quantos trechos do edital a busca semântica (RAG) traz por pergunta — ver a tool [`buscar_contexto_edital`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py) |
 
 ## Redis (checkpointer do grafo + rate limiting + cache de ferramentas)
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `REDIS_URI` | **Sim** | `redis://localhost:6379` | Precisa de uma instância Redis acessível (local, Docker ou gerenciada) — sem ela o **boot falha**. Duas conexões independentes usam essa mesma URI: o `AsyncRedisSaver` (histórico de conversa por `thread_id`, ver `app/services/lifespan.py`) e um client `Redis` compartilhado entre o rate limiter (`app/services/rate_limiter.py`) e o cache de ferramentas MCP/nativas (`app/utils/cache_mcp.py`, ver [Protocolo MCP](../arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache)) |
+| `REDIS_URI` | **Sim** | `redis://localhost:6379` | Precisa de uma instância Redis acessível (local, Docker ou gerenciada) — sem ela o **boot falha**. Duas conexões independentes usam essa mesma URI: o `AsyncRedisSaver` do histórico de conversa ([`app/storage/checkpointer.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/checkpointer.py)) e um client `Redis` ([`app/storage/redis.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/redis.py)) compartilhado entre o rate limiter ([`app/api/rate_limiter.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/rate_limiter.py)) e o cache de ferramentas ([`app/agents/tools/cache.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/cache.py), ver [Protocolo MCP](../arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache)) |
 | `TTL_CHECKPOINT_MINUTOS` | Não | `1440` (24h) | Minutos de **inatividade** até o histórico de uma conversa expirar no Redis. Não é um TTL fixo desde a criação: cada leitura renova a contagem (`refresh_on_read=True`), então uma conversa em uso nunca expira no meio — só threads abandonadas são limpas. Use `-1` para desativar a expiração |
 
 !!! note "Redis não vem embutido no container"
@@ -49,7 +51,7 @@ Referência completa de cada chave usada pelo Auditor Cidadão. O template versi
 ## Segurança: cookie de identificação de cliente
 
 Usado para reconhecer o mesmo navegador entre requisições sem exigir login, como base do rate
-limiting (ver `app/utils/cookie_manager.py` e `app/api/dependencies_http.py`).
+limiting (ver [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/cookies.py) e [`app/api/dependencies.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/dependencies.py)).
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
@@ -62,16 +64,6 @@ limiting (ver `app/utils/cookie_manager.py` e `app/api/dependencies_http.py`).
 |---|---|---|
 | `TAVILY_API_KEY` | Sim (para busca web) | Usada pela tool `buscar_informacao_web` |
 | `CGU_API_KEY` | Sim (para sanções) | Usada pela tool `consultar_sancoes_empresa` (CEIS/CNEP). Obtida em `api.portaldatransparencia.gov.br/swagger-ui.html` |
-
-## Avaliação (RAGAS)
-
-Usadas apenas pelo framework de avaliação (`evaluation/pipeline_avaliacao.py`), fora do caminho de
-boot da API principal.
-
-| Variável | Obrigatória | Default | Descrição |
-|---|---|---|---|
-| `AVALIADOR_MODEL` | Não | `openai:gpt-4o-mini` | Modelo usado pelo RAGAS para julgar as métricas do golden dataset |
-| `AVALIADOR_TEMPERATURE` | Não | `0.0` | Temperatura do avaliador — fixa em zero pelo mesmo motivo do extrator: julgamento determinístico |
 
 !!! note "O que acontece se uma chave opcional faltar?"
     A aplicação sobe normalmente, mas a tool correspondente retorna um erro estruturado
