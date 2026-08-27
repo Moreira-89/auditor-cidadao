@@ -5,12 +5,14 @@ from app.api.endpoints.chat import router as perguntar_router
 from app.api.endpoints.upload import router as upload_router
 from app.api.lifespan import lifespan
 from app.config.logging import logger
+from app.config.settings import CORS_ORIGINS
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import (
     http_exception_handler,
     request_validation_exception_handler,
 )
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -28,6 +30,21 @@ app = FastAPI(
 
 app.include_router(upload_router)
 app.include_router(perguntar_router)
+
+# Frontend e backend são serviços separados no Railway (domínios públicos
+# diferentes), então o navegador trata toda chamada do frontend como cross-site
+# e bloqueia a resposta sem esses headers. allow_credentials=True é obrigatório
+# porque get_client_id (app/api/dependencies.py) depende do cookie de sessão
+# chegar na requisição — sem ele, o rate limiter trataria cada request como um
+# visitante novo.
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 def _reaplicar_cookie_pendente(request: Request, resposta: Response) -> Response:

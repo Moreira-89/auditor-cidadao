@@ -53,3 +53,15 @@ if not _COOKIE_SECRET_KEY_ENV:
         "servidor. Defina essa env var em produção."
     )
 COOKIE_SECRET_KEY = _COOKIE_SECRET_KEY_ENV or secrets.token_hex(32)
+
+# Origens autorizadas a chamar a API via CORS — a URL pública do serviço de
+# frontend no Railway (ex.: "https://auditor-cidadao.up.railway.app"), separadas
+# por vírgula se houver mais de uma (ex.: preview + produção). Vazio por padrão:
+# sem essa env var definida, nenhuma origem cross-site é liberada e a API só
+# responde a chamadas same-origin (ex.: dev local, onde o backend também serve
+# o frontend — ver main.py).
+CORS_ORIGINS = [
+    origem.strip()
+    for origem in os.getenv("CORS_ORIGINS", "").split(",")
+    if origem.strip()
+]

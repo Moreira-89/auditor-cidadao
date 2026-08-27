@@ -7,7 +7,19 @@
 (function () {
 'use strict';
 
-const API_BASE = '';
+// Backend e frontend são serviços separados no Railway (monorepo, um domínio
+// público cada), então uma chamada relativa ('') iria para o próprio domínio do
+// frontend — que só serve HTML/CSS/JS estático, sem essas rotas. Detecta o caso
+// same-origin (dev local, onde o backend também serve o frontend; ou acesso
+// direto ao domínio do backend) e só nesses casos usa caminho relativo — em
+// qualquer outro host (o domínio próprio do frontend em produção), aponta para
+// a URL pública do backend.
+const API_HOSTNAME_PRODUCAO = 'auditor-cidadao-production.up.railway.app';
+const API_BASE = (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === API_HOSTNAME_PRODUCAO
+) ? '' : `https://${API_HOSTNAME_PRODUCAO}`;
 
 /** Deve ficar em sincronia com MAX_BYTES em app/api/root_upload.py — checagem
  * client-side é só uma otimização de UX (feedback instantâneo), o backend
@@ -435,7 +447,11 @@ async function confirmarUpload() {
     formData.append('thread_id', state.threadId);
 
     try {
-        const response = await fetch(`${API_BASE}/upload/`, { method: 'POST', body: formData });
+        const response = await fetch(`${API_BASE}/upload/`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+        });
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
@@ -769,6 +785,7 @@ async function streamAgentResponse(texto) {
                 thread_id:   state.threadId,
             }),
             signal: abortController.signal,
+            credentials: 'include',
         });
 
         if (!response.ok) {
