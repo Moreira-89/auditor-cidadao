@@ -56,15 +56,24 @@ async def get_client_id(request: Request, response: Response) -> str:
         # contagem pra ninguém. Um bug silencioso: nenhum erro aparece, o rate
         # limit simplesmente nunca dispara. Por isso a flag varia com o ambiente.
         #
-        # samesite="lax": bloqueia o cookie em requisições cross-site (CSRF),
-        # mas ainda permite navegação normal (ex.: abrir um link da própria app).
+        # samesite="lax" bloquearia o cookie em QUALQUER requisição cross-site —
+        # inclusive o fetch que o frontend faz do seu próprio domínio para o do
+        # backend, já que são dois serviços/domínios separados no Railway. Por
+        # isso "none" em produção: exige Secure (garantido por AMBIENTE_PRODUCAO
+        # ali em cima, já que "none" sem Secure é rejeitado pelo navegador) e
+        # exige CORS com allow_credentials=True (ver main.py) para o navegador
+        # aceitar enviar/receber o cookie entre origens diferentes.
+        #
+        # Em dev local (AMBIENTE_PRODUCAO=False) mantém "lax": front e back
+        # normalmente rodam na mesma origem (o backend também serve o frontend,
+        # ver main.py), então CSRF não precisa da abertura de "none".
         response.set_cookie(
             key=NOME_COOKIE_SESSAO,
             value=cookie_assinado,
             max_age=IDADE_MAXIMA_COOKIE_SEGUNDOS,
             httponly=True,
             secure=AMBIENTE_PRODUCAO,
-            samesite="lax",
+            samesite="none" if AMBIENTE_PRODUCAO else "lax",
         )
 
         # Por padrão, se QUALQUER exceção (HTTPException ou erro de validação do

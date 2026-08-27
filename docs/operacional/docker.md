@@ -67,6 +67,18 @@ As variáveis de ambiente são cadastradas no painel do Railway (mesmas chaves d
 [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas, e a plataforma injeta `PORT`
 dinamicamente.
 
+!!! warning "CORS e cookie cross-site: dois domínios públicos diferentes"
+    Com backend e frontend em serviços separados, o navegador trata toda chamada do frontend como
+    cross-site. Depois de gerar o domínio público de cada serviço (Settings → Networking → Generate
+    Domain):
+
+    1. No serviço do **backend**, defina `CORS_ORIGINS` com a URL pública do frontend e
+       `AMBIENTE_PRODUCAO=True` (isso também muda o cookie de sessão para `samesite="none"` — sem
+       CORS + esse ajuste, o rate limiting por cookie some silenciosamente).
+    2. Em `frontend/js/chat.js`, o `API_HOSTNAME_PRODUCAO` precisa apontar para o domínio público
+       do backend — não há build step nem env var injetada no frontend estático, então esse valor
+       fica hardcoded no arquivo.
+
 ### Provisionar o Redis
 
 Uma peça não vem pronta. Diferente do ambiente local, em produção é preciso criar o serviço:
