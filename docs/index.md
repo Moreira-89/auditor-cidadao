@@ -24,7 +24,7 @@ Concretamente, isso quer dizer que a plataforma:
 
 Faça um teste na nossa plataforma! A forma mais recomendada de conhecer o Auditor Cidadão é acessando a instância já publicada, sem precisar instalar nada:
 
-**[Plataforma Auditor Cidadão](https://auditor-cidadao-production.up.railway.app/)**
+**[Plataforma Auditor Cidadão](https://auditorcidadao.up.railway.app/)**
 
 Rodar localmente ou via Docker (ver [Operacional & Reprodução](operacional/setup_local.md)) é recomendado para quem quer inspecionar o código ou contribuir com o projeto — não é pré-requisito para experimentar a solução.
 
