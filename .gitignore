@@ -1,6 +1,7 @@
 .states
 *.db
 *.py[cod]
+node_modules/
 .web
 assets/external/
 *.txt

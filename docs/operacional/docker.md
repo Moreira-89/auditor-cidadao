@@ -1,11 +1,12 @@
 # Docker & Deploy
 
-O `Dockerfile` fica em
-[`backend/`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/Dockerfile) e é o mesmo
-artefato usado em desenvolvimento containerizado e em produção (Railway) — não há Dockerfile por
+Backend e frontend têm cada um seu próprio `Dockerfile`
+([`backend/`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/Dockerfile),
+[`frontend/`](https://github.com/Moreira-89/auditor-cidadao/blob/main/frontend/Dockerfile)) — o mesmo
+artefato usado em desenvolvimento containerizado e em produção (Railway), sem Dockerfile por
 ambiente.
 
-## Build da imagem
+## Backend — build da imagem
 
 O contexto de build é a pasta `backend/`, não a raiz do repositório:
 
@@ -30,7 +31,7 @@ Pontos da imagem que valem explicação:
     Com o contexto de build em `backend/`, a pasta `frontend/` fica de fora — assim como `docs/` e
     o roadmap. O container serve a API; o frontend é publicado como serviço próprio (ver abaixo).
 
-## Rodando o container
+## Backend — rodando o container
 
 O Redis **não** está embutido na imagem — precisa de um container separado no ar antes:
 
@@ -49,6 +50,32 @@ containers na mesma rede com `docker network create`) — de dentro do container
     essa flag lê o arquivo do host na hora de subir. Ao criar variações locais (ex.: `.env.docker`),
     garanta que também estejam cobertas pelo `.dockerignore` antes de qualquer build publicável.
 
+## Frontend — build da imagem
+
+React + Vite (ver [`frontend/package.json`](https://github.com/Moreira-89/auditor-cidadao/blob/main/frontend/package.json)), duas páginas reais sem client-side router
+(`index.html` → landing, `chat.html` → app de chat), cada uma com seu próprio bundle. O
+`Dockerfile` é multi-stage: builda com Node, serve o resultado (`dist/`) com nginx — a imagem final
+não carrega `node_modules` nem o toolchain de build.
+
+```bash
+cd frontend
+docker build --build-arg VITE_API_BASE_URL=http://localhost:8000 -t auditor-cidadao-frontend .
+docker run -p 8080:8080 auditor-cidadao-frontend
+```
+
+Pontos que valem explicação:
+
+- **`VITE_API_BASE_URL` é `ARG`, não `ENV`** — o Vite embute esse valor no bundle na hora do `npm
+  run build` (`import.meta.env.VITE_API_BASE_URL`, ver `frontend/src/chat/chatLogic.js`); não é lido
+  em runtime pelo container final, então mudar essa URL sempre exige rebuild, não só restart.
+- **`nginx.conf.template` + `docker-entrypoint.sh`** — o `$PORT` do Railway só existe em runtime, não
+  em build time, então não dá pra hardcodar `listen 8080;` na imagem. O entrypoint roda `envsubst`
+  substituindo *só* `$PORT` (explicitamente, via `envsubst '${PORT}'`) antes de subir o nginx — um
+  envsubst sem essa lista trocaria também variáveis do próprio nginx que começam com `$` (`$uri`,
+  `$host`) por string vazia.
+- **Sem client-side router** — replica a mesma navegação de duas páginas que já existia antes do
+  React (nunca foi uma SPA). Evita a complexidade de um router só pra duas rotas.
+
 ## Deploy em produção (Railway)
 
 O repositório é um monorepo, e cada pasta vira um serviço no mesmo projeto do Railway, distinguidos
@@ -57,7 +84,7 @@ pelo **Root Directory**:
 | Serviço | Root Directory | O que faz |
 |---|---|---|
 | Backend | `/backend` | Builda o `Dockerfile` e sobe a API |
-| Frontend | `/frontend` | Serve os arquivos estáticos |
+| Frontend | `/frontend` | Builda o `Dockerfile` (Vite → nginx) e serve o app React |
 
 Ambos os serviços acompanham a mesma branch — a separação é por diretório, não por branch, o que
 mantém um histórico único no Git. **Watch Paths** evita que um commit em `docs/` dispare rebuild do
@@ -75,9 +102,10 @@ dinamicamente.
     1. No serviço do **backend**, defina `CORS_ORIGINS` com a URL pública do frontend e
        `AMBIENTE_PRODUCAO=True` (isso também muda o cookie de sessão para `samesite="none"` — sem
        CORS + esse ajuste, o rate limiting por cookie some silenciosamente).
-    2. Em `frontend/js/chat.js`, o `API_HOSTNAME_PRODUCAO` precisa apontar para o domínio público
-       do backend — não há build step nem env var injetada no frontend estático, então esse valor
-       fica hardcoded no arquivo.
+    2. No serviço do **frontend**, defina `VITE_API_BASE_URL` com a URL pública do backend — o
+       Railway repassa essa variável como build arg para o `Dockerfile` (ver acima), e o Vite a
+       embute no bundle na hora do build. Mudar essa URL sempre exige um redeploy (rebuild), não só
+       restart do serviço.
 
 ### Provisionar o Redis
 

@@ -1,25 +1,30 @@
 /**
  * =============================================================================
  * AUDITOR CIDADÃO — CHAT
- * chat.js — Modal de upload, seleção de estado/município e streaming SSE
+ * chatLogic.js — Modal de upload, seleção de estado/município e streaming SSE
+ *
+ * Continua imperativo (manipula o DOM diretamente via getElementById), em vez
+ * de reescrito com estado/JSX do React: <Chat/> monta um shell estático com os
+ * mesmos ids do chat.html original e chama initChat() uma única vez, depois do
+ * mount, num useEffect sem dependências — o React nunca mais re-renderiza essa
+ * árvore, então não há conflito de reconciliação com as mutações diretas feitas
+ * aqui. Preserva o comportamento (streaming SSE, combobox, drag&drop) 1:1 com
+ * o que já estava validado em produção, em vez de arriscar reintroduzir bugs
+ * sutis reescrevendo tudo para hooks/estado de uma vez.
  * =============================================================================
  */
-(function () {
-'use strict';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 
-// Backend e frontend são serviços separados no Railway (monorepo, um domínio
-// público cada), então uma chamada relativa ('') iria para o próprio domínio do
-// frontend — que só serve HTML/CSS/JS estático, sem essas rotas. Detecta o caso
-// same-origin (dev local, onde o backend também serve o frontend; ou acesso
-// direto ao domínio do backend) e só nesses casos usa caminho relativo — em
-// qualquer outro host (o domínio próprio do frontend em produção), aponta para
-// a URL pública do backend.
-const API_HOSTNAME_PRODUCAO = 'auditor-cidadao-production.up.railway.app';
-const API_BASE = (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname === API_HOSTNAME_PRODUCAO
-) ? '' : `https://${API_HOSTNAME_PRODUCAO}`;
+export function initChat() {
+
+// Frontend e backend são serviços/domínios separados — mesmo em dev local, já
+// que agora cada um roda com sua própria stack (Vite aqui, uvicorn lá), então
+// não existe mais o caso "mesma origem" que o backend servia antes. A URL do
+// backend vem de uma env var de build (ver frontend/.env.example): em dev,
+// aponta pro uvicorn local; em produção, o Railway injeta a URL pública do
+// serviço de backend na hora do `vite build` (ver Dockerfile).
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /** Deve ficar em sincronia com MAX_BYTES em app/api/root_upload.py — checagem
  * client-side é só uma otimização de UX (feedback instantâneo), o backend
@@ -1006,4 +1011,4 @@ function init() {
 
 init();
 
-})();
+}
