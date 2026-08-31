@@ -8,6 +8,7 @@ assets/external/
 !requirements.txt
 !requirements-dev.txt
 avaliacao_log.json
+backend/evaluation/resultados/
 arquivos_locais/
 .claude/*
 apresentacao_data_master

@@ -1,0 +1,15 @@
+{
+  "id": "caso_03_belem_limpeza",
+  "descricao": "Belém/PA — Pregão SRP 90008/2025 (limpeza e conservação, 12 meses). Vencedora sintética M&B Comércio e Distribuição (CNPJ real com sanção vigente + CNAE de comércio incompatível com serviço de limpeza).",
+  "edital_pdf": "caso_03.pdf",
+  "estado": "Pará (PA)",
+  "municipio": "Belém",
+  "trecho_injetado": "[Trecho inserido para fins de teste — não integra o edital original nº 90008/2025 do Município de Belém/PA] RESULTADO DO CERTAME: sagrou-se vencedora do lote único a empresa M & B COMÉRCIO E DISTRIBUIÇÃO LTDA, CNPJ 47.417.848/0001-84, com sede em Cascavel/PR, mediante proposta de R$ 1.180.000,00 para a prestação dos serviços de limpeza e conservação com dedicação exclusiva de mão de obra pelo período de 12 meses.",
+  "anomalias_esperadas": ["H", "I"],
+  "tools_esperadas": [
+    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}},
+    {"tool": "consultar_sancoes_empresa", "argumentos_esperados": {"cnpj": "47417848000184"}},
+    {"tool": "consultar_receita_federal", "argumentos_esperados": {"cnpj": "47417848000184"}}
+  ],
+  "contexto_edital_esperado": "O objeto é a contratação de serviço de limpeza e conservação com mão de obra terceirizada, no município de Belém/PA, pelo período de 12 meses."
+}

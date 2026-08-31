@@ -7,14 +7,23 @@ NivelRisco = Literal["BAIXO", "MÉDIO", "ALTO", "CRÍTICO"]
 # Códigos do catálogo de anomalias definido no system prompt (app/agents/prompt.py):
 # A. Sobrepreço | B. Direcionamento | C. Fracionamento irregular | D. Cartel/conluio
 # E. Empresa recém-criada | F. Prazo insuficiente | G. Reincidência suspeita
-# H. Sanção vigente | I. Incompatibilidade de atividade
+# H. Sanção com possível impacto na participação | I. Compatibilidade cadastral da atividade
 CodigoAnomalia = Literal["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+
+# Estado da verificação de cada categoria (ver "CATÁLOGO DE ANOMALIAS" no system prompt).
+# Só CONFIRMADO e INDÍCIO entram na lista `anomalias` do laudo — os demais estados
+# descrevem categorias sem achado e não são anomalias.
+EstadoAnomalia = Literal["CONFIRMADO", "INDÍCIO"]
 
 
 class Anomalia(BaseModel):
-    """Uma anomalia individual detectada no laudo, com evidência e nível de risco."""
+    """Um achado individual do laudo (categoria CONFIRMADA ou com INDÍCIO), com evidência e risco."""
 
     codigo: CodigoAnomalia = Field(description="Código da anomalia.")
+    estado: EstadoAnomalia = Field(
+        description="CONFIRMADO (fatos essenciais verificados e critério atendido) ou "
+        "INDÍCIO (sinais concretos, sem confirmação)."
+    )
     descricao: str = Field(description="Descrição da anomalia.")
     evidencias: list[str] = Field(
         description="Lista de evidências relacionadas à anomalia."

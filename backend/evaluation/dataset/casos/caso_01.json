@@ -1,0 +1,13 @@
+{
+  "id": "caso_01_brejao_direcionamento",
+  "descricao": "São Francisco do Brejão/MA — Pregão Eletrônico de serviços para eventos culturais. Para os itens de juiz e locutor de vaquejada, o edital exige credenciamento em entidade específica (ABVAQ), sem previsão de equivalência (Anomalia B — direcionamento).",
+  "edital_pdf": "caso_01.pdf",
+  "estado": "Maranhão (MA)",
+  "municipio": "São Francisco do Brejão",
+  "trecho_injetado": null,
+  "anomalias_esperadas": ["B"],
+  "tools_esperadas": [
+    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}}
+  ],
+  "contexto_edital_esperado": "O objeto é a contratação de serviços para realização de eventos culturais e festivos (palco, som, iluminação, segurança, vaquejada) no município de São Francisco do Brejão/MA, sob a Lei 14.133/2021."
+}

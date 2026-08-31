@@ -1,4 +1,6 @@
+import asyncio
 import re
+from datetime import UTC, date, datetime
 from typing import Annotated
 
 import httpx
@@ -9,25 +11,51 @@ from validate_docbr import CNPJ
 URL_BRASILAPI_CNPJ = "https://brasilapi.com.br/api/cnpj/v1/{cnpj}"
 
 
+def _idade_em_meses(data_inicio: str | None) -> int | None:
+    """Meses inteiros entre data_inicio_atividade (ISO 'AAAA-MM-DD') e hoje. Cálculo
+    feito aqui para o agente não ter que fazer conta de data (fonte comum de erro)."""
+    if not data_inicio:
+        return None
+    try:
+        inicio = date.fromisoformat(data_inicio)
+    except ValueError:
+        return None
+    hoje = datetime.now(UTC).date()
+    meses = (hoje.year - inicio.year) * 12 + (hoje.month - inicio.month)
+    if hoje.day < inicio.day:
+        meses -= 1
+    return max(meses, 0)
+# BrasilAPI (free tier) devolve 429 sob rajada — comum ao auditar vários CNPJs
+# seguidos. Uma ou duas esperas curtas costumam liberar.
+ESPERAS_RETRY_429 = (2.0, 4.0)
+
+
 async def _consultar_cnpj(cnpj_limpo: str) -> dict:
     """Busca o cadastro na BrasilAPI. Recebe o CNPJ só com dígitos e já validado."""
     url = URL_BRASILAPI_CNPJ.format(cnpj=cnpj_limpo)
 
     async with httpx.AsyncClient(timeout=5.0) as client:
         response = await client.get(url)
+        for espera in ESPERAS_RETRY_429:
+            if response.status_code != 429:
+                break
+            await asyncio.sleep(espera)
+            response = await client.get(url)
     response.raise_for_status()
 
     data = response.json()
     # Devolve só os campos usados na auditoria e descarta o resto da resposta da BrasilAPI
-    # (telefone, quadro de sócios/QSA, capital social, CNAEs secundários...). Isso enxuga o
+    # (telefone, quadro de sócios/QSA, capital social, regime tributário...). Isso enxuga o
     # que chega ao LLM. Obs.: alguns desses campos descartados são candidatos a reforçar o
     # catálogo de anomalias numa versão futura (ver "Backlog V2" no roadmap).
     return {
         "razao_social": data.get("razao_social"),
         "nome_fantasia": data.get("nome_fantasia"),
         "descricao_situacao_cadastral": data.get("descricao_situacao_cadastral"),
-        "cnae_fiscal_descricao": data.get("cnae_fiscal_descricao"),
         "data_inicio_atividade": data.get("data_inicio_atividade"),
+        "idade_meses": _idade_em_meses(data.get("data_inicio_atividade")),
+        "cnae_fiscal": data.get("cnae_fiscal"),
+        "cnae_fiscal_descricao": data.get("cnae_fiscal_descricao"),
         "logradouro": data.get("logradouro"),
         "numero": data.get("numero"),
         "bairro": data.get("bairro"),
@@ -59,8 +87,11 @@ async def consultar_receita_federal(
         cnpj: O CNPJ da empresa a ser consultada.
 
     Returns:
-        Em sucesso: dicionário com razão social, nome fantasia, situação cadastral, CNAE,
-        data de início de atividade e endereço (logradouro, número, bairro, município, UF, CEP).
+        Em sucesso: dicionário com razão social, nome fantasia, situação cadastral, CNAE
+        principal (`cnae_fiscal` e `cnae_fiscal_descricao`), `data_inicio_atividade`,
+        `idade_meses` (meses de atividade já calculados até hoje — use este número direto
+        na Anomalia E, não refaça a conta) e endereço (logradouro, número, bairro,
+        município, UF, CEP).
         Em falha: dicionário com a chave "error" descrevendo o problema encontrado.
     """
     cnpj_limpo = re.sub(r"[./-]", "", cnpj)

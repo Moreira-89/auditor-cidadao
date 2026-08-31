@@ -24,3 +24,8 @@ Dockerfile
 .idea/
 .claude/
 .ruff_cache/
+.pytest_cache/
+
+# Avaliação e testes — rodam em dev/CI, não na imagem de produção
+evaluation/
+tests/

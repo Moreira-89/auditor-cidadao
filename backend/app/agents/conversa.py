@@ -90,7 +90,7 @@ async def run_agent(
     if state.values.get("messages"):
         # O checkpointer restaura o histórico — só a nova pergunta precisa ser enviada
         mensagens_entrada = [
-            HumanMessage(content=f"<PERGUNTA>{pergunta_usuario}</PERGUNTA>")
+            HumanMessage(content=f"<PROMPT_USUARIO>{pergunta_usuario}</PROMPT_USUARIO>")
         ]
     else:
         # Primeiro turno: envia o envelope com CNPJs/estado/município/pergunta. O

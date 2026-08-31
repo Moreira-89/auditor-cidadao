@@ -1,0 +1,14 @@
+{
+  "id": "caso_02_saoluis_sancao",
+  "descricao": "São Luís/MA — Dispensa Eletrônica 980921-35/2026 da SEMUSC (aquisição de notebooks). Vencedora sintética M&B Comércio e Distribuição, CNPJ real com sanção vigente no CEIS/CNEP (Anomalia H pura — CNAE de comércio é compatível com fornecimento de notebooks).",
+  "edital_pdf": "caso_04.pdf",
+  "estado": "Maranhão (MA)",
+  "municipio": "São Luís",
+  "trecho_injetado": "[Trecho inserido para fins de teste — não integra o edital original nº 980921-35/2026 da Secretaria Municipal de Segurança com Cidadania de São Luís/MA] RESULTADO DA DISPENSA ELETRÔNICA: declarada vencedora a empresa M & B COMÉRCIO E DISTRIBUIÇÃO LTDA, CNPJ 47.417.848/0001-84, com proposta de R$ 78.500,00 para o fornecimento dos notebooks especificados no Termo de Referência.",
+  "anomalias_esperadas": ["H"],
+  "tools_esperadas": [
+    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}},
+    {"tool": "consultar_sancoes_empresa", "argumentos_esperados": {"cnpj": "47417848000184"}}
+  ],
+  "contexto_edital_esperado": "Dispensa eletrônica nº 980921-35/2026 da Secretaria Municipal de Segurança com Cidadania de São Luís/MA para aquisição de notebooks, com fundamento no art. 75, inciso II, da Lei 14.133/2021."
+}

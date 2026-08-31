@@ -14,11 +14,17 @@ async def buscar_contexto_edital(
     Busca trechos relevantes do edital ativo no banco vetorial com base em uma pergunta.
 
     Use esta ferramenta sempre que precisar encontrar regras, prazos, exigências, penalidades,
-    critérios de julgamento ou qualquer cláusula específica do edital em análise. A busca é
-    semântica — não é necessário usar as palavras exatas do edital, basta descrever o que procura.
+    critérios de julgamento ou qualquer cláusula específica do edital em análise.
+
+    A busca é por similaridade de texto: recupera os trechos cujo conteúdo mais se parece
+    com o texto da consulta. Descreva o trecho procurado com as palavras que o próprio edital
+    usaria (títulos de cláusula, jargão do domínio), não como pergunta. Ex.: em vez de
+    "qual o prazo de abertura?", use "data e hora de abertura das propostas, prazo para
+    apresentação, aviso de retificação".
 
     Args:
-        pergunta: A dúvida ou termo específico a ser pesquisado no texto do edital.
+        pergunta: Frase curta descrevendo o trecho procurado, rica em termos que apareceriam
+            no próprio edital.
 
     Returns:
         Trechos do edital mais relevantes para a pergunta, prontos para análise.
