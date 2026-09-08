@@ -109,6 +109,7 @@ async def run_agent(
                 "messages": mensagens_entrada,
                 "estado": estado,
                 "municipio": municipio,
+                "thread_id": thread_id,
             },
             config={**config, "recursion_limit": 50},
             version="v2",

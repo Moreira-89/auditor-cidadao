@@ -13,3 +13,8 @@ class AgentState(MessagesState):
     # que o schema declara, e quem chama o grafo é quem sabe estado/município.
     estado: str
     municipio: str
+
+    # Id do edital em análise. A thread é 1:1 com o edital, então é o próprio
+    # thread_id; as tools de RAG o usam para filtrar a busca no banco vetorial
+    # pelo edital certo. Reenviado a cada turno, pelo mesmo motivo de estado/município.
+    thread_id: str

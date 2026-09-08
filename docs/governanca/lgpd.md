@@ -24,7 +24,7 @@ automaticamente após `TTL_CHECKPOINT_MINUTOS` minutos sem nenhuma leitura ou es
 1440 minutos (24h) por padrão. Cada interação renova a contagem, então uma conversa em uso nunca é
 apagada no meio; só threads abandonadas são limpas. Isso é uma prática de minimização de dados: o
 sistema não acumula histórico de conversa indefinidamente sem necessidade, diferente da retenção
-deliberadamente indeterminada do conteúdo dos editais no Pinecone (ver seção abaixo, que tem um
+deliberadamente indeterminada do conteúdo dos editais no MongoDB (ver seção abaixo, que tem um
 racional de retenção diferente e documentado à parte).
 
 ## O cookie de sessão é um identificador pseudônimo, não dado pessoal identificável
@@ -55,12 +55,14 @@ formulário do frontend. O `PerguntaRequest` hoje ([`app/api/schemas/pergunta.py
 está usando o sistema. Isso reduz a superfície de dado pessoal coletado ao mínimo necessário para a
 função.
 
-## Retenção de editais no Pinecone: decisão deliberada, e agora com prazo configurável
+## Retenção de editais (MongoDB): decisão deliberada, com prazo configurável
 
 Os editais indexados via upload (`origem: "upload_usuario"`) têm retenção configurável, não
-indeterminada: [`app/jobs/limpeza_pinecone.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_pinecone.py), rodado periodicamente (ex.: cron no Railway), apaga
-os registros cujo `timestamp_indexacao` seja mais antigo que `PINECONE_RETENCAO_DIAS` (default 7
-dias — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)). O racional:
+indeterminada. Um cron (ex.: no Railway) roda
+[`app/jobs/limpeza_mongo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_mongo.py)
+e apaga da coleção `chunks_edital` tudo com `timestamp_indexacao` mais antigo que a janela **e**
+`origem = "upload_usuario"` (`MONGO_RETENCAO_DIAS`, default 2 dias — ver
+[Variáveis de ambiente](../operacional/variaveis_ambiente.md)). O racional:
 
 - O conteúdo de um edital é documento público; não há dado pessoal sensível envolvido — a limpeza
   é uma prática de minimização de dados, não uma exigência legal de anonimização.
@@ -70,6 +72,9 @@ dias — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)). O 
 - O filtro do job usa também `origem: "upload_usuario"` — outras origens (ex.: uma futura
   indexação automática via PNCP, ver [Próximos Passos](limitacoes.md)) podem ter um racional de
   retenção diferente e não são afetadas por essa expiração.
+- Desde o Bloco 13, cada chunk também carrega o metadado `edital_id`, que é o `thread_id`
+  gerado pelo frontend (UUID). É um identificador de conversa, não de pessoa — o mesmo já usado no
+  Redis — e é apagado junto com o edital pelo job de expiração.
 
 !!! note "O que muda na V2 (e por que é relevante para a LGPD)"
     A migração planejada troca o metadado de indexação de `municipio`/`estado` (informados

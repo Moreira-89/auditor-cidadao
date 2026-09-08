@@ -2,9 +2,9 @@
 
 O núcleo do conhecimento de auditoria do Auditor Cidadão é um catálogo de 9 categorias de anomalia
 (A–I), definido em [`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py) na constante `CATALOGO_ANOMALIAS`. Esse catálogo é injetado
-no `SYSTEM_PROMPT` (para o agente saber o que procurar) e no `PROMPT_EXTRATOR_INICIAL` (para
-classificar cada anomalia no JSON estruturado do relatório automático, ver
-[Relatório Automático e Extração do Laudo](extracao_laudo.md)). Uma constante única, reusada nos
+no `SYSTEM_PROMPT` (para o agente saber o que procurar) e no `PROMPT_EXTRATOR_INICIAL` (usado pelo
+framework de avaliação para classificar cada anomalia em código, ver
+[Relatório automático e extração do laudo](extracao_laudo.md)). Uma constante única, reusada nos
 dois, para evitar divergência de texto entre eles.
 
 !!! info "Uma constante, vários consumidores"

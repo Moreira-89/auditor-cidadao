@@ -70,6 +70,7 @@ async def gerar_relatorio_inicial(
                 "messages": [mensagem_inicial],
                 "estado": estado,
                 "municipio": municipio,
+                "thread_id": thread_id,
             },
             config={**config, "recursion_limit": 50},
         )

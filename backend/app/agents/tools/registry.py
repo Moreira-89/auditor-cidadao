@@ -52,12 +52,22 @@ def _extrair_estado_municipio_para_cache(runtime: ToolRuntime) -> dict:
     return {"estado": runtime.state["estado"], "municipio": runtime.state["municipio"]}
 
 
+def _extrair_contexto_edital_para_cache(runtime: ToolRuntime) -> dict:
+    # Além de estado/municipio, inclui o thread_id: dois editais da mesma cidade
+    # não podem compartilhar entrada de cache para a mesma pergunta.
+    return {
+        "estado": runtime.state["estado"],
+        "municipio": runtime.state["municipio"],
+        "thread_id": runtime.state["thread_id"],
+    }
+
+
 # Aplicado só ao calcular a chave de cache, para o mesmo CNPJ formatado e só-dígitos
 # caírem na mesma entrada — ver docs/arquitetura/protocolo_mcp.md.
 CACHE_KEY_NORMALIZERS = {
     "consultar_receita_federal": {"cnpj": _normalizar_cnpj_para_cache},
     "consultar_sancoes_empresa": {"cnpj": _normalizar_cnpj_para_cache},
-    "buscar_contexto_edital": {"runtime": _extrair_estado_municipio_para_cache},
+    "buscar_contexto_edital": {"runtime": _extrair_contexto_edital_para_cache},
     "buscar_informacao_web": {"runtime": _extrair_estado_municipio_para_cache},
 }
 

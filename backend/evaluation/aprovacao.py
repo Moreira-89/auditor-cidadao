@@ -3,16 +3,12 @@ from pydantic import BaseModel
 LIMIARES = {
     "aderencia_tools": 0.70,
     "recall_anomalias": 0.80,
-    "faithfulness": 0.70,
-    "context_recall": 0.75,
 }
 
 class MetricasDoCaso(BaseModel):
     caso_id: str
     aderencia_tools: float
     recall_anomalias: float
-    faithfulness: float | None
-    context_recall: float | None
 
 class MetricaAgregada(BaseModel):
     metrica: str
@@ -28,20 +24,19 @@ class Aprovacao(BaseModel):
 
 
 def avaliar_aprovacao(casos: list[MetricasDoCaso]) -> Aprovacao:
-    colunas: dict[str, list[float]] = {nome: [] for nome in LIMIARES}
-    for caso in casos:
-        colunas["aderencia_tools"].append(caso.aderencia_tools)
-        colunas["recall_anomalias"].append(caso.recall_anomalias)
-        if caso.faithfulness is not None:
-            colunas["faithfulness"].append(caso.faithfulness)
-        if caso.context_recall is not None:
-            colunas["context_recall"].append(caso.context_recall)
+    # As duas métricas hoje são calculadas para todo caso (não dependem de LLM-juiz
+    # nem de gabarito opcional), então nunca faltam — diferente de quando o RAGAS
+    # existia e faithfulness/context_recall podiam vir None num caso-controle.
+    colunas: dict[str, list[float]] = {
+        "aderencia_tools": [c.aderencia_tools for c in casos],
+        "recall_anomalias": [c.recall_anomalias for c in casos],
+    }
 
     metricas: list[MetricaAgregada] = []
     for nome, limiar in LIMIARES.items():
         valores = colunas[nome]
         if not valores:
-            continue  # nenhum caso exercitou essa métrica
+            continue  # nenhum caso avaliado
         media = sum(valores) / len(valores)
         metricas.append(
             MetricaAgregada(

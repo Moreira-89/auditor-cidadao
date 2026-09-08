@@ -1,6 +1,6 @@
 import asyncio
 
-from app.config.settings import PINECONE_NAMESPACE, TOP_K_EDITAL
+from app.config.settings import TOP_K_EDITAL
 from app.storage.vetorial import get_gerenciador
 from langchain.tools import ToolRuntime, tool
 
@@ -30,13 +30,13 @@ async def buscar_contexto_edital(
         Trechos do edital mais relevantes para a pergunta, prontos para análise.
         Se nenhum trecho for encontrado, retorna uma mensagem informando que o edital pode não estar indexado.
     """
-    # to_thread: a busca no Pinecone é síncrona e bloquearia o event loop do FastAPI,
-    # travando todas as outras requisições em andamento enquanto ela não voltasse.
+    # to_thread: pymongo é síncrono e bloquearia o event loop do FastAPI, travando
+    # todas as outras requisições em andamento enquanto a busca não voltasse.
     return await asyncio.to_thread(
         get_gerenciador().buscar_contexto,
         pergunta=pergunta,
         estado=runtime.state["estado"],
         municipio=runtime.state["municipio"],
-        namespace=PINECONE_NAMESPACE,
+        edital_id=runtime.state["thread_id"],
         top_k=TOP_K_EDITAL,
     )

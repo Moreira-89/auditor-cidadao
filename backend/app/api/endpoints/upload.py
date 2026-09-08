@@ -1,22 +1,154 @@
 import asyncio
+import json
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 
-from app.agents.relatorio import gerar_relatorio_inicial
 from app.api.dependencies import get_client_id
 from app.api.rate_limiter import RateLimiter
 from app.config.logging import logger
 from app.ingestion.cnpj import extrair_cnpj
-from app.ingestion.pdf import ErroExtracaoPDF, extrair_texto_pdf
+from app.ingestion.pdf import ErroExtracaoPDF, documento_tem_texto_nativo
+from app.ingestion.pdf_hierarquico import (
+    EditalExtraido,
+    ErroExtracaoEstrutura,
+    extrair_estrutura_pdf,
+)
 from app.storage.vetorial import get_gerenciador
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 
 # Roteador com prefixo "/upload" — agrupa os endpoints de ingestão de editais
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
+# A resposta do /upload/ é um stream SSE. Cada etapa longa (Docling ~2 min,
+# indexação) roda numa thread e, enquanto não termina, o endpoint emite um
+# `heartbeat` a cada _HEARTBEAT_SEGUNDOS — sem isso o request fica minutos sem
+# trafegar byte nenhum e o navegador/proxy derruba a conexão ociosa (o cliente
+# via "Failed to fetch" mesmo com o backend terminando com sucesso).
+_HEARTBEAT_SEGUNDOS = 3.0
+
+MAX_BYTES = 20 * 1024 * 1024
+
+
+def _sse(tipo: str, **campos) -> str:
+    """Formata um evento no protocolo SSE, no formato que o frontend consome."""
+    return f"data: {json.dumps({'type': tipo, **campos})}\n\n"
+
+
+def _indexar_hierarquico(
+    edital: EditalExtraido,
+    *,
+    thread_id: str,
+    estado: str,
+    municipio: str,
+    nome_arquivo: str,
+) -> None:
+    """Roda em thread separada: grava pais e filhos no MongoDB."""
+    metadados_base = {
+        "edital_id": thread_id,
+        "municipio": municipio,
+        "estado": estado,
+        "arquivo": nome_arquivo,
+        "timestamp_indexacao": int(datetime.now(timezone.utc).timestamp()),
+        "origem": "upload_usuario",
+    }
+    get_gerenciador().indexar_hierarquia(
+        edital.secoes, edital.filhos_brutos, metadados_base
+    )
+
+
+async def _com_heartbeat(
+    tarefa: asyncio.Task, texto: str, pct: int
+) -> AsyncGenerator[str, None]:
+    """
+    Emite um evento `progress` e, enquanto `tarefa` (um to_thread) não termina, um
+    `heartbeat` a cada _HEARTBEAT_SEGUNDOS. Não consome o resultado nem a exceção
+    da tarefa — o chamador faz `tarefa.result()` depois deste gerador retornar.
+    """
+    yield _sse("progress", content=texto, pct=pct)
+    while True:
+        concluidas, _ = await asyncio.wait({tarefa}, timeout=_HEARTBEAT_SEGUNDOS)
+        if concluidas:
+            return
+        yield _sse("heartbeat")
+
+
+async def _stream_indexacao(
+    conteudo_bytes: bytes,
+    nome_arquivo: str,
+    *,
+    thread_id: str,
+    estado: str,
+    municipio: str,
+) -> AsyncGenerator[str, None]:
+    """Corpo do /upload/: extrai (Docling) e indexa, emitindo progresso por SSE."""
+    try:
+        tem_texto = await asyncio.to_thread(
+            documento_tem_texto_nativo, conteudo_bytes, nome_arquivo
+        )
+
+        tarefa = asyncio.create_task(
+            asyncio.to_thread(
+                extrair_estrutura_pdf, conteudo_bytes, nome_arquivo, tem_texto
+            )
+        )
+        async for evento in _com_heartbeat(
+            tarefa, "Extraindo a estrutura do documento…", 35
+        ):
+            yield evento
+        edital: EditalExtraido = tarefa.result()
+        logger.info(
+            "Estrutura extraída | arquivo=%s | chars=%d | paginas=%d | secoes=%d | com_ocr=%s",
+            nome_arquivo,
+            len(edital.texto),
+            edital.num_paginas,
+            len(edital.secoes),
+            not tem_texto,
+        )
+
+        tarefa = asyncio.create_task(
+            asyncio.to_thread(
+                _indexar_hierarquico,
+                edital,
+                thread_id=thread_id,
+                estado=estado,
+                municipio=municipio,
+                nome_arquivo=nome_arquivo,
+            )
+        )
+        async for evento in _com_heartbeat(
+            tarefa, "Indexando as seções e os trechos…", 82
+        ):
+            yield evento
+        tarefa.result()
+        logger.info("Indexação concluída | arquivo=%s", nome_arquivo)
+
+        cnpjs = extrair_cnpj(edital.texto)
+        logger.info(
+            "CNPJs extraídos | arquivo=%s | quantidade=%d | cnpjs=%s",
+            nome_arquivo,
+            len(cnpjs),
+            cnpjs,
+        )
+        yield _sse("done", cnpjs=cnpjs)
+
+    except (ErroExtracaoPDF, ErroExtracaoEstrutura):
+        logger.exception("Falha ao extrair o PDF | arquivo=%s", nome_arquivo)
+        yield _sse(
+            "error",
+            content="Não foi possível ler o PDF. O arquivo pode estar corrompido ou protegido por senha.",
+        )
+    except Exception:  # noqa: BLE001 — qualquer falha vira um evento `error` pro frontend
+        logger.exception("Falha ao indexar edital | arquivo=%s", nome_arquivo)
+        yield _sse(
+            "error",
+            content="Falha ao indexar o edital. Tente novamente em instantes.",
+        )
+
 
 @router.post(
     "/",
-    # Upload dispara indexação no Pinecone (custo de embeddings) — limite mais
+    # Upload dispara indexação no RAG (custo de embeddings) — limite mais
     # apertado que o de conversa, já que um usuário legítimo sobe poucos editais
     # por dia. Janela de 86400s = 24h.
     dependencies=[
@@ -37,8 +169,12 @@ async def upload_edital(
     thread_id: str = Form(...),
     client_id: str = Depends(get_client_id),
 ):
-    """Recebe um edital em PDF, extrai o texto, indexa no banco vetorial e retorna os CNPJs encontrados."""
-
+    """
+    Recebe um edital em PDF, extrai a estrutura (Docling) e indexa (MongoDB).
+    Responde em **streaming SSE**: eventos `progress`/`heartbeat` durante o processamento
+    e, no fim, `done` com os CNPJs ou `error`. As validações baratas (tipo, tamanho)
+    ainda respondem `415`/`413` antes de o stream começar.
+    """
     logger.info(
         "Upload recebido | arquivo=%s | estado=%s | municipio=%s | client_id=%s",
         file.filename,
@@ -47,7 +183,6 @@ async def upload_edital(
         client_id,
     )
 
-    # Rejeita qualquer arquivo que não seja PDF antes de processá-lo
     if file.content_type != "application/pdf":
         logger.warning(
             "Formato inválido rejeitado | arquivo=%s | content_type=%s",
@@ -59,11 +194,7 @@ async def upload_edital(
             detail=f"Formato inválido: '{file.content_type}'. Apenas arquivos PDF são aceitos.",
         )
 
-    # Lê todos os bytes do arquivo enviado de forma assíncrona
     conteudo_bytes = await file.read()
-
-    # Bloqueia arquivos acima de 20 MB para evitar sobrecarga no processamento
-    MAX_BYTES = 20 * 1024 * 1024
     if len(conteudo_bytes) > MAX_BYTES:
         logger.warning(
             "Arquivo excede limite de tamanho | arquivo=%s | bytes=%d",
@@ -78,78 +209,15 @@ async def upload_edital(
         "Arquivo lido | arquivo=%s | bytes=%d", file.filename, len(conteudo_bytes)
     )
 
-    # Abre o PDF em memória (sem salvar em disco) e extrai o texto de cada página
-    # file.filename pode vir None do FastAPI, então usamos um nome padrão nesse caso
+    # file.filename pode vir None do FastAPI — usa um nome padrão nesse caso
     nome_arquivo = file.filename or "arquivo.pdf"
-    try:
-        texto, num_paginas = extrair_texto_pdf(conteudo_bytes, nome_arquivo)
-    except ErroExtracaoPDF:
-        raise HTTPException(
-            status_code=422,
-            detail="Não foi possível ler o PDF. O arquivo pode estar corrompido ou protegido por senha.",
-        )
-    logger.info(
-        "Texto extraído | arquivo=%s | chars=%d | paginas=%d",
-        file.filename,
-        len(texto),
-        num_paginas,
+    return StreamingResponse(
+        _stream_indexacao(
+            conteudo_bytes,
+            nome_arquivo,
+            thread_id=thread_id,
+            estado=estado,
+            municipio=municipio,
+        ),
+        media_type="text/event-stream",
     )
-
-    # Envia o texto para o GerenciadorVetorial, que chunkiza, gera embeddings e salva no Pinecone
-    # Roda em thread separada porque a função é síncrona e bloquearia o event loop
-    logger.info("Iniciando indexação no Pinecone | arquivo=%s", file.filename)
-    try:
-        await asyncio.to_thread(
-            get_gerenciador().executar,
-            texto_edital=texto,
-            metadados={
-                # Metadados usados para filtrar buscas por localidade depois da indexação
-                "municipio": municipio,
-                "estado": estado,
-                "arquivo": file.filename,
-                "timestamp_indexacao": int(datetime.now(timezone.utc).timestamp()),
-                "origem": "upload_usuario",
-            },
-        )
-    except Exception:  # noqa: BLE001 — qualquer falha aqui vira um 502 amigável pro frontend
-        logger.exception(
-            "Falha ao indexar edital no Pinecone | arquivo=%s", file.filename
-        )
-        raise HTTPException(
-            status_code=502,
-            detail="Falha ao indexar o edital no banco vetorial. Tente novamente em instantes.",
-        )
-    logger.info("Indexação concluída | arquivo=%s", file.filename)
-
-    # Usa expressão regular para encontrar todos os CNPJs no texto do edital
-    cnpjs_encontrados = extrair_cnpj(texto)
-    logger.info(
-        "CNPJs extraídos | arquivo=%s | quantidade=%d | cnpjs=%s",
-        file.filename,
-        len(cnpjs_encontrados),
-        cnpjs_encontrados,
-    )
-
-    # Relatório automático pós-indexação (Backlog V2, Seção C): gera o primeiro turno
-    # da thread sozinho, sem esperar o usuário perguntar. Roda dentro da mesma requisição
-    # de upload — por isso consome a quota_upload (5/dia), não a quota_chat — e nunca
-    # levanta exceção: se falhar, o upload segue bem-sucedido com relatorio_inicial: null,
-    # e o frontend cai de volta nas sugestões de pergunta estáticas.
-    logger.info("Gerando relatório automático pós-indexação | thread=%s", thread_id)
-    relatorio_inicial = await gerar_relatorio_inicial(
-        thread_id=thread_id,
-        lista_cnpj=cnpjs_encontrados,
-        estado=estado,
-        municipio=municipio,
-    )
-    logger.info(
-        "Relatório automático concluído | thread=%s | sucesso=%s",
-        thread_id,
-        relatorio_inicial is not None,
-    )
-
-    return {
-        "mensagem": "Edital indexado!",
-        "cnpjs": cnpjs_encontrados,
-        "relatorio_inicial": relatorio_inicial,
-    }

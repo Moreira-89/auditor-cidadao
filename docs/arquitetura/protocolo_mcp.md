@@ -129,7 +129,7 @@ aplicado **só para calcular a chave**, sem alterar o valor que chega à tool. O
 CACHE_KEY_NORMALIZERS = {
     "consultar_receita_federal": {"cnpj": _normalizar_cnpj_para_cache},
     "consultar_sancoes_empresa": {"cnpj": _normalizar_cnpj_para_cache},
-    "buscar_contexto_edital": {"runtime": _extrair_estado_municipio_para_cache},
+    "buscar_contexto_edital": {"runtime": _extrair_contexto_edital_para_cache},
     "buscar_informacao_web": {"runtime": _extrair_estado_municipio_para_cache},
 }
 ```
@@ -141,9 +141,12 @@ CACHE_KEY_NORMALIZERS = {
     `TypeError: Object of type ToolRuntime is not JSON serializable` em **toda** chamada dessas duas
     tools.
 
-    `_extrair_estado_municipio_para_cache` (`registry.py:49`) resolve extraindo só `estado` e
-    `municipio` do `runtime.state`. Os dois **precisam** continuar na chave: a mesma pergunta em
-    municípios diferentes tem que gerar MISS, nunca reaproveitar o resultado de outro edital.
+    Para `buscar_informacao_web`, `_extrair_estado_municipio_para_cache` resolve extraindo só
+    `estado` e `municipio` do `runtime.state`. Para `buscar_contexto_edital`,
+    `_extrair_contexto_edital_para_cache` extrai também o `thread_id`: como a thread é 1:1 com o
+    edital, dois editais da mesma cidade não podem compartilhar entrada de cache para a mesma
+    pergunta. Esses campos **precisam** continuar na chave — a mesma pergunta em contexto diferente
+    tem que gerar MISS, nunca reaproveitar o resultado de outro edital.
 
 ### Reconstrução da tool e o `args_schema`
 

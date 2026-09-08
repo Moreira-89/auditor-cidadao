@@ -9,9 +9,8 @@ from app.config.logging import logger
 from evaluation.aprovacao import MetricasDoCaso, avaliar_aprovacao, formatar_relatorio
 from evaluation.dataset.schema import Caso, carregar_casos
 from evaluation.execucao import executar_caso, preparar_ambiente
-from evaluation.indexacao import indexar_caso, limpar_namespace
+from evaluation.indexacao import indexar_caso, limpar_edital
 from evaluation.metricas.aderencia_tools import avaliar_aderencia
-from evaluation.metricas.ragas import avaliar_ragas
 from evaluation.metricas.recall_anomalias import avaliar_recall_anomalias
 
 RESULTADOS_DIR = Path(__file__).parent / "resultados"
@@ -22,10 +21,9 @@ async def _avaliar_caso(caso: Caso) -> dict:
         execucao = await executar_caso(edital)
         aderencia = avaliar_aderencia(caso.tools_esperadas, execucao.tools_chamadas)
         recall = avaliar_recall_anomalias(caso.anomalias_esperadas, execucao.laudo)
-        ragas = await avaliar_ragas(caso, execucao)
     finally:
-        # Sempre limpa, mesmo se a execução ou o RAGAS estourarem no meio.
-        limpar_namespace(edital.namespace)
+        # Limpa pai e filho de uma vez, mesmo se a execução estourar no meio.
+        limpar_edital(edital.edital_id)
 
     return {
         "caso_id": caso.id,
@@ -37,7 +35,6 @@ async def _avaliar_caso(caso: Caso) -> dict:
         "tools_chamadas": [t.model_dump() for t in execucao.tools_chamadas],
         "aderencia_tools": aderencia.model_dump(),
         "recall_anomalias": recall.model_dump(),
-        "ragas": ragas.model_dump(),
     }
 
 async def _rodar(ids: list[str] | None) -> None:
@@ -50,7 +47,7 @@ async def _rodar(ids: list[str] | None) -> None:
     logger.info("Iniciando avaliação | casos=%s", [c.id for c in casos])
     preparar_ambiente()
 
-    # Sequencial de propósito: namespaces do Pinecone, rate limit dos LLMs e logs legíveis.
+    # Sequencial de propósito: rate limit dos LLMs e logs legíveis.
     detalhes = [await _avaliar_caso(caso) for caso in casos]
 
     metricas_por_caso = [
@@ -58,8 +55,6 @@ async def _rodar(ids: list[str] | None) -> None:
             caso_id=d["caso_id"],
             aderencia_tools=d["aderencia_tools"]["score"],
             recall_anomalias=d["recall_anomalias"]["score"],
-            faithfulness=d["ragas"]["faithfulness"],
-            context_recall=d["ragas"]["context_recall"],
         )
         for d in detalhes
     ]

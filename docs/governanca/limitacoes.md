@@ -20,10 +20,12 @@ depende de um catálogo de preços ainda não integrado, e a D (cartel) depende 
 sistema é transparente sobre isso: anomalias não verificáveis vão para "Verificações Não Concluídas"
 e recebem score conservador.
 
-### Retrieval limitado por `top_k=3`
-Em editais grandes, o trecho relevante pode estar posicionalmente distante e fora do alcance da
-busca (`context_recall = 0.60` na avaliação, ver [Avaliação](../ia/avaliacao.md)). Endereçável com
-`top_k` maior ou reranking na V2.
+### Recuperação (RAG) ainda em ajuste
+O `context_recall` da avaliação vinha reprovado com o parser de PDF plano (`pdfplumber`): a cláusula
+relevante às vezes vinha como texto corrido sem estrutura e não era recuperável. O Bloco 14 trocou
+o parser pelo **Docling** (extração estrutura-aware) para atacar isso; a validação das métricas
+sobre a extração nova está pendente (ver [Avaliação](../ia/avaliacao.md#estado-atual-do-veredito)).
+Reranking e `top_k` maior seguem no radar da V2.
 
 ### Rate limiting por cookie, não por identidade real
 `/upload/` (5 requisições/dia) e `/conversar-com-auditor/` (50 requisições/dia) são limitados por
@@ -58,7 +60,7 @@ de 24h — ver [Protocolo MCP](../arquitetura/protocolo_mcp.md).
 
 ### Indexação automática via PNCP (Fase 7)
 Eliminar o upload manual: o agente busca, baixa e indexa o PDF a partir de uma conversa
-("Analise licitações de TI em SP desta semana"). Junto, o metadado do Pinecone migra de
+("Analise licitações de TI em SP desta semana"). Junto, os campos do chunk migram de
 `municipio`/`estado` para `cnpjs` extraídos automaticamente — habilitando o cruzamento
 cross-município.
 

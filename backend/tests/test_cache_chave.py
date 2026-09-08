@@ -7,7 +7,6 @@ segundo nasceu de um TypeError que derrubava duas tools em produção.
 from types import SimpleNamespace
 
 import pytest
-
 from app.agents.tools.cache import _gerar_chave
 from app.agents.tools.registry import CACHE_KEY_NORMALIZERS
 
@@ -28,9 +27,11 @@ def test_cnpjs_diferentes_geram_chaves_diferentes():
     assert a != b
 
 
-def _runtime(estado: str, municipio: str):
+def _runtime(estado: str, municipio: str, thread_id: str = "t-1"):
     """Imita o ToolRuntime: o que importa aqui é ele NÃO ser serializável em JSON."""
-    return SimpleNamespace(state={"estado": estado, "municipio": municipio})
+    return SimpleNamespace(
+        state={"estado": estado, "municipio": municipio, "thread_id": thread_id}
+    )
 
 
 def test_toolruntime_sem_normalizador_quebra_a_chave():
@@ -64,6 +65,22 @@ def test_mesma_pergunta_em_municipios_diferentes_nao_compartilha_cache():
         CACHE_KEY_NORMALIZERS,
     )
     assert belem != macapa
+
+
+def test_editais_diferentes_na_mesma_cidade_nao_compartilham_cache():
+    # A thread é 1:1 com o edital; dois editais da mesma cidade não podem
+    # reaproveitar o contexto um do outro para a mesma pergunta.
+    a = _gerar_chave(
+        "buscar_contexto_edital",
+        {"pergunta": "prazo", "runtime": _runtime("PA", "Belém", "t-a")},
+        CACHE_KEY_NORMALIZERS,
+    )
+    b = _gerar_chave(
+        "buscar_contexto_edital",
+        {"pergunta": "prazo", "runtime": _runtime("PA", "Belém", "t-b")},
+        CACHE_KEY_NORMALIZERS,
+    )
+    assert a != b
 
 
 def test_ordem_dos_argumentos_nao_muda_a_chave():

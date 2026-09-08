@@ -63,6 +63,7 @@ const dom = {
     modalError:    $('modal-error'),
     modalLoading:  $('modal-loading'),
     modalLoadingText: $('modal-loading-text'),
+    progressFill:  $('modal-progress-fill'),
     btnConfirm:    $('btn-confirm'),
 
     // Chat
@@ -138,10 +139,6 @@ function removerAcentos(texto) {
             return codigo < DIACRITICO_INICIO || codigo > DIACRITICO_FIM;
         })
         .join('');
-}
-
-function riskClass(nivel) {
-    return removerAcentos(nivel).toLowerCase();
 }
 
 /** Rola o histórico pro fundo, a menos que o usuário tenha rolado pra cima
@@ -437,12 +434,132 @@ function removeFile() {
     syncConfirmButton();
 }
 
+/**
+ * Barra de progresso do upload. O /upload/ é um stream SSE: os eventos `progress`
+ * do backend definem o alvo (`setUploadTarget`) e a etapa, os `heartbeat` empurram
+ * a barra devagar enquanto o Docling roda. A barra só chega a 100% no `done`.
+ * `startUploadProgress` roda um easing suave entre os eventos.
+ */
+let progressTimer = null;
+let progressoAtual = 0;
+let progressoAlvo = 0;
+
+/**
+ * Submensagens que giram durante uma etapa longa (o Docling fica ~2 min sem emitir
+ * nenhum `progress`). Trocar o texto de tempos em tempos comunica "ainda estou
+ * vivo" melhor do que a barra sozinha. Um `progress` real reinicia o ciclo com o
+ * texto da etapa nova na frente.
+ */
+const UPLOAD_SUBMENSAGENS = {
+    extracao: [
+        'Lendo o documento…',
+        'Identificando títulos e seções…',
+        'Reconstruindo tabelas…',
+        'Organizando a hierarquia do edital…',
+    ],
+    indexacao: [
+        'Gerando os vetores dos trechos…',
+        'Gravando as seções…',
+        'Quase lá…',
+    ],
+};
+
+let mensagemTimer = null;
+
+function pararCicloDeMensagens() {
+    if (mensagemTimer) clearInterval(mensagemTimer);
+    mensagemTimer = null;
+}
+
+/** Mostra `mensagens[0]` e passa para a próxima a cada ~9 s, em loop. */
+function ciclarMensagens(mensagens) {
+    pararCicloDeMensagens();
+    dom.modalLoadingText.textContent = mensagens[0];
+    if (mensagens.length < 2) return;
+    let i = 0;
+    mensagemTimer = setInterval(() => {
+        i = (i + 1) % mensagens.length;
+        dom.modalLoadingText.textContent = mensagens[i];
+    }, 9000);
+}
+
+function setProgress(pct) {
+    if (dom.progressFill) dom.progressFill.style.width = `${pct}%`;
+}
+
+/** Alvo monotônico (só sobe), com teto em 96% até o evento `done`. */
+function setUploadTarget(pct) {
+    progressoAlvo = Math.min(96, Math.max(progressoAlvo, pct));
+}
+
+function stopUploadProgress() {
+    if (progressTimer) clearInterval(progressTimer);
+    progressTimer = null;
+    pararCicloDeMensagens();
+}
+
+function startUploadProgress() {
+    stopUploadProgress();
+    progressoAtual = 0;
+    progressoAlvo = 8;
+    setProgress(0);
+    progressTimer = setInterval(() => {
+        progressoAtual += Math.max(0.25, (progressoAlvo - progressoAtual) * 0.07);
+        progressoAtual = Math.min(progressoAtual, progressoAlvo);
+        setProgress(progressoAtual);
+    }, 250);
+}
+
+function finishUploadProgress() {
+    stopUploadProgress();
+    setProgress(100);
+}
+
+/** Lê o SSE do /upload/: os eventos `progress`/`heartbeat` movem a barra; resolve
+ * com a lista de CNPJs no `done`, ou lança no `error` / se a conexão cair antes. */
+async function consumirStreamUpload(response) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) throw new Error('a conexão caiu antes da confirmação');
+
+        buffer += decoder.decode(value, { stream: true });
+        const linhas = buffer.split('\n');
+        buffer = linhas.pop(); // a última pode ter chegado cortada
+
+        for (const linha of linhas) {
+            if (!linha.startsWith('data: ')) continue;
+            let ev;
+            try { ev = JSON.parse(linha.slice(6)); } catch { continue; }
+
+            if (ev.type === 'progress') {
+                // etapa nova: o texto do backend na frente, depois giram as submensagens
+                const subs = ev.pct >= 80 ? UPLOAD_SUBMENSAGENS.indexacao
+                    : ev.pct >= 30 ? UPLOAD_SUBMENSAGENS.extracao
+                    : [];
+                ciclarMensagens([ev.content, ...subs]);
+                if (typeof ev.pct === 'number') setUploadTarget(ev.pct);
+            } else if (ev.type === 'heartbeat') {
+                setUploadTarget(progressoAlvo + 1);
+            } else if (ev.type === 'done') {
+                return ev.cnpjs || [];
+            } else if (ev.type === 'error') {
+                throw new Error(ev.content || 'erro na indexação');
+            }
+        }
+    }
+}
+
 async function confirmarUpload() {
     if (dom.btnConfirm.disabled) return;
 
     clearModalError();
     dom.btnConfirm.disabled = true;
-    dom.modalLoadingText.textContent = 'Indexando o edital e gerando o relatório inicial… isso pode levar até 1 minuto.';
+    dom.modalLoadingText.textContent = 'Enviando o edital…';
+    startUploadProgress();
     dom.modalLoading.classList.remove('hidden');
 
     const formData = new FormData();
@@ -458,73 +575,41 @@ async function confirmarUpload() {
             credentials: 'include',
         });
 
+        // 415/413/429 ainda vêm como HTTP normal, antes do stream começar.
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
             throw new Error(extrairMensagemErro(err, response.status));
         }
 
-        const data = await response.json();
-        state.cnpjs = data.cnpjs || [];
+        const cnpjs = await consumirStreamUpload(response);
+        state.cnpjs = cnpjs;
         state.ready = true;
+
+        // Preenche até 100% e deixa a barra cheia visível por um instante antes de fechar.
+        finishUploadProgress();
+        dom.modalLoadingText.textContent = 'Pronto!';
+        await new Promise((resolve) => setTimeout(resolve, 350));
 
         dom.modalLoading.classList.add('hidden');
         dom.modalOverlay.classList.add('hidden');
 
         dom.chatInput.disabled = false;
         dom.btnSend.disabled   = true; // segue desabilitado até haver texto
-        dom.chatInput.focus();
 
         syncLocationPill();
-        showToast(`Edital indexado! ${state.cnpjs.length} CNPJ(s) encontrado(s).`, 'success');
+        showToast(`Edital indexado! ${cnpjs.length} CNPJ(s) encontrado(s).`, 'success');
 
-        renderRelatorioInicial(data.relatorio_inicial);
+        // O agente "fala primeiro": o relatório inicial entra como o primeiro turno
+        // da thread, via streaming SSE, em vez de bloquear o /upload/ por minutos.
+        streamAgentResponse('', { inicial: true });
 
     } catch (error) {
+        stopUploadProgress();
+        setProgress(0);
         dom.modalLoading.classList.add('hidden');
         showModalError(`Falha ao indexar: ${error.message}`);
         dom.btnConfirm.disabled = false;
     }
-}
-
-/**
- * Renderiza o relatório automático pós-indexação (Backlog V2, Seção C) como se fosse a
- * primeira mensagem do agente — sem esperar o usuário perguntar nada. `relatorio` pode
- * vir `null` (backend não conseguiu gerar): nesse caso não faz nada e o usuário só vê o
- * estado vazio de sempre, com as sugestões estáticas.
- */
-function renderRelatorioInicial(relatorio) {
-    if (!relatorio) return;
-
-    const refs = addAiMessage(); // já esconde o chat-empty (e as sugestões estáticas)
-    refs.reasoningEl.classList.add('hidden'); // não houve streaming/steps pra mostrar aqui
-
-    const texto = relatorio.texto && relatorio.texto.trim()
-        ? relatorio.texto
-        : '*(não foi possível gerar o relatório inicial deste edital)*';
-    renderMarkdown(refs.markdownEl, texto);
-    enableCopyButton(refs, relatorio.texto || '');
-
-    if (relatorio.laudo) {
-        renderLaudoEstruturado(refs.laudoEl, relatorio.laudo);
-    }
-
-    if (relatorio.sugestoes_perguntas && relatorio.sugestoes_perguntas.length) {
-        renderSugestoesPerguntas(relatorio.sugestoes_perguntas);
-    }
-
-    scrollChatToBottom(true);
-}
-
-/** Sugestões de perguntas contextuais ao edital lido (vindas do relatório automático),
- * renderizadas com o mesmo estilo dos chips estáticos do estado vazio, mas anexadas
- * depois da mensagem — o estado vazio já foi escondido nesse ponto. */
-function renderSugestoesPerguntas(perguntas) {
-    const container = document.createElement('div');
-    container.className = 'suggestion-chips suggestion-chips-inline';
-    container.innerHTML = perguntas
-        .map((p) => `<button class="suggestion-chip" data-prompt="${escapeHtml(p)}">${escapeHtml(p)}</button>`)
-        .join('');
-    dom.chatMessages.appendChild(container);
 }
 
 function abrirModalNovaSessao() {
@@ -589,7 +674,7 @@ function addUserMessage(texto) {
 
 /**
  * Cria a bolha de resposta do agente com accordion de raciocínio (steps de status)
- * e um container para o laudo estruturado. Retorna referências atualizadas via streaming.
+ * Retorna referências atualizadas via streaming.
  */
 function addAiMessage() {
     dom.chatEmpty.classList.add('hidden');
@@ -612,7 +697,6 @@ function addAiMessage() {
                 <div class="reasoning-body"></div>
             </details>
             <div class="msg-markdown"></div>
-            <div class="laudo-card hidden"></div>
         </div>
     `;
     dom.chatMessages.appendChild(el);
@@ -625,7 +709,6 @@ function addAiMessage() {
         reasoningLabel: el.querySelector('.reasoning-label'),
         reasoningSpinner: el.querySelector('.reasoning-spinner'),
         markdownEl:     el.querySelector('.msg-markdown'),
-        laudoEl:        el.querySelector('.laudo-card'),
         copyBtn:        el.querySelector('.msg-copy-btn'),
     };
 }
@@ -641,14 +724,14 @@ function enableCopyButton(refs, texto) {
 }
 
 /** Anexa um botão de nova tentativa após uma falha real (não usado em abort manual):
- * remove a bolha com erro e reenvia a mesma pergunta como um novo turno do agente. */
-function addRetryButton(refs, texto) {
+ * remove a bolha com erro e reenvia o mesmo turno do agente. */
+function addRetryButton(refs, texto, { inicial = false } = {}) {
     const btn = document.createElement('button');
     btn.className = 'btn btn-outline btn-sm retry-btn';
     btn.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">refresh</span><span>Tentar novamente</span>';
     btn.addEventListener('click', () => {
         refs.msgEl.remove();
-        streamAgentResponse(texto);
+        streamAgentResponse(texto, { inicial });
     }, { once: true });
     refs.markdownEl.after(btn);
 }
@@ -679,47 +762,6 @@ function finalizeReasoning(refs) {
 
     refs.reasoningEl.removeAttribute('open');
 }
-
-/** Evidências que citam a fonte (ex.: "Fonte: CEIS") viram um chip destacado
- * em vez de um item de lista comum, reforçando a rastreabilidade do laudo. */
-function formatEvidencia(ev) {
-    const fonteMatch = ev.match(/^fonte:\s*(.+)$/i);
-    if (fonteMatch) {
-        return `<li class="evidencia-fonte"><span class="fonte-chip"><span class="material-symbols-outlined" aria-hidden="true">link</span> ${escapeHtml(fonteMatch[1])}</span></li>`;
-    }
-    return `<li>${escapeHtml(ev)}</li>`;
-}
-
-function renderLaudoEstruturado(container, laudo) {
-    const anomaliasHtml = (laudo.anomalias || []).map((a) => `
-        <div class="anomalia-card">
-            <div class="anomalia-card-header">
-                <span class="anomalia-codigo">${escapeHtml(a.codigo)}</span>
-                <span class="risk-badge risk-${riskClass(a.nivel_risco)}">${escapeHtml(a.nivel_risco)}</span>
-            </div>
-            <div class="anomalia-descricao">${escapeHtml(a.descricao)}</div>
-            ${a.evidencias && a.evidencias.length
-                ? `<ul class="anomalia-evidencias">${a.evidencias.map(formatEvidencia).join('')}</ul>`
-                : ''}
-        </div>
-    `).join('');
-
-    const recomendacoesHtml = (laudo.recomendacoes || []).length
-        ? `<ul class="laudo-recomendacoes">${laudo.recomendacoes.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
-        : '';
-
-    container.innerHTML = `
-        <div class="laudo-header">
-            <span class="laudo-title"><span class="material-symbols-outlined" aria-hidden="true">fact_check</span> Laudo Estruturado</span>
-            <span class="risk-badge risk-${riskClass(laudo.nivel_risco_geral)}">${escapeHtml(laudo.nivel_risco_geral)}</span>
-        </div>
-        <p class="laudo-resumo">${escapeHtml(laudo.resumo_executivo)}</p>
-        ${anomaliasHtml}
-        ${recomendacoesHtml}
-    `;
-    container.classList.remove('hidden');
-}
-
 
 /* =============================================================================
    CHAT — ENVIO E STREAMING SSE
@@ -765,8 +807,10 @@ async function sendMessage() {
 
 /** Executa um turno completo do agente para `texto`: cria a bolha de resposta,
  * consome o streaming SSE e trata os três desfechos possíveis — sucesso,
- * interrupção manual (botão de parar) e erro real (com opção de tentar de novo). */
-async function streamAgentResponse(texto) {
+ * interrupção manual (botão de parar) e erro real (com opção de tentar de novo).
+ * `inicial: true` é o primeiro turno pós-upload (relatório automático): o backend
+ * ignora `texto` e usa o prompt do relatório inicial. */
+async function streamAgentResponse(texto, { inicial = false } = {}) {
     setLoading(true);
 
     const refs = addAiMessage();
@@ -784,6 +828,7 @@ async function streamAgentResponse(texto) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 pergunta:    texto,
+                inicial,
                 estado:      state.estado.toUpperCase(),
                 municipio:   state.municipio,
                 lista_cnpjs: state.cnpjs,
@@ -896,7 +941,7 @@ async function streamAgentResponse(texto) {
         } else {
             renderMarkdown(refs.markdownEl, `<span class="material-symbols-outlined" aria-hidden="true">error</span> **Erro ao consultar o agente:** ${escapeHtml(error.message)}`);
             showToast(`Erro: ${error.message}`, 'error');
-            addRetryButton(refs, texto);
+            addRetryButton(refs, texto, { inicial });
         }
     } finally {
         refs.markdownEl.classList.remove('is-streaming');
@@ -982,15 +1027,6 @@ dom.suggestionChips.addEventListener('click', (e) => {
     const chip = e.target.closest('.suggestion-chip');
     if (!chip || !state.ready || state.isLoading) return;
     dom.chatInput.value = chip.dataset.prompt;
-    sendMessage();
-});
-
-// --- Sugestões contextuais do relatório automático (anexadas após a 1ª mensagem) ---
-dom.chatMessages.addEventListener('click', (e) => {
-    const chip = e.target.closest('.suggestion-chip');
-    if (!chip || !state.ready || state.isLoading) return;
-    dom.chatInput.value = chip.dataset.prompt;
-    chip.closest('.suggestion-chips-inline')?.remove();
     sendMessage();
 });
 

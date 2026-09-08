@@ -1,9 +1,11 @@
-import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config.logging import logger
 from app.ingestion.cnpj import extrair_cnpj
-from app.ingestion.pdf import extrair_texto_pdf
+from app.ingestion.pdf import documento_tem_texto_nativo
+from app.ingestion.pdf_hierarquico import extrair_estrutura_pdf
+from app.storage.mongo_db import COLECAO_CHUNKS, get_database
 from app.storage.vetorial import get_gerenciador
 from pydantic import BaseModel
 
@@ -13,78 +15,82 @@ EDITAIS_DIR = Path(__file__).parent / "editais"
 
 class EditalIndexado(BaseModel):
     caso_id: str
-    namespace: str
+    edital_id: str  # valor gravado nos chunks e usado no filtro do RAG (= o thread_id da execução)
     estado: str
     municipio: str
     lista_cnpj: list[str]
-    num_chunks: int
-    texto_indexado: str
+    num_filhos: int
 
-def _index_pinecone():
-    gerenciador = get_gerenciador()
-    return gerenciador.pinecone.Index(gerenciador.index_name)
-
-def limpar_namespace(namespace: str) -> None:
-    """Apaga todos os vetores do namespace. Silencioso se ele ainda não existe."""
-    try:
-        _index_pinecone().delete(delete_all=True, namespace=namespace)
-        logger.info("Namespace limpo | namespace=%s", namespace)
-    except Exception:  # noqa: BLE001 — namespace inexistente devolve 404, é o caso normal na 1ª rodada
-        logger.info("Namespace já estava vazio | namespace=%s", namespace)
-
-def _aguardar_consistencia(namespace: str, chunks_esperados: int) -> None:
-    """Pinecone é eventualmente consistente: espera o upsert aparecer no describe_index_stats."""
-    index = _index_pinecone()
-    for _ in range(30):
-        stats = index.describe_index_stats()
-        atual = stats.get("namespaces", {}).get(namespace, {}).get("vector_count", 0)
-        if atual >= chunks_esperados:
-            logger.info("Namespace consistente | namespace=%s | vetores=%d", namespace, atual)
-            return
-        time.sleep(2)
-    logger.warning(
-        "Timeout aguardando consistência | namespace=%s | esperado=%d", namespace, chunks_esperados
+def limpar_edital(edital_id: str) -> None:
+    """Apaga do Mongo todos os chunks (pais e filhos) deste edital. Silencioso se
+    não houver o que apagar (caso normal na 1ª rodada)."""
+    resultado = get_database()[COLECAO_CHUNKS].delete_many({"edital_id": edital_id})
+    logger.info(
+        "Chunks limpos | edital_id=%s | removidos=%d", edital_id, resultado.deleted_count
     )
 
 def indexar_caso(caso: Caso) -> EditalIndexado:
     """
-    Prepara o edital de um caso para avaliação:
-    extrai o texto do PDF, injeta o trecho sintético (se houver), extrai os CNPJs
-    do texto combinado e indexa tudo num namespace isolado (= caso.id).
+    Prepara o edital de um caso para avaliação, pelo mesmo pipeline hierárquico da
+    produção: extrai a estrutura com Docling, injeta o trecho sintético (se houver)
+    como uma seção nova, extrai os CNPJs do texto combinado e grava pais e filhos
+    no MongoDB.
     """
     pdf_bytes = (EDITAIS_DIR / caso.edital_pdf).read_bytes()
-    texto, num_paginas = extrair_texto_pdf(pdf_bytes, caso.edital_pdf)
-    logger.info("PDF extraído | caso=%s | chars=%d | paginas=%d", caso.id, len(texto), num_paginas)
+    tem_texto = documento_tem_texto_nativo(pdf_bytes, caso.edital_pdf)
+    edital = extrair_estrutura_pdf(pdf_bytes, caso.edital_pdf, tem_texto)
+    texto = edital.texto
+    logger.info(
+        "Estrutura extraída | caso=%s | chars=%d | paginas=%d | secoes=%d",
+        caso.id,
+        len(texto),
+        edital.num_paginas,
+        len(edital.secoes),
+    )
 
     if caso.trecho_injetado:
+        # O trecho entra tanto no texto (para o extrair_cnpj) quanto como uma seção
+        # sintética, para virar um filho indexado e ficar recuperável pelo RAG.
         texto = f"{texto}\n\n{caso.trecho_injetado}"
+        ordem = len(edital.secoes)
+        edital.secoes.append(
+            {
+                "ordem": ordem,
+                "nivel": 1,
+                "titulo": "TRECHO INJETADO (AVALIAÇÃO)",
+                "caminho": "TRECHO INJETADO (AVALIAÇÃO)",
+                "texto_completo": f"{caso.trecho_injetado}\n",
+            }
+        )
+        edital.filhos_brutos.append(
+            {"secao_ordem": ordem, "tipo": "TextItem", "texto": caso.trecho_injetado}
+        )
         logger.info("Trecho injetado | caso=%s | +chars=%d", caso.id, len(caso.trecho_injetado))
 
     lista_cnpj = extrair_cnpj(texto)
     logger.info("CNPJs no texto combinado | caso=%s | cnpjs=%s", caso.id, lista_cnpj)
 
-    gerenciador = get_gerenciador()
-    chunks = gerenciador.chunkizar_documento(texto)
+    edital_id = f"eval-{caso.id}"
+    limpar_edital(edital_id)
 
-    limpar_namespace(caso.id)
-    gerenciador.processar_e_salvar(
-        chunks,
-        metadados={
+    get_gerenciador().indexar_hierarquia(
+        edital.secoes,
+        edital.filhos_brutos,
+        metadados_base={
+            "edital_id": edital_id,
             "municipio": caso.municipio,
             "estado": caso.estado,
             "arquivo": caso.edital_pdf,
+            "timestamp_indexacao": int(datetime.now(timezone.utc).timestamp()),
             "origem": "avaliacao",
         },
-        namespace=caso.id,
     )
-    _aguardar_consistencia(caso.id, len(chunks))
 
     return EditalIndexado(
         caso_id=caso.id,
-        namespace=caso.id,
+        edital_id=edital_id,
         estado=caso.estado,
         municipio=caso.municipio,
         lista_cnpj=lista_cnpj,
-        num_chunks=len(chunks),
-        texto_indexado=texto,
+        num_filhos=len(edital.filhos_brutos),
     )

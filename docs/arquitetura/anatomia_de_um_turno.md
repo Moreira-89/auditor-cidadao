@@ -57,9 +57,10 @@ quando o Starlette puxa o primeiro item para enviar ao navegador.
 
 ### 5. Entra no grafo
 
-`app/agents/conversa.py:107` chama `grafo.astream_events(...)` passando `messages`, `estado` e
-`municipio`. **`estado` e `municipio` vão em todo turno**, não só no primeiro: o checkpointer só
-persiste as chaves declaradas no schema, e as tools precisam lê-las do estado ativo.
+`app/agents/conversa.py` chama `grafo.astream_events(...)` passando `messages`, `estado`,
+`municipio` e `thread_id`. **Os três vão em todo turno**, não só no primeiro: o checkpointer só
+persiste as chaves declaradas no schema, e as tools precisam lê-las do estado ativo (`thread_id`
+serve de `edital_id` no filtro do RAG).
 
 ### 6. O nó `agente` chama o LLM
 
@@ -90,7 +91,8 @@ Se um `print` dentro da tool não aparece, ou se o comportamento não bate com o
 está lendo, **é cache**. A chave é `mcp_cache:{tool}_{MD5(args)}`, com TTL de 24h.
 
 O `ToolNode` também é quem injeta o `ToolRuntime` nas tools que declaram esse parâmetro — é assim
-que `estado`/`municipio` chegam em `app/agents/tools/contexto_edital.py:29`.
+que `estado`/`municipio`/`thread_id` chegam em `app/agents/tools/contexto_edital.py`, onde o
+`thread_id` vira o `edital_id` do filtro da busca vetorial.
 
 Terminada a ferramenta, a aresta `ferramentas → agente` (`graph.py:51`) devolve o controle ao passo
 6. O ciclo repete até o modelo responder sem pedir ferramenta, com teto de `recursion_limit=50`.
@@ -100,12 +102,13 @@ Terminada a ferramenta, a aresta `ferramentas → agente` (`graph.py:51`) devolv
 Do startup, não da requisição. `app/api/lifespan.py:15` roda uma vez antes do primeiro request:
 
 ```
-abrir_client_redis()      storage/redis.py         → client compartilhado
-  montar_tools()          agents/tools/registry.py → nativas + MCP, todas com cache
+abrir_client_redis()          storage/redis.py         → client compartilhado
+  montar_tools()              agents/tools/registry.py → nativas + MCP, todas com cache
   inicializar_rate_limiter()
-  abrir_checkpointer()    storage/checkpointer.py  → AsyncRedisSaver
-    initialize_graph()    agents/graph.py:56       → compila e guarda no singleton
-    yield                 ← a aplicação atende requisições aqui dentro
+  inicializar_converters()    ingestion/pdf_hierarquico.py → 2 DocumentConverter (com/sem OCR) quentes
+  abrir_checkpointer()        storage/checkpointer.py  → AsyncRedisSaver
+    initialize_graph()        agents/graph.py:56       → compila e guarda no singleton
+    yield                     ← a aplicação atende requisições aqui dentro
 ```
 
 O `yield` está **dentro** dos dois `async with`. Não é estilo: o grafo só pode existir enquanto a
@@ -149,30 +152,40 @@ um pedaço de JSON vazaria como texto na resposta.
 
 ## Fluxo 2 — o upload de um edital
 
-`frontend/js/chat.js:438` envia `POST /upload/` como `multipart/form-data`. Em
-`app/api/endpoints/upload.py`:
+`chatLogic.js` (`confirmarUpload`) envia `POST /upload/` como `multipart/form-data`. Em
+`app/api/endpoints/upload.py`, o handler valida e devolve um `StreamingResponse`; o corpo real é o
+gerador `_stream_indexacao`:
 
-| Passo | O quê | Linha |
+| Passo | O quê | Onde |
 |---|---|---|
-| 1 | Valida tipo e tamanho (20 MB) → `415` / `413` | 78-87 |
-| 2 | `extrair_texto_pdf` (pdfplumber) | 97 |
-| 3 | `extrair_cnpj` (regex + validate-docbr) | `app/ingestion/cnpj.py` |
-| 4 | Indexa no Pinecone via `get_gerenciador().executar` | 114 |
-| 5 | `gerar_relatorio_inicial` — **um turno completo do agente** | 151 |
-| 6 | Responde com CNPJs + `relatorio_inicial` | 163 |
+| 1 | Valida tipo e tamanho (20 MB) → `415` / `413` (HTTP normal, antes do stream) | `upload_edital` |
+| 2 | `documento_tem_texto_nativo` (pdfplumber) decide se precisa de OCR | `_stream_indexacao` |
+| 3 | `extrair_estrutura_pdf` (Docling) numa `Task` + `_com_heartbeat` | `_stream_indexacao` |
+| 4 | `_indexar_hierarquico` (MongoDB) numa `Task` + `_com_heartbeat` | `_stream_indexacao` |
+| 5 | `extrair_cnpj` (regex + validate-docbr) | `app/ingestion/cnpj.py` |
+| 6 | Emite `done` com `{cnpjs}` (ou `error`) | `_stream_indexacao` |
 
-O passo 4 usa `asyncio.to_thread` porque o cliente do Pinecone é síncrono e bloquearia o event loop
-— toda outra requisição em andamento travaria junto.
+Os passos 3 e 4 rodam em `asyncio.to_thread` (Docling e o cliente `pymongo` são síncronos)
+**dentro de uma `asyncio.Task`**, e `_com_heartbeat` emite um `heartbeat` a cada `_HEARTBEAT_SEGUNDOS`
+(3 s) enquanto a task não termina. Sem esse heartbeat o request ficava ~2 min sem trafegar byte
+nenhum e o navegador derrubava a conexão ociosa (`Failed to fetch`, mesmo com o backend concluindo).
 
-O passo 5 é o mais caro de todo o sistema: `app/agents/relatorio.py:68` chama `grafo.ainvoke()`
-(sem streaming, ao contrário do fluxo 1) e, na sequência, `relatorio.py:82` faz uma **segunda**
-chamada ao LLM com `with_structured_output(RelatorioInicial)` para transformar o Markdown em JSON.
-São duas chamadas de LLM no melhor caso, mais as ferramentas que o agente decidir usar — tudo
-dentro do request HTTP, com o cliente esperando.
+O passo 3 é caro em relógio de parede (segundos a ~2 min por edital em CPU), mas os modelos de layout
+não são carregados na requisição: o lifespan pré-aquece **dois** `DocumentConverter` — um com OCR, um
+sem — e a checagem do passo 2 escolhe qual usar (ver [Uso de Dados e RAG](../ia/rag_dados.md#o-pipeline-de-indexacao)).
 
-Se qualquer coisa falhar aí, `relatorio.py` devolve `None` e o upload **continua bem-sucedido** com
-`relatorio_inicial: null` — o relatório é um bônus de UX, não um requisito da indexação. No
-frontend, `renderRelatorioInicial` (`chat.js:474`) simplesmente não desenha nada.
+### O relatório automático — turno 1 do chat, não parte do upload
+
+Ao receber o evento `done`, `chatLogic.js` (`confirmarUpload`) leva o usuário ao chat e
+chama `streamAgentResponse('', { inicial: true })` → `POST /conversar-com-auditor/` com
+`inicial: true`. O backend (`chat.py`) troca a pergunta vazia por `PROMPT_RELATORIO_INICIAL` e roda
+como **primeiro turno da thread** (mesmo `thread_id` do upload), pelo Fluxo 1 acima — streaming SSE,
+token a token, com o status de cada tool. Consome `quota_chat` (50/dia), não `quota_upload`.
+
+Antes esse turno rodava síncrono dentro do `/upload/` (mais uma 2ª chamada de LLM para extrair um
+laudo estruturado). Somado ao Docling, o request ficava em ~4 min e o navegador derrubava a conexão
+antes do fim. Agora o laudo é só o markdown streamado; a extração estruturada saiu do fluxo de
+produção (segue viva só em `evaluation/` — ver [Avaliação](../ia/avaliacao.md)).
 
 ---
 

@@ -8,10 +8,9 @@ preparado e recuperado. Esta primeira página trata dos modelos e da engenharia 
 
 | Papel | Modelo (default) | Temperatura | Onde |
 |---|---|---|---|
-| Agente principal | `openai:gpt-4o-mini` | `0.1` | Conversa e geração do laudo ([`app/config/settings.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py)) |
-| Extrator de laudo | `openai:gpt-4o-mini` | `0.0` | Chamada que estrutura em JSON o relatório automático pós-upload |
-| Embeddings (RAG) | `text-embedding-3-small` | — | Indexação e busca no Pinecone (1536 dimensões) |
-| Juiz de avaliação (RAGAS) | `openai:gpt-4o` | `0.0` | Só no framework de avaliação, nunca em produção |
+| Agente principal | `openai:gpt-4o-mini` | `0.1` | Conversa e relatório automático ([`app/config/settings.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py)) |
+| Extrator de laudo | `openai:gpt-4o-mini` | `0.0` | Só no framework de avaliação — estrutura o laudo em JSON para a métrica `recall_anomalias` ([Extração do laudo](extracao_laudo.md)) |
+| Embeddings (RAG) | `text-embedding-3-large` | — | Indexação e busca no MongoDB Atlas (ver [Uso de Dados e RAG](rag_dados.md)) |
 
 Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODEL`, `EXTRATOR_MODEL`,
 `AVALIADOR_MODEL`) — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md). O
@@ -28,17 +27,16 @@ Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODE
 
 !!! info "Benchmark contra outros modelos fica para a V2"
     O `gpt-4o-mini` é a escolha da V1 pelo custo-benefício, não porque outros modelos tenham sido
-    testados e descartados. Está no backlog rodar o golden dataset contra alternativas como
-    **Sabiá-3/4** (Maritaca AI, especializado em jargão jurídico brasileiro), **OpenAI o1/o3-mini**
-    e **DeepSeek-R1** (cadeia de raciocínio, para decretos e editais mais complexos), **Claude 3.5
-    Sonnet/Opus** (referência em análise contratual em português) e **Gemini 1.5 Pro/2.0 Flash**
-    (janela de contexto de 1–2M tokens) — usando o mesmo protocolo de avaliação do
-    [Bloco 4](avaliacao.md), não impressão subjetiva. Detalhes de cada candidato no roadmap.
+    testados e descartados. O **Sabiá-4-thinking** (Maritaca AI) já foi benchmarkado contra o
+    `gpt-4o` no golden dataset (Bloco 12) e saiu à frente para a tarefa, mas nenhum passou o veredito
+    geral — a limitação hoje é a recuperação, não o modelo (ver [Avaliação](avaliacao.md)). Rodar
+    contra `o1`/`o3-mini`, `DeepSeek-R1`, Claude e Gemini segue no backlog. `llm.py` já suporta o
+    prefixo `maritaca:`; produção segue em `gpt-4o-mini` por custo.
 
 !!! note "Por que RAG (Geração Aumentada por Recuperação) e não fine-tuning?"
     Os editais mudam a cada upload e não existem no treinamento de nenhum modelo. Fine-tuning
     ensinaria um estilo, não um documento específico — e teria que ser refeito a cada novo edital.
-    RAG (busca semântica no Pinecone) permite responder sobre um documento que o modelo nunca viu,
+    RAG (busca semântica no MongoDB Atlas) permite responder sobre um documento que o modelo nunca viu,
     citando trechos reais, e reduz alucinação ao ancorar a resposta no texto recuperado. Ver
     [Uso de Dados (RAG)](rag_dados.md) para o pipeline completo.
 
@@ -51,13 +49,13 @@ Toda a engenharia de prompt vive em [`app/agents/prompt.py`](https://github.com/
   segurança.
 - **`PROMPT_DINAMICO`** — o "envelope" em tags no estilo XML (`<CNPJS_NO_EDITAL>`, `<METADADOS>`,
   `<PERGUNTA>`) enviado como `HumanMessage` no primeiro turno de qualquer thread — seja o primeiro
-  turno de uma conversa comum ou o turno sintético do relatório automático pós-upload.
+  turno de uma conversa comum ou o turno do relatório automático pós-upload.
 - **`PROMPT_RELATORIO_INICIAL`** — a "pergunta" sintética usada como `pergunta_usuario` no envelope
-  acima quando é o sistema (não o usuário) que dispara o primeiro turno, logo após o upload do
-  edital — ver [Relatório Automático e Extração do Laudo](extracao_laudo.md).
-- **`PROMPT_EXTRATOR_INICIAL`** — instrução da segunda chamada ao LLM que estrutura em JSON o
-  relatório automático gerado a partir de `PROMPT_RELATORIO_INICIAL`, e sugere até 3 perguntas de
-  acompanhamento — ver [Relatório Automático e Extração do Laudo](extracao_laudo.md).
+  acima quando é o sistema (não o usuário) que dispara o primeiro turno. Em produção o frontend
+  dispara esse turno via `POST /conversar-com-auditor/` com `inicial: true` logo após o upload, e o
+  laudo entra por streaming ([Relatório automático e extração do laudo](extracao_laudo.md)).
+- **`PROMPT_EXTRATOR_INICIAL`** — instrução do extrator que estrutura o laudo em JSON. **Usado só no
+  framework de avaliação** ([Extração do laudo](extracao_laudo.md)); produção não estrutura o laudo.
 O `TOOL_STATUS_MAP` — que traduz o nome técnico de cada ferramenta na mensagem exibida ao usuário
 durante a execução — não é prompt e vive à parte, em
 [`app/config/tool_status_map.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/tool_status_map.py) (ex.: "🏛️ Consultando dados cadastrais na Receita Federal...").
@@ -84,12 +82,11 @@ PADRÕES SUSPEITOS, não apenas conformidade cadastral.
 [...]
 ```
 
-`PROMPT_DINAMICO` é o `HumanMessage` enviado junto — o exemplo abaixo usa os valores reais do
-`caso_01` do golden dataset (edital fictício de São Luís/MA, ver [Avaliação](avaliacao.md)):
+`PROMPT_DINAMICO` é o `HumanMessage` enviado junto. Numa primeira pergunta de conversa, fica assim:
 
 ```text
 <CNPJS_NO_EDITAL>
-38504819000169
+47417848000184
 </CNPJS_NO_EDITAL>
 
 <METADADOS>
@@ -104,7 +101,9 @@ Audite essa empresa e verifique se há alguma sanção que a impeça de contrata
 ```
 
 Note que a pergunta do usuário nunca chega "pura" ao modelo — sempre dentro da tag `<PERGUNTA>`,
-depois de passar por `escape_xml()` (ver [Guardrails](../governanca/guardrails.md)).
+depois de passar por `escape_xml()` (ver [Guardrails](../governanca/guardrails.md)). No **relatório
+automático** (primeiro turno disparado pelo sistema, `inicial: true`), a mesma tag `<PERGUNTA>`
+carrega o `PROMPT_RELATORIO_INICIAL` no lugar do texto do usuário.
 
 ## Técnicas de engenharia de prompt aplicadas
 

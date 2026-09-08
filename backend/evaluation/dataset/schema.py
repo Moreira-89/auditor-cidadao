@@ -21,6 +21,11 @@ class Caso(BaseModel):
 
     anomalias_esperadas: list[str] = Field(default_factory=list)
     tools_esperadas: list[ToolEsperada] = Field(default_factory=list)
+
+    # Não tem métrica que o consuma no momento (era o gabarito do context_recall do
+    # RAGAS, removido por instabilidade — ver docs/ia/avaliacao.md). Mantido porque é
+    # dado curado à mão: volta a ser usado quando entrar uma métrica determinística
+    # de recuperação (ex.: "essa string-chave aparece no contexto recuperado?").
     contexto_edital_esperado: str | None = None
 
 

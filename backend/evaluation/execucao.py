@@ -1,5 +1,4 @@
 import app.agents.graph as graph_mod
-import app.agents.tools.contexto_edital as contexto_edital_mod
 from app.agents.graph import get_graph, initialize_graph
 from app.agents.relatorio import gerar_relatorio_inicial
 from app.agents.tools.registry import TOOLS_NATIVAS
@@ -40,11 +39,9 @@ async def executar_caso(edital: EditalIndexado) -> ResultadoExecucao:
     coleta o que as métricas precisam: laudo, tools chamadas, saídas das tools
     e o contexto que o RAG recuperou.
     """
-    # buscar_contexto_edital lê PINECONE_NAMESPACE do módulo em tempo de chamada —
-    # redireciona a busca pro namespace isolado deste caso.
-    contexto_edital_mod.PINECONE_NAMESPACE = edital.namespace
-
-    thread_id = f"eval-{edital.caso_id}"
+    # O thread_id vira o edital_id no filtro do RAG (runtime.state["thread_id"] em
+    # contexto_edital.py), então precisa ser EXATAMENTE o edital_id gravado na indexação.
+    thread_id = edital.edital_id
     resultado = await gerar_relatorio_inicial(
         thread_id=thread_id,
         lista_cnpj=edital.lista_cnpj,

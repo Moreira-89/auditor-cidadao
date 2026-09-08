@@ -10,20 +10,26 @@ instância publicada, troque o host.
 
 ## `POST /upload/` — indexar um edital
 
-Recebe um PDF, extrai o texto, indexa no Pinecone e devolve os CNPJs encontrados.
+Recebe um PDF, extrai a estrutura (Docling) e indexa (MongoDB). A resposta é um
+**stream SSE** — a extração + indexação levam ~2 min, e um request síncrono todo esse tempo era
+derrubado por timeout de conexão ociosa (`Failed to fetch` no navegador, mesmo com o backend
+terminando bem).
 
 | | |
 |---|---|
 | Rate limit | 5 requisições/dia por `client_id` (cookie) |
 | Corpo | `multipart/form-data`: `file` (PDF), `estado`, `municipio`, `thread_id` |
+| `Content-Type` da resposta | `text/event-stream` (após as validações de tipo/tamanho) |
 
 `thread_id` é gerado pelo frontend (UUID) antes do upload e identifica a conversa que vai receber o
 relatório automático como primeiro turno — a mesma thread deve ser reenviada em
 `/conversar-com-auditor/` para que as perguntas seguintes continuem essa conversa em vez de começar
-uma nova.
+uma nova. Como cada thread recebe exatamente um edital, o `thread_id` também é gravado como
+`edital_id` em cada chunk indexado e usado para filtrar a busca RAG por aquele edital (ver
+[RAG e dados](../ia/rag_dados.md)).
 
 ```bash
-curl -X POST http://localhost:8000/upload/ \
+curl -N -X POST http://localhost:8000/upload/ \
   -F "file=@edital_saoluis.pdf" \
   -F "estado=Maranhão (MA)" \
   -F "municipio=São Luís" \
@@ -31,48 +37,43 @@ curl -X POST http://localhost:8000/upload/ \
   -c cookies.txt
 ```
 
-`-c cookies.txt` salva o cookie `auditor_client_id` que o servidor emite — reenvie-o
-(`-b cookies.txt`) nas próximas chamadas para o rate limiting contar como o mesmo cliente
-(ver [Guardrails](../governanca/guardrails.md) e [LGPD](../governanca/lgpd.md)).
+`-N` desativa o buffer do `curl` (o mesmo do endpoint de chat). `-c cookies.txt` salva o cookie
+`auditor_client_id` que o servidor emite — reenvie-o (`-b cookies.txt`) nas próximas chamadas para o
+rate limiting contar como o mesmo cliente (ver [Guardrails](../governanca/guardrails.md) e
+[LGPD](../governanca/lgpd.md)).
 
-**Resposta em sucesso (`200`):**
+**O stream de eventos** (cada linha `data: {...}\n\n`):
 
-```json
-{
-  "mensagem": "Edital indexado!",
-  "cnpjs": ["38504819000169"],
-  "relatorio_inicial": {
-    "texto": "## Resumo Executivo\n[...]",
-    "laudo": {
-      "cnpjs_analisados": ["38504819000169"],
-      "anomalias": [],
-      "nivel_risco_geral": "MÉDIO",
-      "resumo_executivo": "[...]",
-      "recomendacoes": ["[...]"]
-    },
-    "sugestoes_perguntas": [
-      "Existe alguma sanção vigente para a empresa 38.504.819/0001-69?",
-      "Qual o prazo entre a publicação do edital e a abertura das propostas?"
-    ]
-  }
-}
+```text
+data: {"type": "progress", "content": "Extraindo a estrutura do documento…", "pct": 35}
+
+data: {"type": "heartbeat"}
+
+data: {"type": "progress", "content": "Indexando as seções e os trechos…", "pct": 82}
+
+data: {"type": "done", "cnpjs": ["38504819000169"]}
 ```
 
-O frontend guarda a lista de `cnpjs` e a reenvia em `lista_cnpjs` a cada pergunta subsequente — o
-backend não os re-extrai do texto a cada turno. `relatorio_inicial` traz o primeiro laudo completo
-da conversa, gerado automaticamente a partir do edital recém-indexado (ver
-[Relatório Automático e Extração de Laudo](../ia/extracao_laudo.md)); pode vir `null` se a geração
-falhar — o upload em si não falha por causa disso, e o frontend cai de volta no estado vazio normal.
+- **`progress`** — troca de etapa; `pct` é uma dica para a barra de progresso do frontend.
+- **`heartbeat`** — emitido a cada ~3 s enquanto uma etapa longa (Docling) roda numa thread; só
+  serve para manter a conexão viva.
+- **`done`** — fim do processamento, com a lista de CNPJs. O frontend guarda e reenvia em
+  `lista_cnpjs` a cada pergunta seguinte.
+- **`error`** — `{"type": "error", "content": "..."}` para PDF ilegível ou falha de indexação
+  (MongoDB). Substitui os antigos `422`/`502` — a resposta já começou com `200`.
 
-**Respostas de erro:**
+O **relatório automático não sai daqui**. No `done`, o frontend leva o usuário ao chat e dispara o
+primeiro turno via `POST /conversar-com-auditor/` com `inicial: true` (ver abaixo).
+
+**Respostas de erro (antes do stream começar):**
 
 | Status | Quando | Corpo |
 |---|---|---|
 | `415` | `Content-Type` não é `application/pdf` | `{"detail": "Formato inválido: '...'. Apenas arquivos PDF são aceitos."}` |
 | `413` | Arquivo maior que 20 MB | `{"detail": "Arquivo muito grande: N bytes. O limite é de 20971520 bytes."}` |
-| `422` | PDF corrompido ou protegido por senha | `{"detail": "Não foi possível ler o PDF. O arquivo pode estar corrompido ou protegido por senha."}` |
 | `429` | Rate limit excedido (5/dia) | `{"detail": "Você excedeu o limite de upload diário. Volte em ..."}` |
-| `502` | Falha ao indexar no Pinecone | `{"detail": "Falha ao indexar o edital no banco vetorial. Tente novamente em instantes."}` |
+
+PDF ilegível e falha de indexação viram um evento `error` no stream, não um status HTTP.
 
 ## `POST /conversar-com-auditor/` — perguntar sobre o edital
 
@@ -82,8 +83,12 @@ corpo da resposta não é um JSON único, é uma sequência de eventos `data: {.
 | | |
 |---|---|
 | Rate limit | 50 requisições/dia por `client_id` (cookie) |
-| Corpo | JSON: `pergunta`, `estado`, `municipio`, `lista_cnpjs`, `thread_id` (opcional) |
+| Corpo | JSON: `pergunta`, `estado`, `municipio`, `lista_cnpjs`, `thread_id` (opcional), `inicial` (opcional, default `false`) |
 | `Content-Type` da resposta | `text/event-stream` |
+
+Com `inicial: true`, o backend ignora `pergunta` e roda o **relatório automático** como primeiro
+turno da thread (usa `PROMPT_RELATORIO_INICIAL` internamente). É o que o frontend chama logo após o
+upload; o `thread_id` deve ser o mesmo passado no `/upload/`.
 
 ```bash
 curl -N -X POST http://localhost:8000/conversar-com-auditor/ \
@@ -119,11 +124,10 @@ data: {"type": "token", "content": " vencedora"}
 data: {"type": "done"}
 ```
 
-Esse endpoint nunca emite laudo estruturado — o único laudo estruturado de uma thread é o
-[relatório automático](../ia/extracao_laudo.md) devolvido por `/upload/`, uma única vez. Toda
-resposta aqui, mesmo que o usuário peça explicitamente outra auditoria, chega só como Markdown em
-streaming (`token`(s), o(s) `status` de qualquer tool chamada, e `done` no final) — sem chamada
-extra de extração por turno.
+Nenhum turno emite laudo estruturado — nem as perguntas comuns nem o
+[relatório automático](../ia/extracao_laudo.md) (o turno com `inicial: true`). Toda resposta chega
+como Markdown em streaming (`token`(s), o(s) `status` de qualquer tool chamada, e `done` no final).
+A extração de um laudo em JSON existe só no framework de avaliação.
 
 **Se algo falhar no meio do streaming:**
 

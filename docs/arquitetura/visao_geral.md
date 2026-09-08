@@ -80,30 +80,32 @@ prompt vale imediatamente até para conversas já em andamento.
 
 É o `ToolNode` de `langgraph.prebuilt`, sem customização. Além de executar a ferramenta pedida, é
 ele quem **injeta o `ToolRuntime`** nas tools que declaram esse parâmetro — o mecanismo que leva o
-contexto geográfico até a busca no Pinecone, descrito na seção seguinte.
+contexto geográfico até a busca vetorial no MongoDB, descrito na seção seguinte.
 
 ## O estado do grafo (`AgentState`)
 
 [`app/agents/state.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/state.py)
 estende `MessagesState` do LangGraph — que já traz `messages` com o reducer `add_messages`, ou seja,
-cada nó **anexa** ao histórico em vez de sobrescrevê-lo — com duas chaves próprias:
+cada nó **anexa** ao histórico em vez de sobrescrevê-lo — com três chaves próprias:
 
-```python title="app/agents/state.py:4-16"
+```python title="app/agents/state.py"
 class AgentState(MessagesState):
     """Estado compartilhado entre os nós do grafo durante um turno de conversa."""
 
     estado: str
     municipio: str
+    thread_id: str
 ```
 
-`estado` e `municipio` são o contexto geográfico do edital em análise. Eles não fazem parte da
-conversa e o LLM nunca os lê diretamente: quem os consome são as tools que declaram
-`runtime: ToolRuntime`, lendo `runtime.state["estado"]`. É esse par que filtra a busca semântica
-para o edital certo (ver [Uso de Dados e RAG](../ia/rag_dados.md)).
+`estado` e `municipio` são o contexto geográfico do edital em análise; `thread_id` é o
+identificador do edital (a thread é 1:1 com o edital). Nenhum dos três faz parte da conversa e o
+LLM nunca os lê diretamente: quem os consome são as tools que declaram `runtime: ToolRuntime`,
+lendo `runtime.state["estado"]` etc. É esse trio que filtra a busca semântica para o edital certo
+(ver [Uso de Dados e RAG](../ia/rag_dados.md)).
 
-Como o checkpointer só persiste as chaves declaradas no schema, e quem sabe o estado/município é
-quem chama o grafo, os dois são **reenviados a cada turno** —
-[`conversa.py:103-111`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py).
+Como o checkpointer só persiste as chaves declaradas no schema, e quem sabe estado/município/thread
+é quem chama o grafo, os três são **reenviados a cada turno** —
+[`conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py).
 
 ## Persistência da conversa (checkpointer)
 
@@ -125,10 +127,14 @@ O grafo só pode ser compilado **dentro** desse contexto — é ali que a conex�
 `lifespan` ([`app/api/lifespan.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/lifespan.py))
 mantém o `async with` aberto envolvendo o `yield`:
 
-```python title="app/api/lifespan.py:19-27"
+```python title="app/api/lifespan.py"
 async with abrir_client_redis() as redis_client:
     tools = await montar_tools(redis_client)
     inicializar_rate_limiter(redis_client)
+
+    # Pré-aquece os dois DocumentConverter do Docling (com e sem OCR) — carga
+    # pesada de modelo, em thread pra não travar o event loop no startup.
+    await asyncio.to_thread(inicializar_converters)
 
     async with abrir_checkpointer() as checkpointer:
         initialize_graph(tools=tools, checkpointer=checkpointer)
@@ -137,12 +143,18 @@ async with abrir_client_redis() as redis_client:
         yield
 ```
 
+O `inicializar_converters()` ([`app/ingestion/pdf_hierarquico.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf_hierarquico.py))
+cria e chama `initialize_pipeline` em dois `DocumentConverter`: um com `do_ocr=True`, outro com
+`do_ocr=False`. Manter os dois quentes custa RAM fixa (dois conjuntos de modelo de layout/tabela,
+mais o de OCR), mas nenhuma requisição de `/upload/` paga carga de modelo, e não é preciso
+recriar um converter só pra alternar OCR. Ver [Uso de Dados e RAG](../ia/rag_dados.md#o-pipeline-de-indexacao).
+
 ## Ferramentas disponíveis ao agente
 
 | Origem | Ferramenta | O que faz |
 |---|---|---|
 | Nativa | [`consultar_receita_federal`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/receita_federal.py) | Situação cadastral, CNAE, data de fundação (BrasilAPI) |
-| Nativa | [`buscar_contexto_edital`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py) | Busca semântica no edital indexado (Pinecone, RAG) |
+| Nativa | [`buscar_contexto_edital`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py) | Busca semântica no edital indexado (MongoDB Atlas) |
 | Nativa | [`consultar_sancoes_empresa`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/sancoes.py) | Sanções ativas no CEIS/CNEP (Portal da Transparência) |
 | Nativa | [`buscar_informacao_web`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/busca_web.py) | Contexto complementar via Tavily |
 | MCP (`@licinexusbr/mcp`) | 11 tools de PNCP | Licitações, contratos, itens, resultados, atas de RP — ver [Protocolo MCP](protocolo_mcp.md) |
@@ -262,9 +274,9 @@ Essa fronteira é o que permite consumir o agente sem HTTP: um teste afirma
 `FerramentaIniciada("buscar_contexto_edital")` em vez de comparar strings `data: ...`, e um
 consumidor futuro (uma fila, um WebSocket) recebe objetos em vez de bytes de SSE.
 
-Essa conversa não faz extração estruturada: a resposta chega ao frontend como Markdown livre. O
-único laudo estruturado de uma thread é o
-[relatório automático](../ia/extracao_laudo.md) gerado uma vez, logo após o upload.
+Nenhum turno faz extração estruturada: a resposta sempre chega ao frontend como Markdown livre. O
+[relatório automático](../ia/extracao_laudo.md) é só o primeiro turno da thread, disparado pelo
+frontend logo após o upload (via `inicial: true`) e streamado como qualquer outro.
 
 !!! note "Histórico interrompido no meio de uma `tool_call`"
     Se o usuário interromper a execução de uma ferramenta, o checkpointer fica com uma `AIMessage`
@@ -277,6 +289,83 @@ Essa conversa não faz extração estruturada: a resposta chega ao frontend como
     com os `tool_call_id` já respondidos e injeta uma `ToolMessage` sintética
     (`"Chamada cancelada..."`) para cada pendência, via `grafo.aupdate_state()`. O histórico volta a
     ser válido sem descartar a conversa.
+
+## Identificação do cliente: cookie assinado e CORS cross-site
+
+O rate limiting (`app/api/rate_limiter.py`) precisa identificar o mesmo navegador entre
+requisições. `get_client_id` (`app/api/dependencies.py`) faz isso com um cookie httpOnly
+assinado (`auditor_client_id`) em vez de IP — IP é fraco para essa finalidade (troca com
+rede móvel/VPN, e vários usuários atrás do mesmo NAT caem no mesmo limite). O cookie é
+gerado na primeira visita e reconhecido nas seguintes; sendo assinado, o cliente não
+consegue forjar nem adulterar o valor para escapar do limite.
+
+**As três flags do cookie** (`response.set_cookie` em `dependencies.py`) variam com o
+ambiente por um motivo concreto:
+
+- `httponly=True` — impede um ataque XSS de ler ou forjar o cookie via JavaScript.
+- `secure=AMBIENTE_PRODUCAO` — em produção, só HTTPS reenvia o cookie (comportamento
+  desejado). Fixo em `True` quebraria o dev local: `uvicorn` sem TLS não teria o cookie
+  reenviado nunca, e o rate limiter trataria toda requisição como um cliente novo — um
+  bug silencioso, sem erro algum aparecendo.
+- `samesite="none" if AMBIENTE_PRODUCAO else "lax"` — front e back são domínios separados
+  no Railway, então toda chamada do frontend é cross-site em produção; `"lax"` bloquearia
+  o cookie nela. `"none"` exige `Secure` (garantido pela flag acima) e `allow_credentials=True`
+  no CORS (`main.py`) para o navegador aceitar enviar/receber o cookie entre origens
+  diferentes. Em dev, front e back normalmente compartilham origem, então `"lax"` basta.
+
+**Cookie perdido em resposta de erro.** Por padrão, o FastAPI descarta o `Response` que uma
+dependency já tinha modificado sempre que uma exceção interrompe a requisição — junto vai
+qualquer `Set-Cookie` gravado nele. Sem correção, um visitante novo cujo primeiro request
+falhasse por qualquer motivo (415, 422, 429...) nunca receberia o cookie, e seguiria sendo
+tratado como "visitante novo" a cada tentativa. `get_client_id` guarda uma cópia do header
+em `request.state.cookie_pendente`; os exception handlers centrais em `main.py`
+(`_reaplicar_cookie_pendente`) reaplicam esse cookie em qualquer resposta de erro da
+requisição, não só a do rate limiter.
+
+### O contador atômico do rate limiter (script Lua no Redis)
+
+`app/api/rate_limiter.py` conta requisições por `client_id` num script Lua, executado
+**dentro** do Redis (`EVAL`/`EVALSHA`) em vez de em Python:
+
+```lua
+local key = KEYS[1]
+local limit = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+
+local current = redis.call('GET', key)
+
+if current and tonumber(current) >= limit then
+    return -1
+else
+    local count = redis.call('INCR', key)
+    if count == 1 then
+        redis.call('EXPIRE', key, window)
+    end
+    return count
+end
+```
+
+`KEYS[1]` é a chave do contador (`"<prefixo>:<client_id>"`, ex.: `"upload:abc123"`);
+`ARGV[1]`/`ARGV[2]` são o limite e a duração da janela em segundos. Por que Lua e não um
+`GET` + `INCR` em Python: entre ler o valor atual e decidir se incrementa, duas
+requisições concorrentes do mesmo cliente poderiam ler o mesmo contador "quase no limite"
+e as duas passarem — o script roda como uma unidade atômica dentro do Redis, sem essa
+janela de corrida.
+
+Passo a passo do script:
+
+1. Lê o contador atual (`GET`) — pode não existir ainda (primeira requisição do cliente).
+2. Se já atingiu o limite, devolve `-1` **sem incrementar** — o contador não sobe
+   indefinidamente enquanto o cliente insiste dentro da mesma janela.
+3. Caso contrário, incrementa (`INCR` cria a chave com valor 1 se não existir) e, só na
+   primeira requisição da janela (`count == 1`), define o TTL (`EXPIRE`). O Redis apaga a
+   chave sozinho quando o TTL expira — reinicia a contagem sem limpeza manual.
+4. Devolve o contador pós-incremento, para `RateLimiter.__call__` logar o consumo sem
+   precisar de um segundo round-trip (`GET`) só para isso.
+
+`inicializar_rate_limiter` registra esse script uma vez no startup
+(`redis_client.register_script`); a lib então usa `EVALSHA` (reenvia só o hash do script)
+nas chamadas seguintes, em vez do texto completo.
 
 ## Limitações conhecidas
 

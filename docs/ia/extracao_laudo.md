@@ -1,27 +1,30 @@
-# Relatório Automático e Extração do Laudo
+# Relatório automático e extração do laudo
 
-Assim que o upload de um edital termina de indexar, o sistema gera sozinho — sem esperar nenhuma
-pergunta do usuário — um primeiro laudo completo sobre aquele edital, o **relatório automático**.
-Esse laudo é entregue em duas formas: o **Markdown** que aparece como a primeira mensagem do chat, e
-um **JSON estruturado** que o frontend usa para desenhar os cards de anomalia e de risco. Esta
-página explica como o JSON é extraído do Markdown e as decisões de engenharia por trás disso.
+O **relatório automático** é a primeira mensagem que o usuário vê no chat depois de subir um edital —
+uma auditoria completa gerada sozinha, sem nenhuma pergunta. Em produção ele é apenas o **primeiro
+turno do agente**, entregue por streaming (Markdown, token a token, com o status de cada tool), igual
+a qualquer outro turno — ver [Anatomia de um turno](../arquitetura/anatomia_de_um_turno.md#o-relatorio-automatico-turno-1-do-chat-nao-parte-do-upload).
 
-!!! info "Só existe um laudo estruturado por thread"
-    O relatório automático é a única vez, numa conversa, em que o agente produz um laudo completo
-    estruturado. Perguntas seguintes do usuário — mesmo pedindo explicitamente outra auditoria —
-    recebem resposta em Markdown livre via `run_agent()` ([`app/agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)), sem passar
-    por extração estruturada nem gerar um novo card. A decisão é de produto, não uma limitação
-    técnica: o usuário raramente sabe que pode pedir outro laudo, e refazê-lo custaria uma chamada
-    extra ao LLM para reconstruir uma análise já entregue no início da conversa.
+A **extração de um laudo estruturado** (`RelatorioInicial` — JSON com códigos de anomalia,
+nível de risco, etc.) **não roda mais em produção**. Ela vive hoje só no framework de avaliação
+([`backend/evaluation/`](https://github.com/Moreira-89/auditor-cidadao/tree/main/backend/evaluation)),
+que precisa de anomalias em forma de código (`A`–`I`) para a métrica `recall_anomalias` pontuar. Esta
+página documenta essa extração — o schema e as decisões de engenharia continuam válidos para o
+harness de avaliação.
+
+!!! info "Por que produção não estrutura mais o laudo"
+    Antes do Bloco 15, o `/upload/` rodava o turno do relatório **e** uma segunda chamada de LLM para
+    extrair o `RelatorioInicial`, tudo síncrono dentro do request. Somado ao Docling, o upload
+    passava de 4 minutos e o navegador derrubava a conexão. O relatório virou um turno de chat
+    streamado; a extração estruturada, um custo que só a avaliação paga.
 
 ## O schema (`RelatorioInicial`)
 
 O formato do JSON é um schema Pydantic em [`app/api/schemas/laudo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/laudo.py):
 
-- **`RelatorioInicial`** — o envelope do relatório automático. Tem dois campos: `laudo`, que é
-  `LaudoEstruturado` **ou `None`** (`None` sinaliza que o texto gerado não era um laudo — ex.: o
-  agente recusou a solicitação), e `sugestoes_perguntas`, até 3 perguntas de acompanhamento
-  específicas ao conteúdo lido.
+- **`RelatorioInicial`** — o envelope. Tem dois campos: `laudo`, que é `LaudoEstruturado` **ou
+  `None`** (`None` sinaliza que o texto gerado não era um laudo — ex.: o agente recusou a
+  solicitação), e `sugestoes_perguntas`, até 3 perguntas de acompanhamento.
 - **`LaudoEstruturado`** — `cnpjs_analisados`, `anomalias`, `nivel_risco_geral`, `resumo_executivo`,
   `recomendacoes`.
 - **`Anomalia`** — `codigo` (uma letra `A`–`I` do [catálogo](anomalias.md)), `descricao`,
@@ -32,9 +35,8 @@ saber o que preencher em cada campo.
 
 ### Exemplo de saída
 
-Ilustrativo, construído a partir do `caso_01` do golden dataset (empresa com sanção vigente em
-CEIS/CNEP, ver [Avaliação](avaliacao.md)) — não é um output literal capturado em produção, mas
-segue o schema real campo a campo:
+Ilustrativo, construído a partir de um caso do golden dataset (empresa com sanção vigente em
+CEIS/CNEP, ver [Avaliação](avaliacao.md)) — não é um output literal, mas segue o schema campo a campo:
 
 ```json
 {
@@ -66,21 +68,24 @@ segue o schema real campo a campo:
 }
 ```
 
-Se o agente não produzir um laudo (ex.: recusa por fora de escopo, mensagem de erro), o extrator
-devolve `laudo: null`, mas ainda preenche `sugestoes_perguntas` com perguntas genéricas úteis para
-começar a explorar o edital.
+Se o agente não produzir um laudo (recusa por fora de escopo, mensagem de erro), o extrator devolve
+`laudo: null` mas ainda preenche `sugestoes_perguntas` com perguntas genéricas.
 
-## Como a extração acontece
+## Como a extração acontece (no harness de avaliação)
 
-`gerar_relatorio_inicial()` ([`app/agents/relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py)) roda logo após `POST /upload/` terminar de
-indexar o edital no Pinecone (ver [Fluxo de Dados](../arquitetura/fluxo_dados.md)). Ela dispara o
-**primeiro turno da thread** com `PROMPT_RELATORIO_INICIAL` como se fosse a pergunta do usuário
-(via `grafo.ainvoke()`, sem streaming — a resposta faz parte do corpo síncrono de `/upload/`, não do
-canal SSE de conversa), e então faz uma **segunda chamada ao LLM** — o *extrator* — que recebe o
-`PROMPT_EXTRATOR_INICIAL` como `SystemMessage` e o texto do laudo como `HumanMessage`, devolvendo o
-`RelatorioInicial` via `with_structured_output`. O extrator roda a `temperature=0.0` (extração é
-tarefa determinística, não criativa) e é uma instância dedicada, criada no `lifespan` e recuperada
-via `get_extrator()`.
+`gerar_relatorio_inicial()` ([`app/agents/relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py)) é chamada por
+[`evaluation/execucao.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/execucao.py)
+para cada caso do golden dataset. Ela dispara o **primeiro turno da thread** com
+`PROMPT_RELATORIO_INICIAL` como se fosse a pergunta do usuário (via `grafo.ainvoke()`, sem streaming —
+o harness precisa do texto completo de uma vez), e então faz uma **segunda chamada ao LLM** — o
+*extrator* — que recebe o `PROMPT_EXTRATOR_INICIAL` como `SystemMessage` e o texto do laudo como
+`HumanMessage`, devolvendo o `RelatorioInicial` via `with_structured_output`. O extrator roda a
+`temperature=0.0` e é uma instância dedicada recuperada via `get_extrator()`.
+
+O turno do agente aqui é equivalente ao de produção: mesmo grafo, mesmo `PROMPT_RELATORIO_INICIAL`,
+mesmo envelope (`PROMPT_DINAMICO`), mesmas tools. A diferença é só de entrega — `grafo.ainvoke()` no
+harness, `astream_events()` em produção — e o passo extra de extração estruturada, exclusivo do
+harness.
 
 ```mermaid
 ---
@@ -94,64 +99,40 @@ config:
     fontSize: '30px'
 ---
 flowchart TB
-    UP["POST /upload/<br>indexação concluída"] --> TURNO["1º turno sintético<br>PROMPT_RELATORIO_INICIAL"]
-    TURNO --> LAUDO["Laudo em Markdown<br>(grafo.ainvoke, sem streaming)"]
+    CASO["Caso do golden dataset<br>(edital indexado)"] --> TURNO["1º turno sintético<br>PROMPT_RELATORIO_INICIAL"]
+    TURNO --> LAUDO["Laudo em Markdown<br>(grafo.ainvoke)"]
     LAUDO --> EXTRATOR["2ª chamada LLM (extrator)<br>temperature 0.0"]
     EXTRATOR --> RESP["RelatorioInicial<br>laudo + sugestoes_perguntas"]
-    RESP --> FRONT["resposta de /upload/<br>relatorio_inicial"]
+    RESP --> METRICA["recall_anomalias<br>(F1 sobre os códigos A–I)"]
 ```
 
-A função inteira está isolada num `try/except`: qualquer falha (LLM, extração, timeout) é logada e
-vira `None` — o upload não pode falhar por causa do relatório automático, que é um "bônus" de UX,
-não um requisito do fluxo de indexação. Nesse caso o frontend simplesmente não mostra a primeira
-mensagem automática, e o usuário parte do estado vazio normal.
+A função inteira está isolada num `try/except`: qualquer falha vira `None`.
 
 ## Decisões de engenharia (trade-offs)
 
 !!! note "Por que uma segunda chamada ao LLM, em vez de extrair no meio do streaming"
-    O relatório automático não usa streaming (`grafo.ainvoke()`, não `astream_events()`) — ele faz
-    parte da resposta síncrona de `/upload/`, então o texto completo do laudo já está disponível de
-    uma vez antes de chamar o extrator. Isso evita o problema que existiria se a extração tentasse
-    acumular texto turno a turno em paralelo ao streaming: o modelo pode emitir conteúdo parcial
-    *antes* de decidir chamar uma ferramenta, e só a mensagem final (sem `tool_calls`) deve virar
-    laudo.
+    O harness usa `grafo.ainvoke()`, não `astream_events()` — o texto completo do laudo já está
+    disponível de uma vez antes de chamar o extrator. Isso evita o problema que existiria se a
+    extração tentasse acumular texto turno a turno: o modelo pode emitir conteúdo parcial *antes* de
+    decidir chamar uma ferramenta, e só a mensagem final (sem `tool_calls`) deve virar laudo.
 
 !!! note "Schema define forma, prompt define comportamento"
     `with_structured_output` garante que a saída *valida* contra o schema — mas não decide sozinho
     *quando* usar `laudo: null` nem como formular `sugestoes_perguntas`. Foi preciso um
-    `SystemMessage` dedicado (o `PROMPT_EXTRATOR_INICIAL`) com o critério de decisão explícito e a
-    instrução de que as sugestões precisam ser específicas ao conteúdo lido, nunca genéricas. É um
-    exemplo prático de que o schema Pydantic sozinho não basta — o comportamento vem do prompt (T2).
-
-!!! note "Por que não uma heurística de texto ou de tool chamada"
-    Duas alternativas mais baratas foram testadas e descartadas: (1) detectar o laudo por um marcador
-    no Markdown — quebra assim que o formato do `SYSTEM_PROMPT` muda; (2) decidir pela presença de
-    uma tool de auditoria no turno — gera falso positivo. A decisão final foi delegar ao próprio LLM
-    extrator, via o critério explícito do `PROMPT_EXTRATOR_INICIAL`, em vez de uma heurística fixa
-    no código.
+    `SystemMessage` dedicado (o `PROMPT_EXTRATOR_INICIAL`) com o critério de decisão explícito. O
+    schema Pydantic sozinho não basta — o comportamento vem do prompt (T2).
 
 !!! note "Por que não `response_format=` do create_agent"
-    `create_agent` (ver [Arquitetura](../arquitetura/visao_geral.md)) aceita um parâmetro
-    `response_format=` que faz o próprio agente devolver uma saída validada contra um schema Pydantic
-    — em tese, dava para passar `RelatorioInicial` ali e eliminar a segunda chamada ao LLM. Avaliado
-    e descartado por dois motivos, confirmados inspecionando o grafo compilado (`agent.get_graph()`)
-    com `response_format` ativo:
+    `create_agent` aceita um `response_format=` que faz o próprio agente devolver saída validada
+    contra um schema — em tese eliminaria a segunda chamada. Descartado por dois motivos,
+    confirmados inspecionando o grafo compilado:
 
-    1. **`response_format` se aplica a toda invocação, não só ao relatório automático.** O mesmo
-       agente (`get_graph()`) também responde perguntas conversacionais comuns via `run_agent()` —
-       `response_format` forçaria toda resposta final a validar contra o schema do laudo, mesmo as
-       puramente conversacionais.
-    2. **Muda o que conta como "resposta final".** Com `response_format` ativo, o nó `model` ganha
-       uma aresta condicional de auto-loop (`model → model`) para validar/repetir a saída
-       estruturada — isso quebraria o streaming token-a-token que `run_agent()` usa nas perguntas
-       comuns, ou exigiria desenhar dois caminhos de resposta dentro do mesmo agente.
+    1. **`response_format` se aplica a toda invocação.** O mesmo grafo (`get_graph()`) responde
+       perguntas conversacionais comuns via `run_agent()` — forçaria toda resposta final a validar
+       contra o schema do laudo, mesmo as puramente conversacionais.
+    2. **Muda o que conta como "resposta final".** Com `response_format` ativo, o nó `model` ganha uma
+       aresta de auto-loop (`model → model`) para validar a saída estruturada — isso quebraria o
+       streaming token-a-token que `run_agent()` usa (inclusive no relatório automático de produção).
 
-    Manter a segunda chamada (extrator dedicado, fora do grafo principal, usado só em
-    `gerar_relatorio_inicial()`) preserva os dois comportamentos — streaming de Markdown livre nas
-    perguntas comuns + JSON estruturado só no relatório automático — ao custo de uma chamada extra ao
-    LLM, paga uma única vez por thread.
-
-!!! note "A extração roda uma vez por thread, não a cada turno"
-    O card estruturado é exclusivo do relatório automático do upload. Perguntas seguintes recebem só
-    a resposta em Markdown do streaming, sem chamada extra ao LLM por turno — o que mantém o custo em
-    uma única extração por thread e evita a confusão de dois laudos estruturados na mesma conversa.
+    Manter a segunda chamada (extrator dedicado, fora do grafo principal) preserva o streaming de
+    Markdown em produção e ainda dá ao harness o JSON estruturado que ele precisa.

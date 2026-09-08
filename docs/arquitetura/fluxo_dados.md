@@ -18,46 +18,57 @@ config:
 ---
 flowchart TB
     U["Usuário"] -->|"PDF + estado/município + thread_id"| UP["POST /upload/"]
-    UP --> PDF["pdfplumber extrai texto"]
-    PDF --> CHUNK["RecursiveCharacterTextSplitter<br>chunks de 2000 chars, overlap 200"]
-    CHUNK --> EMB["OpenAI text-embedding-3-small"]
-    EMB --> PC[("Pinecone<br>index auditor-cidadao")]
+    UP --> CHECK["pdfplumber: tem texto nativo?<br>(decide OCR sim/não)"]
+    CHECK --> PDF["Docling converte<br>texto linear + estrutura hierárquica"]
+    PDF --> FIL["chunks (filhos)<br>rotulados com secao_caminho"]
+    FIL --> EMB["OpenAI text-embedding-3-large"]
+    EMB --> MG[("MongoDB Atlas<br>chunks_edital + índice vectorSearch")]
     PDF --> CNPJ["Regex + validate-docbr<br>extrai CNPJs do texto"]
-    CNPJ --> REL["Relatório automático<br>(1º turno da thread)"]
-    REL --> U
+    CNPJ -->|"SSE: progress / heartbeat / done{cnpjs}"| U
+    U -->|"POST /conversar-com-auditor/ (inicial:true)"| REL["Relatório automático<br>1º turno da thread, via streaming SSE"]
+    REL -->|"tokens + status"| U
 ```
 
 O PDF é lido inteiro em memória, sem tocar o disco. É rejeitado com `415` se não for PDF e `413` se
 passar de 20 MB
-([`app/api/endpoints/upload.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/upload.py)),
-e tem o texto extraído por `pdfplumber`
-([`app/ingestion/pdf.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf.py)).
+([`app/api/endpoints/upload.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/upload.py)).
+Uma checagem barata com `pdfplumber`
+([`app/ingestion/pdf.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf.py))
+decide se o PDF é escaneado; em seguida o **Docling**
+([`app/ingestion/pdf_hierarquico.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf_hierarquico.py))
+converte o documento — com ou sem OCR — devolvendo o texto linear (usado abaixo) e a estrutura
+hierárquica de seções/blocos, que vira o RAG (ver abaixo). Os dois `DocumentConverter` ficam
+pré-carregados no `lifespan`; a conversão roda em `asyncio.to_thread` e é o passo mais lento do
+upload. Detalhes em [Uso de Dados e RAG](../ia/rag_dados.md#o-pipeline-de-indexacao).
 
-O `GerenciadorVetorial`
-([`app/storage/vetorial.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py))
-chunkiza o texto com separadores hierárquicos (parágrafo → linha → frase → palavra), gera os
-embeddings e faz o upsert no Pinecone replicando `estado`/`municipio`/`arquivo` como metadado em
-cada chunk — é esse metadado que permite filtrar a busca pelo edital certo depois.
+`_indexar_hierarquico` (em `upload.py`) fatia cada bloco de conteúdo em chunks, embeda com a OpenAI
+e grava tudo no MongoDB (`GerenciadorVetorial.indexar_hierarquia`) com `edital_id` (= `thread_id`) /
+`estado` / `municipio` / `arquivo` no documento — é esse conjunto de campos que permite filtrar a
+busca pelo edital certo. Detalhes e o schema completo em
+[Uso de Dados e RAG](../ia/rag_dados.md).
 
 Em paralelo, os CNPJs do texto são extraídos por regex e validados
-([`app/ingestion/cnpj.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/cnpj.py)),
-e devolvidos ao frontend, que os reenvia em cada pergunta seguinte.
+([`app/ingestion/cnpj.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/cnpj.py)).
 
-Com a indexação concluída, `gerar_relatorio_inicial()`
-([`app/agents/relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py))
-roda como o **primeiro turno** da thread identificada pelo `thread_id` recebido no upload — sem
-esperar nenhuma pergunta — e devolve um laudo já estruturado (ver
-[Relatório Automático e Extração de Laudo](../ia/extracao_laudo.md)). Perguntas seguintes em
-`/conversar-com-auditor/` reusam esse mesmo `thread_id` e continuam a conversa no checkpointer, em
-vez de começar do zero.
+**A resposta do `/upload/` é um stream SSE.** Extração + indexação levam ~2 min; um request síncrono
+todo esse tempo era derrubado por timeout de conexão ociosa (`Failed to fetch` no navegador, mesmo
+com o backend terminando bem). Agora `_stream_indexacao` roda as etapas pesadas em `asyncio.to_thread`
+e emite eventos enquanto elas rodam: `progress` (troca de etapa, com um `pct` para a barra),
+`heartbeat` (a cada ~3 s, só para o socket não ficar ocioso), e no fim `done` com os CNPJs ou
+`error`. As validações baratas (tipo, tamanho) ainda respondem `415`/`413` **antes** de o stream
+começar.
 
-Exemplo real de request/response: [Referência de API](../operacional/api.md#post-upload-indexar-um-edital).
+O **relatório automático não roda dentro do `/upload/`**. No `done`, o frontend manda o usuário para
+o chat e dispara o primeiro turno via `POST /conversar-com-auditor/` com `inicial: true` — o backend
+usa `PROMPT_RELATORIO_INICIAL` no lugar da pergunta, e o laudo entra pelo streaming SSE, como
+qualquer turno. Reusa o `thread_id` do upload, então continua a mesma thread no checkpointer.
 
-!!! warning "Esta requisição é longa por natureza"
-    O relatório automático executa um turno completo do agente — várias chamadas de LLM e de tools,
-    com `recursion_limit=50` — **dentro** do request HTTP de upload, antes da resposta sair. Some-se
-    a isso a indexação no Pinecone. O cliente segura a conexão durante todo esse tempo sem receber
-    sinal de progresso, o que a torna sensível a timeout de proxy em editais grandes.
+Exemplo do stream: [Referência de API](../operacional/api.md#post-upload-indexar-um-edital).
+
+!!! note "O Docling ainda roda dentro do request"
+    O stream mantém a conexão viva, mas a conversão do Docling (~2 min em CPU) continua no caminho da
+    requisição — só não derruba mais a conexão. Movê-la para um job de background (o `/upload/`
+    respondendo em segundos, indexação assíncrona) é o passo seguinte (ver roadmap, Seção C).
 
 ## Conversa com o agente (`POST /conversar-com-auditor/`)
 
@@ -91,8 +102,9 @@ O endpoint
 conforme são gerados e mensagens de status quando uma ferramenta é acionada (ex.: *"🏛️ Consultando
 dados cadastrais na Receita Federal..."*).
 
-Não há extração estruturada nessa conversa; o único laudo estruturado da thread é o
-[relatório automático](../ia/extracao_laudo.md) do upload. Detalhes do stream em
+Nenhum turno de produção faz extração estruturada — nem as perguntas comuns nem o
+[relatório automático](../ia/extracao_laudo.md), que hoje é só o primeiro turno da thread, streamado
+igual aos outros. Detalhes do stream em
 [Visão Geral](visao_geral.md#streaming-o-que-sai-pelo-sse-de-conversa), e o JSON completo de cada
 tipo de evento em
 [Referência de API](../operacional/api.md#post-conversar-com-auditor-perguntar-sobre-o-edital).
@@ -117,7 +129,7 @@ flowchart TB
     FERR --> SANC["consultar_sancoes_empresa"]
     FERR --> WEB["buscar_informacao_web"]
     FERR --> MCP["11 tools PNCP via MCP"]
-    RAG -.->|"similarity_search<br>filtro estado+município"| PC[("Pinecone")]
+    RAG -.->|"$vectorSearch<br>filtro edital_id+estado+município"| MG[("MongoDB Atlas")]
 ```
 
 O nó `agente` decide sozinho quais ferramentas chamar, em qualquer ordem e quantas vezes forem
