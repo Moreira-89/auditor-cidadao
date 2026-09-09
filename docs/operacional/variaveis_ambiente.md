@@ -77,6 +77,16 @@ limiting (ver [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidad
     válido para uso local, `redis://localhost:6379`, mas precisa de um Redis de verdade escutando
     nesse endereço).
 
+## Avaliação (golden dataset, deepeval/G-Eval)
+
+| Variável | Obrigatória | Default | Descrição |
+|---|---|---|---|
+| `AVALIADOR_MODEL` | Não | `gpt-4o` | Juiz LLM da métrica de Fidelidade (`GEval`) — ver [Avaliação](../ia/avaliacao.md). Aceita prefixo `openai:` (removido em código); só OpenAI é suportado como juiz hoje |
+| `AVALIADOR_TEMPERATURE` | Não | `0.0` | Temperatura do juiz — zero de propósito, instabilidade de julgamento foi o motivo de remover o RAGAS |
+| `DEEPEVAL_TELEMETRY_OPT_OUT` | Não | — | `1` desativa a telemetria do `deepeval`, mantendo a avaliação 100% local |
+
+Só é lida por `python -m evaluation.runner`, nunca em produção.
+
 ## Frontend
 
 O template versionado é [`frontend/.env.example`](https://github.com/Moreira-89/auditor-cidadao/blob/main/frontend/.env.example) — só uma variável, lida pelo Vite em **tempo de build**, não de runtime.

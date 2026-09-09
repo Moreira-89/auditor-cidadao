@@ -36,8 +36,8 @@ GERAL DE …") são classificados como cabeçalho pelo layout model — chegavam
 de um edital. `_rodapes_corridos` conta os textos-cabeçalho e descarta os que se repetem
 `MIN_REPETICAO_RODAPE`+ vezes; o conteúdo real dessas páginas segue para a seção aberta no momento.
 
-**Persistência — MongoDB Atlas** (`GerenciadorVetorial.indexar_hierarquia`, em
-[`app/storage/vetorial.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py)),
+**Persistência — MongoDB Atlas** (`GerenciadorVetorial.indexar_hierarquia`,
+[`app/storage/vetorial.py:14-33`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L14-L33)),
 tudo em `asyncio.to_thread`. Só os **filhos** viram documento indexado — a seção-pai não é
 persistida nem vetorizada, só empresta o `caminho` como rótulo de cada filho:
 
@@ -54,7 +54,8 @@ def indexar_hierarquia(self, secoes, filhos_brutos, metadados_base):
     )
 ```
 
-`_fatiar_filhos` **fatia `TextItem` com mais de 200 palavras** em pedaços menores (sem overlap — ver
+`_fatiar_filhos` ([`vetorial.py:82-113`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L82-L113))
+**fatia `TextItem` com mais de 200 palavras** em pedaços menores (sem overlap — ver
 "Por que a fatia de 200 palavras, sem overlap" abaixo); `TableItem` nunca é fatiado, para não quebrar
 a relação linha/coluna. Cada filho vira um documento na coleção `chunks_edital`:
 
@@ -84,10 +85,12 @@ a relação linha/coluna. Cada filho vira um documento na coleção `chunks_edit
 | `timestamp_indexacao` | Epoch (UTC) da indexação — usado pelo job de limpeza |
 | `origem` | `"upload_usuario"` no `/upload/`, `"avaliacao"` no golden dataset. Só `"upload_usuario"` expira pelo job de limpeza |
 
-Um índice **Atlas Search** do tipo `vectorSearch` (`idx_chunks_vetor`) cobre o campo `embedding`,
-com `edital_id`/`estado`/`municipio` declarados como campos de filtro — só um campo declarado assim
-no índice pode ser usado no `filter` do `$vectorSearch`. Criado uma vez (via `mongosh` ou `pymongo`,
-não faz parte do código da aplicação):
+Nome da coleção e do índice são constantes em
+[`app/storage/mongo_db.py:13-14`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/mongo_db.py#L13-L14)
+(`COLECAO_CHUNKS`, `NOME_INDICE_VETORIAL`). Um índice **Atlas Search** do tipo `vectorSearch`
+(`idx_chunks_vetor`) cobre o campo `embedding`, com `edital_id`/`estado`/`municipio` declarados
+como campos de filtro — só um campo declarado assim no índice pode ser usado no `filter` do
+`$vectorSearch`. Criado uma vez (via `mongosh` ou `pymongo`, não faz parte do código da aplicação):
 
 ```python
 from pymongo.operations import SearchIndexModel
@@ -118,10 +121,13 @@ dimensão) exige recriar o índice.
 
 ## O pipeline de busca
 
-A ferramenta `buscar_contexto_edital` (que o agente chama sozinho) roda um `$vectorSearch` no
-MongoDB: converte a pergunta em vetor, casa os `top_k` filhos mais próximos, filtrados por
-`edital_id` (o `thread_id` da conversa ativa) + `estado` + `municipio`, e devolve o **próprio texto
-do filho**, rotulado com `secao_caminho`:
+A ferramenta `buscar_contexto_edital`
+([`app/agents/tools/contexto_edital.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py),
+que o agente chama sozinho) chama `GerenciadorVetorial.buscar_contexto`
+([`vetorial.py:35-81`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L35-L81)),
+que roda um `$vectorSearch` no MongoDB: converte a pergunta em vetor, casa os `top_k` filhos mais
+próximos, filtrados por `edital_id` (o `thread_id` da conversa ativa) + `estado` + `municipio`, e
+devolve o **próprio texto do filho**, rotulado com `secao_caminho`:
 
 ```python
 def buscar_contexto(self, pergunta, estado, municipio, edital_id, top_k=5):
@@ -179,7 +185,7 @@ sincronizado. A regra: `origem = "upload_usuario"` **e** `timestamp_indexacao` m
 janela de retenção (`MONGO_RETENCAO_DIAS`, default 2 dias). Registros de outra origem (ex.: futura
 indexação automática via PNCP) não são tocados.
 
-[`app/jobs/limpeza_mongo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_mongo.py)
+[`app/jobs/limpeza_mongo.py:14-48`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_mongo.py#L14-L48)
 é um script standalone (pensado para rodar como cron no Railway) e encerra com `sys.exit(1)` em
 caso de falha (credencial expirada, recurso renomeado) em vez de terminar em silêncio — assim uma
 execução com erro aparece como falha no painel de cron, sem depender de checar o log. Ver

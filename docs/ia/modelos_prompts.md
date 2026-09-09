@@ -9,11 +9,11 @@ preparado e recuperado. Esta primeira página trata dos modelos e da engenharia 
 | Papel | Modelo (default) | Temperatura | Onde |
 |---|---|---|---|
 | Agente principal | `openai:gpt-4o-mini` | `0.1` | Conversa e relatório automático ([`app/config/settings.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py)) |
-| Extrator de laudo | `openai:gpt-4o-mini` | `0.0` | Só no framework de avaliação — estrutura o laudo em JSON para a métrica `recall_anomalias` ([Extração do laudo](extracao_laudo.md)) |
+| Juiz de Fidelidade (G-Eval) | `gpt-4o` | `0.0` | Só no framework de avaliação — ver [Avaliação](avaliacao.md) |
 | Embeddings (RAG) | `text-embedding-3-large` | — | Indexação e busca no MongoDB Atlas (ver [Uso de Dados e RAG](rag_dados.md)) |
 
-Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODEL`, `EXTRATOR_MODEL`,
-`AVALIADOR_MODEL`) — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md). O
+Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODEL`, `AVALIADOR_MODEL`)
+— ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md). O
 `init_chat_model` do LangChain identifica o provider pelo prefixo do nome (`openai:`, `groq:`,
 `google_genai:`), então trocar de modelo não exige mudar código.
 
@@ -42,23 +42,27 @@ Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODE
 
 ## Os prompts do sistema
 
-Toda a engenharia de prompt vive em [`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py) — sem lógica, só texto:
+Toda a engenharia de prompt vive em
+[`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py) — sem lógica, só texto:
 
-- **`SYSTEM_PROMPT`** — injetado uma vez no primeiro turno de cada conversa. Define a identidade de
-  auditor, as capacidades, o catálogo de anomalias, a hierarquia de evidências e as regras de
-  segurança.
-- **`PROMPT_DINAMICO`** — o "envelope" em tags no estilo XML (`<CNPJS_NO_EDITAL>`, `<METADADOS>`,
-  `<PERGUNTA>`) enviado como `HumanMessage` no primeiro turno de qualquer thread — seja o primeiro
-  turno de uma conversa comum ou o turno do relatório automático pós-upload.
-- **`PROMPT_RELATORIO_INICIAL`** — a "pergunta" sintética usada como `pergunta_usuario` no envelope
-  acima quando é o sistema (não o usuário) que dispara o primeiro turno. Em produção o frontend
-  dispara esse turno via `POST /conversar-com-auditor/` com `inicial: true` logo após o upload, e o
-  laudo entra por streaming ([Relatório automático e extração do laudo](extracao_laudo.md)).
-- **`PROMPT_EXTRATOR_INICIAL`** — instrução do extrator que estrutura o laudo em JSON. **Usado só no
-  framework de avaliação** ([Extração do laudo](extracao_laudo.md)); produção não estrutura o laudo.
-O `TOOL_STATUS_MAP` — que traduz o nome técnico de cada ferramenta na mensagem exibida ao usuário
-durante a execução — não é prompt e vive à parte, em
-[`app/config/tool_status_map.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/tool_status_map.py) (ex.: "🏛️ Consultando dados cadastrais na Receita Federal...").
+- **`SYSTEM_PROMPT`** (`prompt.py:292`) — injetado uma vez no primeiro turno de cada conversa.
+  Define a identidade de auditor, as capacidades, o catálogo de anomalias (`CATALOGO_ANOMALIAS`,
+  `prompt.py:1`), a hierarquia de evidências e as regras de segurança.
+- **`PROMPT_DINAMICO`** (`prompt.py:505`) — o "envelope" em tags no estilo XML
+  (`<CNPJS_NO_EDITAL>`, `<METADADOS>`, `<PERGUNTA>`) enviado como `HumanMessage` no primeiro turno
+  de qualquer thread (`montar_primeiro_turno`, `app/agents/envelope.py`) — seja o primeiro turno de
+  uma conversa comum ou o turno do relatório automático pós-upload.
+- **`PROMPT_RELATORIO_INICIAL`** (`prompt.py:521`) — a "pergunta" sintética usada como
+  `pergunta_usuario` no envelope acima quando é o sistema (não o usuário) que dispara o primeiro
+  turno. Em produção, `app/api/endpoints/chat.py:81` troca a pergunta por essa constante quando
+  `request.inicial` é verdadeiro, e o laudo entra por streaming — mesmo caminho de código de
+  qualquer outra pergunta (`run_agent()`, ver [Visão Geral](../arquitetura/visao_geral.md)). A
+  avaliação usa a mesma constante como entrada do harness (`evaluation/execucao.py:37`, ver
+  [Avaliação](avaliacao.md)).
+
+O `TOOL_STATUS_MAP` (`app/config/tool_status_map.py:2`) — que traduz o nome técnico de cada
+ferramenta na mensagem exibida ao usuário durante a execução — não é prompt e vive à parte (ex.:
+`"buscar_contexto_edital": "🖹 Analisando trechos do edital indexado..."`, `tool_status_map.py:5`).
 
 ## Exemplo real: o que o modelo recebe no primeiro turno
 

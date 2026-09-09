@@ -32,7 +32,6 @@ def limpar_secoes_expiradas() -> None:
 
         # Só chunks de upload manual expiram — outras origens (ex.: futura
         # indexação automática via PNCP) podem ter regra de retenção diferente.
-        # Pai e filho expiram juntos: os dois carregam o mesmo timestamp_indexacao.
         filtro = {
             "timestamp_indexacao": {"$lte": cutoff},
             "origem": "upload_usuario",

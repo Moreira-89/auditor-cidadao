@@ -1,41 +1,57 @@
 import asyncio
-import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config.logging import logger
+from app.config.settings import AVALIADOR_MODEL, AVALIADOR_TEMPERATURE
+from deepeval import evaluate
+from deepeval.evaluate.configs import DisplayConfig
+from deepeval.metrics import ToolCorrectnessMetric
+from deepeval.test_case import LLMTestCase, ToolCall
 
-from evaluation.aprovacao import MetricasDoCaso, avaliar_aprovacao, formatar_relatorio
 from evaluation.dataset.schema import Caso, carregar_casos
-from evaluation.execucao import executar_caso, preparar_ambiente
+from evaluation.execucao import ToolChamada, executar_caso, preparar_ambiente
 from evaluation.indexacao import indexar_caso, limpar_edital
-from evaluation.metricas.aderencia_tools import avaliar_aderencia
-from evaluation.metricas.recall_anomalias import avaliar_recall_anomalias
+from evaluation.metricas.argumentos_tool import ArgumentosToolMetric
+from evaluation.metricas.fidelidade import metrica_fidelidade
+from evaluation.metricas.recall_anomalias import RecallAnomaliasMetric
 
 RESULTADOS_DIR = Path(__file__).parent / "resultados"
 
-async def _avaliar_caso(caso: Caso) -> dict:
+
+def _tool_call(tool: str, argumentos: dict) -> ToolCall:
+    return ToolCall(name=tool, input_parameters=argumentos or None)
+
+
+def _chamadas_tool(tools_chamadas: list[ToolChamada]) -> list[ToolCall]:
+    return [_tool_call(t.tool, t.argumentos) for t in tools_chamadas]
+
+
+def _tools_esperadas(caso: Caso) -> list[ToolCall]:
+    return [_tool_call(t.tool, t.argumentos_esperados) for t in caso.tools_esperadas]
+
+
+async def _montar_test_case(caso: Caso) -> LLMTestCase:
+    """Indexa o edital do caso, roda o agente (caminho real de produção) e monta o
+    LLMTestCase pronto pro deepeval. Limpa o Mongo mesmo se a execução falhar."""
     edital = indexar_caso(caso)
     try:
         execucao = await executar_caso(edital)
-        aderencia = avaliar_aderencia(caso.tools_esperadas, execucao.tools_chamadas)
-        recall = avaliar_recall_anomalias(caso.anomalias_esperadas, execucao.laudo)
     finally:
-        # Limpa pai e filho de uma vez, mesmo se a execução estourar no meio.
         limpar_edital(edital.edital_id)
 
-    return {
-        "caso_id": caso.id,
-        "descricao": caso.descricao,
-        "laudo": execucao.laudo,
-        "texto_laudo": execucao.texto_laudo,
-        "saidas_ferramentas": execucao.saidas_ferramentas,
-        "contexto_edital_recuperado": execucao.contexto_edital_recuperado,
-        "tools_chamadas": [t.model_dump() for t in execucao.tools_chamadas],
-        "aderencia_tools": aderencia.model_dump(),
-        "recall_anomalias": recall.model_dump(),
-    }
+    return LLMTestCase(
+        input=caso.descricao,
+        actual_output=execucao.texto_laudo,
+        context=execucao.saidas_ferramentas,
+        retrieval_context=[execucao.contexto_edital_recuperado or ""],
+        expected_output=caso.contexto_edital_esperado,
+        tools_called=_chamadas_tool(execucao.tools_chamadas),
+        expected_tools=_tools_esperadas(caso),
+        metadata={"anomalias_esperadas": caso.anomalias_esperadas},
+        name=caso.id,
+    )
+
 
 async def _rodar(ids: list[str] | None) -> None:
     casos = carregar_casos()
@@ -48,32 +64,31 @@ async def _rodar(ids: list[str] | None) -> None:
     preparar_ambiente()
 
     # Sequencial de propósito: rate limit dos LLMs e logs legíveis.
-    detalhes = [await _avaliar_caso(caso) for caso in casos]
+    test_cases = [await _montar_test_case(caso) for caso in casos]
 
-    metricas_por_caso = [
-        MetricasDoCaso(
-            caso_id=d["caso_id"],
-            aderencia_tools=d["aderencia_tools"]["score"],
-            recall_anomalias=d["recall_anomalias"]["score"],
-        )
-        for d in detalhes
+    metricas = [
+        ToolCorrectnessMetric(),  # só nome — ver ArgumentosToolMetric pros argumentos
+        ArgumentosToolMetric(),
+        RecallAnomaliasMetric(),
+        metrica_fidelidade(AVALIADOR_MODEL, AVALIADOR_TEMPERATURE),
     ]
-    aprovacao = avaliar_aprovacao(metricas_por_caso)
 
     RESULTADOS_DIR.mkdir(exist_ok=True)
-    carimbo = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    destino = RESULTADOS_DIR / f"avaliacao_{carimbo}.json"
-    destino.write_text(
-        json.dumps(
-            {"aprovacao": aprovacao.model_dump(), "casos": detalhes},
-            ensure_ascii=False,
-            indent=2,
+    resultado = evaluate(
+        test_cases=test_cases,
+        metrics=metricas,
+        display_config=DisplayConfig(
+            # inspect_after_run abre um prompt interativo (questionary) no fim da
+            # rodada — trava um script não-interativo esperando input que nunca chega.
+            inspect_after_run=False,
+            results_folder=str(RESULTADOS_DIR),  # grava test_run_<timestamp>.json
         ),
-        encoding="utf-8",
     )
 
-    print(formatar_relatorio(aprovacao))
-    print(f"\nRelatório completo: {destino}")
+    aprovado_geral = all(r.success for r in resultado.test_results)
+    if not aprovado_geral:
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     import logging

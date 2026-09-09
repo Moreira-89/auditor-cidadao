@@ -30,12 +30,8 @@ def limpar_edital(edital_id: str) -> None:
     )
 
 def indexar_caso(caso: Caso) -> EditalIndexado:
-    """
-    Prepara o edital de um caso para avaliação, pelo mesmo pipeline hierárquico da
-    produção: extrai a estrutura com Docling, injeta o trecho sintético (se houver)
-    como uma seção nova, extrai os CNPJs do texto combinado e grava pais e filhos
-    no MongoDB.
-    """
+    """Prepara o edital de um caso pelo mesmo pipeline de indexação da produção — ver
+    docs/ia/rag_dados.md."""
     pdf_bytes = (EDITAIS_DIR / caso.edital_pdf).read_bytes()
     tem_texto = documento_tem_texto_nativo(pdf_bytes, caso.edital_pdf)
     edital = extrair_estrutura_pdf(pdf_bytes, caso.edital_pdf, tem_texto)

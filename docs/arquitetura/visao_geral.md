@@ -50,9 +50,8 @@ flowchart LR
 ```
 
 É o ciclo **ReAct**: o modelo decide, as ferramentas executam, o modelo lê o resultado e decide de
-novo, até responder sem pedir mais nada. `recursion_limit=50` (definido nas chamadas em
-[`conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)
-e [`relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py))
+novo, até responder sem pedir mais nada. `recursion_limit=50` (definido na chamada em
+[`conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py))
 é o teto que impede um loop infinito entre os dois nós.
 
 O desenho completo dos dois pipelines ponta a ponta está em [Fluxo de Dados](fluxo_dados.md).
@@ -210,20 +209,18 @@ Duas verificações rodam no startup e transformam falhas silenciosas em avisos 
   vier do servidor — porque o pacote renomeou a ferramenta, por exemplo —, sai um `WARNING` com o
   nome exato. Sem isso, a ferramenta simplesmente desapareceria do agente.
 
-## Os dois fluxos que chamam o grafo
+## Um único fluxo chama o grafo
 
-O grafo tem dois consumidores, com necessidades opostas. Eles estão em arquivos separados porque
-não compartilham nada além do envelope de mensagem.
+[`agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)
+(`run_agent()`) é o único ponto de entrada do grafo, tanto para uma pergunta real do usuário quanto
+para o relatório automático pós-upload — a diferença entre os dois é só qual texto vira a "pergunta"
+(`PROMPT_RELATORIO_INICIAL` no automático, ver `app/api/endpoints/chat.py`), nunca o caminho de
+código. O golden dataset da avaliação (`backend/evaluation/`) roda exatamente esse mesmo
+`run_agent()`, pelo mesmo motivo.
 
-| Arquivo | Entrada | Saída | Como chama o grafo |
-|---|---|---|---|
-| [`agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py) | Pergunta do usuário | Markdown em streaming (SSE) | `astream_events()` |
-| [`agents/relatorio.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/relatorio.py) | Disparo automático pós-upload | JSON estruturado, síncrono | `ainvoke()` + extrator |
-
-O que os dois compartilham vive em
-[`agents/envelope.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/envelope.py):
-`escape_xml()` (guardrail anti prompt-injection, ver [Guardrails](../governanca/guardrails.md)) e
-`montar_primeiro_turno()`, que monta o `PROMPT_DINAMICO` com CNPJs, estado, município e data — o
+[`agents/envelope.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/envelope.py)
+tem `escape_xml()` (guardrail anti prompt-injection, ver [Guardrails](../governanca/guardrails.md))
+e `montar_primeiro_turno()`, que monta o `PROMPT_DINAMICO` com CNPJs, estado, município e data — o
 primeiro `HumanMessage` de toda thread nova, seja ela aberta por uma pergunta ou pelo relatório
 automático.
 
@@ -275,8 +272,8 @@ Essa fronteira é o que permite consumir o agente sem HTTP: um teste afirma
 consumidor futuro (uma fila, um WebSocket) recebe objetos em vez de bytes de SSE.
 
 Nenhum turno faz extração estruturada: a resposta sempre chega ao frontend como Markdown livre. O
-[relatório automático](../ia/extracao_laudo.md) é só o primeiro turno da thread, disparado pelo
-frontend logo após o upload (via `inicial: true`) e streamado como qualquer outro.
+relatório automático é só o primeiro turno da thread, disparado pelo frontend logo após o upload
+(via `inicial: true`) e streamado como qualquer outro.
 
 !!! note "Histórico interrompido no meio de uma `tool_call`"
     Se o usuário interromper a execução de uma ferramenta, o checkpointer fica com uma `AIMessage`

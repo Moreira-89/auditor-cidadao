@@ -102,9 +102,8 @@ O endpoint
 conforme são gerados e mensagens de status quando uma ferramenta é acionada (ex.: *"🏛️ Consultando
 dados cadastrais na Receita Federal..."*).
 
-Nenhum turno de produção faz extração estruturada — nem as perguntas comuns nem o
-[relatório automático](../ia/extracao_laudo.md), que hoje é só o primeiro turno da thread, streamado
-igual aos outros. Detalhes do stream em
+Nenhum turno de produção faz extração estruturada — nem as perguntas comuns nem o relatório
+automático, que hoje é só o primeiro turno da thread, streamado igual aos outros. Detalhes do stream em
 [Visão Geral](visao_geral.md#streaming-o-que-sai-pelo-sse-de-conversa), e o JSON completo de cada
 tipo de evento em
 [Referência de API](../operacional/api.md#post-conversar-com-auditor-perguntar-sobre-o-edital).

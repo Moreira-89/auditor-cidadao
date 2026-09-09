@@ -49,9 +49,9 @@ Lista completa de ferramentas, catálogo de anomalias e trade-offs de engenharia
 | Persistência / rate limiting | [Redis](https://redis.io/) |
 | Dados de licitação | [PNCP](https://pncp.gov.br/) via MCP (`@licinexusbr/mcp`) |
 | Sanções / cadastro | Portal da Transparência (CEIS/CNEP) + BrasilAPI |
-| Avaliação automatizada | [RAGAS](https://docs.ragas.io/) — golden dataset + pipeline de métricas |
+| Avaliação automatizada | [deepeval](https://deepeval.com/) (G-Eval) — golden dataset + pipeline de métricas |
 
-Versões exatas em [`requirements.txt`](./requirements.txt) e [`requirements-dev.txt`](./requirements-dev.txt).
+Versões exatas em [`requirements.txt`](./backend/requirements.txt).
 
 ---
 

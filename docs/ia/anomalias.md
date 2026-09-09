@@ -1,18 +1,19 @@
 # Catálogo de Anomalias
 
 O núcleo do conhecimento de auditoria do Auditor Cidadão é um catálogo de 9 categorias de anomalia
-(A–I), definido em [`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py) na constante `CATALOGO_ANOMALIAS`. Esse catálogo é injetado
-no `SYSTEM_PROMPT` (para o agente saber o que procurar) e no `PROMPT_EXTRATOR_INICIAL` (usado pelo
-framework de avaliação para classificar cada anomalia em código, ver
-[Relatório automático e extração do laudo](extracao_laudo.md)). Uma constante única, reusada nos
-dois, para evitar divergência de texto entre eles.
+(A–I), definido em
+[`app/agents/prompt.py:1`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py#L1)
+na constante `CATALOGO_ANOMALIAS`, injetada no `SYSTEM_PROMPT` (`prompt.py:292`, via f-string) — é
+o critério por letra que o agente usa pra saber o que procurar e como classificar cada achado. O
+código de cada categoria vem tipado como `Literal` em
+[`evaluation/dataset/schema.py:13`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/dataset/schema.py#L13)
+(`CodigoAnomalia`), para o golden dataset (ver [Avaliação](avaliacao.md)) não aceitar um código
+inválido em silêncio.
 
-!!! info "Uma constante, vários consumidores"
-    O catálogo estar em um só lugar não é detalhe estético. Um dos bugs corrigidos durante a
-    avaliação foi justamente o extrator ver *só* a lista de códigos válidos (`A`–`I`), sem os
-    critérios de cada um — e por isso não conseguir mapear um texto de sanção para o código `H`. A
-    correção foi extrair o catálogo completo (com critério por letra) para a constante única
-    `CATALOGO_ANOMALIAS`, reaproveitada em todos os prompts que precisam dele.
+A avaliação não tem um extrator de LLM próprio: os códigos que o agente aponta no Markdown são
+lidos direto por regex
+([`evaluation/metricas/recall_anomalias.py:10-14`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L10-L14)),
+sem duplicar o catálogo em outro prompt.
 
 ## As 9 categorias
 
@@ -53,9 +54,8 @@ Empresa vencedora consta em CEIS, CNEP ou lista de inidôneos do TCU. É **proib
     Qualquer registro retornado por uma consulta a CEIS ou CNEP caracteriza H — suspensão,
     impedimento, declaração de inidoneidade, multa, publicação extraordinária da decisão
     condenatória, etc. Registros acessórios (ex.: uma multa) não anulam nem diluem a caracterização
-    de H trazida pelos demais registros do mesmo CNPJ. Essa regra é explicitada tanto no
-    `SYSTEM_PROMPT` quanto no `PROMPT_EXTRATOR_INICIAL`, porque o modelo tendia a ignorar a
-    anomalia quando os registros eram heterogêneos.
+    de H trazida pelos demais registros do mesmo CNPJ. Essa regra é explicitada no `SYSTEM_PROMPT`,
+    porque o modelo tendia a ignorar a anomalia quando os registros eram heterogêneos.
 
 ### I — Incompatibilidade de Atividade
 CNAE principal da empresa não compatível com o objeto licitado (ex.: empresa cadastrada como

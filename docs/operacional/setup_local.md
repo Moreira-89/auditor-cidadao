@@ -57,12 +57,11 @@ source .venv/bin/activate
 ## 3. Instalar dependências
 
 ```bash
-pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+pip install -r backend/requirements.txt
 ```
 
-`requirements.txt` é o que vai para a imagem Docker publicada (runtime da API);
-`requirements-dev.txt` traz `mkdocs`/`mkdocs-material` (esta documentação) e `pytest` — só para
-desenvolvimento local, fora da imagem.
+Um arquivo único: runtime da API, MkDocs (esta documentação), testes (`pytest`) e a
+avaliação (`deepeval`) — tudo na mesma imagem/ambiente.
 
 ## 4. Configurar variáveis de ambiente
 

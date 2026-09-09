@@ -64,3 +64,9 @@ if not AMBIENTE_PRODUCAO:
 
 # Conexão com MongoDB Atlas — armazena e busca os chunks do edital (RAG hierárquico).
 MONGODB_URI = os.getenv("MONGODB_URI")
+
+# Juiz LLM da métrica de Fidelidade (G-Eval), ver backend/evaluation/metricas/fidelidade.py.
+# Só OpenAI é suportado como juiz hoje; removemos o prefixo "openai:" se vier
+# (mesmo formato "provider:model" do LLM_MODEL, mas aqui só um provider existe).
+AVALIADOR_MODEL = os.getenv("AVALIADOR_MODEL", "gpt-4o").removeprefix("openai:")
+AVALIADOR_TEMPERATURE = float(os.getenv("AVALIADOR_TEMPERATURE", "0.0"))

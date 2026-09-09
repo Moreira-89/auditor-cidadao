@@ -6,11 +6,14 @@ node_modules/
 assets/external/
 *.txt
 !requirements.txt
-!requirements-dev.txt
 arquivos_locais/
 .claude/*
 apresentacao_data_master
 .vscode/
+
+# deepeval — cache/estado de runtime, não faz parte do resultado da avaliação
+backend/.deepeval/
+backend/evaluation/resultados/.test_run.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

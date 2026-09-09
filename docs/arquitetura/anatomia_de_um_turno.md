@@ -184,8 +184,8 @@ token a token, com o status de cada tool. Consome `quota_chat` (50/dia), não `q
 
 Antes esse turno rodava síncrono dentro do `/upload/` (mais uma 2ª chamada de LLM para extrair um
 laudo estruturado). Somado ao Docling, o request ficava em ~4 min e o navegador derrubava a conexão
-antes do fim. Agora o laudo é só o markdown streamado; a extração estruturada saiu do fluxo de
-produção (segue viva só em `evaluation/` — ver [Avaliação](../ia/avaliacao.md)).
+antes do fim. Agora o laudo é só o markdown streamado; nem a avaliação estrutura mais isso — lê os
+códigos de anomalia por regex do próprio markdown (ver [Avaliação](../ia/avaliacao.md)).
 
 ---
 

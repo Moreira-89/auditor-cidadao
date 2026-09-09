@@ -124,10 +124,10 @@ data: {"type": "token", "content": " vencedora"}
 data: {"type": "done"}
 ```
 
-Nenhum turno emite laudo estruturado — nem as perguntas comuns nem o
-[relatório automático](../ia/extracao_laudo.md) (o turno com `inicial: true`). Toda resposta chega
-como Markdown em streaming (`token`(s), o(s) `status` de qualquer tool chamada, e `done` no final).
-A extração de um laudo em JSON existe só no framework de avaliação.
+Nenhum turno emite laudo estruturado — nem as perguntas comuns nem o relatório automático (o turno
+com `inicial: true`). Toda resposta chega como Markdown em streaming (`token`(s), o(s) `status` de
+qualquer tool chamada, e `done` no final). A extração de códigos de anomalia (para a métrica de
+avaliação) lê esse mesmo Markdown por regex — ver [Avaliação](../ia/avaliacao.md).
 
 **Se algo falhar no meio do streaming:**
 
