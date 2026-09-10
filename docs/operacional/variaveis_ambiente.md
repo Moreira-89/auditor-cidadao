@@ -11,18 +11,16 @@ Todas são lidas uma única vez em [`app/config/settings.py`](https://github.com
 | `LLM_MODEL` | Não | `openai:gpt-4o-mini` | Modelo do agente principal, no formato `provider:model-name`. Trocável para `groq:gpt-oss-120b` ou `google_genai:gemini-2.0-flash` sem mudar código — o provider precisa ter a chave correspondente preenchida e o pacote `langchain-<provider>` instalado |
 | `LLM_TEMPERATURE` | Não | `0.1` | Temperatura do agente principal |
 | `LLM_MAX_TOKENS` | Não | `4096` | Limite de tokens de saída do agente principal |
-| `LLM_TIMEOUT_SEGUNDOS` | Não | `60` | Timeout por chamada ao LLM — sem ele, uma resposta lenta da OpenAI pode segurar o turno (e o streaming SSE) indefinidamente. Reusado pelo extrator (ver abaixo) |
-| `LLM_MAX_RETRIES` | Não | `2` | Nº de retries por chamada ao LLM — menor que o default da lib (6) de propósito: no caminho síncrono de resposta ao usuário, falhar mais rápido (e deixar o evento `error` do SSE avisar) é preferível a segurar a requisição por vários minutos de retry. Reusado pelo extrator |
-| `EXTRATOR_MODEL` | Não | `openai:gpt-4o-mini` | Modelo usado só para extrair o laudo estruturado (JSON) a partir do Markdown já gerado. Separado do `LLM_MODEL` para permitir trocar um sem afetar o outro |
-| `EXTRATOR_TEMPERATURE` | Não | `0.0` | Temperatura do extrator — fixa em zero porque a tarefa é extração determinística, não geração criativa |
+| `LLM_TIMEOUT_SEGUNDOS` | Não | `60` | Timeout por chamada ao LLM — sem ele, uma resposta lenta pode segurar o turno (e o streaming SSE) indefinidamente |
+| `LLM_MAX_RETRIES` | Não | `2` | Nº de retries por chamada ao LLM — menor que o default da lib (6) de propósito: no caminho síncrono de resposta ao usuário, falhar mais rápido (e deixar o evento `error` do SSE avisar) é preferível a segurar a requisição por vários minutos de retry |
 
 ## Chaves de API dos provedores de LLM
 
 | Variável | Obrigatória | Descrição |
 |---|---|---|
-| `OPENAI_API_KEY` | **Sim, sempre** | Mesmo que `LLM_MODEL`/`EXTRATOR_MODEL` usem outro provider, os embeddings do RAG (`text-embedding-3-small`) sempre passam pela OpenAI |
-| `GROQ_API_KEY` | Só se usar Groq | Obrigatória apenas se `LLM_MODEL` ou `EXTRATOR_MODEL` apontarem para `groq:...` |
-| `GOOGLE_API_KEY` | Só se usar Gemini | Obrigatória apenas se `LLM_MODEL` ou `EXTRATOR_MODEL` apontarem para `google_genai:...` |
+| `OPENAI_API_KEY` | **Sim, sempre** | Mesmo que `LLM_MODEL` use outro provider, os embeddings do RAG (`EMBEDDING_MODEL`) sempre passam pela OpenAI |
+| `GROQ_API_KEY` | Só se usar Groq | Obrigatória apenas se `LLM_MODEL` apontar para `groq:...` |
+| `GOOGLE_API_KEY` | Só se usar Gemini | Obrigatória apenas se `LLM_MODEL` apontar para `google_genai:...` |
 
 ## Banco vetorial (RAG hierárquico do edital — MongoDB Atlas)
 

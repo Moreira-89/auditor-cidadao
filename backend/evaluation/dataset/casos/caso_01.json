@@ -1,11 +1,12 @@
 {
   "id": "caso_01_brejao_direcionamento",
-  "descricao": "São Francisco do Brejão/MA — Pregão Eletrônico de serviços para eventos culturais. Para os itens de juiz e locutor de vaquejada, o edital exige credenciamento em entidade específica (ABVAQ), sem previsão de equivalência (Anomalia B — direcionamento).",
+  "tipo": "real",
+  "descricao": "São Francisco do Brejão/MA — Pregão Eletrônico de serviços para eventos culturais. Suíte real: valida só retrieval do contexto do edital e a tool de busca. A cláusula de credenciamento ABVAQ (possível Anomalia B) existe de fato no documento, mas não é cobrada aqui — detecção de anomalia migrou pra suíte sintética.",
   "edital_pdf": "caso_01.pdf",
   "estado": "Maranhão (MA)",
   "municipio": "São Francisco do Brejão",
   "trecho_injetado": null,
-  "anomalias_esperadas": ["B"],
+  "anomalias_esperadas": [],
   "tools_esperadas": [
     {"tool": "buscar_contexto_edital", "argumentos_esperados": {}}
   ],

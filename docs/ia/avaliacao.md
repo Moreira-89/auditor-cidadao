@@ -12,35 +12,56 @@ pacote irmão de `backend/app/` — a avaliação importa do `app`, nunca o cont
 ## O golden dataset
 
 `evaluation/dataset/casos/caso_*.json`, validados contra o schema `Caso`
-([`evaluation/dataset/schema.py:19-34`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/dataset/schema.py#L19-L34)),
-carregados por `carregar_casos()` (`schema.py:37`). O `id` do caso e o nome do PDF em `editais/`
-usam o mesmo número (`caso_02_saoluis_sancao` → `caso_02.pdf`):
+([`evaluation/dataset/schema.py:19-36`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/dataset/schema.py#L19-L36)),
+carregados por `carregar_casos()` (`schema.py:39`). O `id` do caso e o nome do PDF em `editais/`
+usam o mesmo número (`caso_02_saoluis_sancao` → `caso_02.pdf`).
 
-| id | Município | Anomalia esperada | Injeção sintética |
-|---|---|---|---|
-| `caso_01_brejao_direcionamento` | São Francisco do Brejão/MA | **B** — direcionamento (exigência de credenciamento ABVAQ sem previsão de equivalência, cláusula **real** do edital) | — |
-| `caso_02_saoluis_sancao` | São Luís/MA | **H** — sanção vigente | vencedora sintética (CNPJ real sancionado, CNAE de comércio compatível com o objeto) |
-| `caso_03_belem_limpeza` | Belém/PA | **H + I** — sanção + CNAE de comércio incompatível com serviço de limpeza | vencedora sintética (mesmo CNPJ) |
-| `caso_04_controle` | Miracema/RJ | *nenhuma* | — (caso-controle: o agente não pode inventar irregularidade) |
+**Um dataset, dois `tipo`.** Editais reais têm gabarito de anomalia ambíguo por natureza — não dá
+pra saber com certeza, só olhando o texto extraído, se o agente errou ou se foi o gabarito que
+errou (ver "Por que os 4 editais reais não cobram anomalia" abaixo). Em vez de manter dois
+datasets separados, `Caso.tipo` (`schema.py:14`, `Literal["real", "sintetico"]`) marca o que cada
+caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:81-118`) com listas de métrica
+diferentes:
 
-Cada caso declara o gabarito, três campos (`schema.py:29-34`):
+| `tipo` | O que cobra | Editais |
+|---|---|---|
+| `real` | Retrieval do contexto (`ContextualRecallMetric`) + tool correta | os 4 atuais — documentos verdadeiros, PDF real |
+| `sintetico` | Anomalia detectada certa (`RecallAnomaliasMetric`) + tool + argumento | ainda não criados — PDF fabricado com gabarito sem ambiguidade |
 
-- `anomalias_esperadas: list[CodigoAnomalia]` — códigos A–I tipados como `Literal` (`schema.py:13`),
+| id | Município | Objeto |
+|---|---|---|
+| `caso_01_brejao_direcionamento` | São Francisco do Brejão/MA | Eventos culturais — o edital real tem uma cláusula de credenciamento ABVAQ que **parece** direcionamento (B), mas isso não é cobrado aqui, só o retrieval do objeto |
+| `caso_02_saoluis_sancao` | São Luís/MA | Dispensa eletrônica para notebooks |
+| `caso_03_belem_limpeza` | Belém/PA | Pregão de limpeza e conservação |
+| `caso_04_controle` | Miracema/RJ | Dispensa para câmeras de vigilância (caso-controle) |
+
+Cada caso declara o gabarito (`schema.py:23-31`):
+
+- `anomalias_esperadas: list[CodigoAnomalia]` — códigos A–I tipados como `Literal` (`schema.py:10`),
   reaproveitado de `app/agents/prompt.py`; um typo no JSON (ex.: `"J"`) não passa validação em
-  silêncio.
+  silêncio. Vazio nos 4 casos `real` de propósito — ver seção seguinte.
 - `tools_esperadas: list[ToolEsperada]` — cada item é `{tool, argumentos_esperados}`
-  (`schema.py:15-16`).
-- `contexto_edital_esperado` — referência textual do trecho relevante do edital; ainda sem métrica
-  que o consuma (gabarito pronto para uma futura métrica de cobertura de contexto).
+  (`schema.py:16-17`).
+- `contexto_edital_esperado` — gabarito textual do objeto do edital, consumido pela
+  `ContextualRecallMetric` (ver "As métricas" abaixo).
 
-**Injeção sintética.** `caso.trecho_injetado` (`caso_02.json`, `caso_03.json`) simula uma vencedora
-com sanção sem precisar de um edital real que já a contenha. `indexar_caso`
-([`evaluation/indexacao.py:51-68`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/indexacao.py#L51-L68))
-não concatena o trecho ao texto plano — ele vira uma **seção sintética** (título
-`"TRECHO INJETADO (AVALIAÇÃO)"`, `indexacao.py:60-61`) e um filho, indo pro MongoDB pelo mesmo
-caminho de indexação hierárquica de um edital real (ver [Uso de Dados e RAG](rag_dados.md)). O
-`edital_id` gravado é `eval-<caso.id>` (`indexacao.py:73`), casado com o `thread_id` que
-`executar_caso` usa para filtrar o RAG.
+**Por que os 4 editais reais não cobram anomalia.** `caso_01` e `caso_02` já passaram por isso na
+prática: o agente apontou um código a mais do que o gabarito previa (`caso_01`: B + I; `caso_02`:
+H + I), e não deu pra decidir com segurança se era over-detection do modelo ou um gabarito
+incompleto — o `caso_02` era de fato o segundo (corrigido depois de conferir CNAE/CNPJ reais), mas
+o `caso_01` ficou sem veredito claro. Documento real e mensagens de erro reais (Docling variando
+extração PDF a PDF) tornam o "gabarito certo" um alvo móvel. Por isso a suíte `real` agora só
+audita o que é objetivamente checável num edital de verdade — o agente recuperou o trecho certo do
+edital e chamou a tool certa — e toda a detecção de anomalia migrou pra suíte `sintetico`, onde o
+gabarito é escrito antes do PDF existir e não tem outra leitura possível.
+
+**Injeção sintética (histórico).** Os 4 editais reais chegaram a usar `caso.trecho_injetado` pra
+simular uma vencedora com sanção sem precisar de um edital real que já a contivesse — mecanismo
+ainda presente no schema (`schema.py:25`) e em `indexar_caso`
+([`evaluation/indexacao.py:51-68`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/indexacao.py#L51-L68),
+vira uma seção sintética no MongoDB, título `"TRECHO INJETADO (AVALIAÇÃO)"`, `indexacao.py:60-61`),
+mas os 4 casos atuais não usam mais — a injeção de vencedora/CNPJ é exatamente o tipo de cenário
+que a suíte `sintetico` assume por inteiro, com controle total do texto do PDF.
 
 !!! note "Um caso-controle também tem tool esperada"
     `caso_04_controle` não espera nenhuma anomalia, mas **espera** `buscar_contexto_edital` (com
@@ -107,14 +128,31 @@ implementa isso pronto (`GEval` + `Rubric`, ver `evaluation/metricas/fidelidade.
 a nota final pela probabilidade dos tokens de saída (`logprobs`) quando o modelo/provider suporta —
 mais um fator de estabilidade que não precisou ser implementado à mão.
 
-## As quatro métricas
+## As métricas
+
+Comuns aos dois lotes (`_metricas_comuns`, `runner.py:22-27`):
 
 | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|
-| **Tool Correctness** | ≥ 0.50 | Nativa do deepeval (`ToolCorrectnessMetric`, `evaluation/runner.py:70`) — confere só o **nome** da tool chamada contra `expected_tools`, sem exigir ordem | Não |
+| **Tool Correctness** | ≥ 0.50 | Nativa do deepeval (`ToolCorrectnessMetric`) — confere só o **nome** da tool chamada contra `expected_tools`, sem exigir ordem | Não |
 | **Argumentos da Tool** | ≥ 1.00 | Customizada (`ArgumentosToolMetric`, [`evaluation/metricas/argumentos_tool.py:17-65`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/argumentos_tool.py#L17-L65)) — subset-match dos argumentos esperados (ex.: `cnpj`), normalizando dígitos (`argumentos_tool.py:5-14`) | Não |
-| **Recall de Anomalias** | ≥ 0.80 | Customizada (`RecallAnomaliasMetric`, [`evaluation/metricas/recall_anomalias.py:21-66`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L21-L66)) — F1 entre os códigos A–I esperados e os extraídos por regex do Markdown. Caso-controle sem anomalia esperada → binário (qualquer código apontado é falso positivo) | Não |
 | **Fidelidade** | ≥ 0.60 | `GEval` com `Rubric` de 5 níveis ([`evaluation/metricas/fidelidade.py:7-59`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/fidelidade.py#L7-L59)) — o laudo só afirma o que as saídas das tools sustentam, sem inventar nem extrapolar | Sim (juiz) |
+
+Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:66-78`):
+
+| `tipo` | Métrica | Limiar | Como é medida | Usa LLM? |
+|---|---|---|---|---|
+| `real` | **Cobertura de Contexto** | ≥ 0.70 | Nativa do deepeval (`ContextualRecallMetric`) — quebra `contexto_edital_esperado` (`expected_output`) em sentenças e verifica quantas têm sustentação em `retrieval_context` (o que `buscar_contexto_edital` de fato devolveu) | Sim (juiz) |
+| `sintetico` | **Recall de Anomalias** | ≥ 0.80 | Customizada (`RecallAnomaliasMetric`, [`evaluation/metricas/recall_anomalias.py:21-66`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L21-L66)) — F1 entre os códigos A–I esperados e os extraídos por regex do Markdown. Caso-controle sem anomalia esperada → binário (qualquer código apontado é falso positivo) | Não |
+
+!!! note "`ContextualRecallMetric` não é G-Eval"
+    É a exceção à régua da seção anterior — usa o algoritmo "veredito por sentença, depois
+    proporção" (mesma família do `context_recall` do RAGAS), sem `evaluation_steps`/`Rubric`. A
+    diferença pro RAGAS é que o deepeval força a saída do juiz por schema (Pydantic), o que tende a
+    ser mais estável que o prompt solto do RAGAS — mas, sem rubric, o placar dela deve ser lido com
+    mais desconfiança que o da Fidelidade até se acumular evidência de rodadas repetidas. Foi aceita
+    mesmo assim porque reaproveita o gabarito `contexto_edital_esperado` (que já existia sem
+    consumidor) sem escrever uma métrica nova do zero.
 
 **Por que duas métricas de tool em vez de uma.** `ToolCorrectnessMetric` compara `input_parameters`
 por **igualdade exata** quando `ToolCallParams.INPUT_PARAMETERS` está em `evaluation_params` — isso
@@ -150,7 +188,7 @@ um caso fiel (score 1.0) — a régua discrimina de fato, não dá nota alta por
 ## O pipeline
 
 `runner.py` roda os casos **sequencialmente** (rate limit dos LLMs, logs legíveis). Por caso
-(`_montar_test_case`, `runner.py:34-53`):
+(`_montar_test_case`, `runner.py:35-54`):
 
 ```
 preparar_ambiente()     → grafo montado fora do lifespan: só as 4 TOOLS_NATIVAS,
@@ -161,11 +199,13 @@ preparar_ambiente()     → grafo montado fora do lifespan: só as 4 TOOLS_NATIV
   finally: limpar_edital(edital_id)
 ```
 
-Depois de rodar todos os casos, `_rodar` (`runner.py:56-92`) monta um `LLMTestCase` por caso e chama
-`deepeval.evaluate(test_cases=..., metrics=...)` (`runner.py:77-87`) uma vez só — o relatório
-(score/threshold/motivo por métrica, agregado por métrica) é todo do `deepeval`. `evaluate()` grava
-`evaluation/resultados/test_run_<timestamp>.json` com o resultado completo; `_rodar` sai com
-`sys.exit(1)` (`runner.py:92`) se algum caso reprovou em qualquer métrica.
+Depois de rodar todos os casos, `_rodar` (`runner.py:81-118`) monta um `LLMTestCase` por caso e
+chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:101-115`)
+— não uma vez só: `real` e `sintetico` cobram métricas diferentes (ver "As métricas" acima), e o
+`evaluate()` do deepeval só aceita uma lista de métrica global por chamada, não uma por
+`test_case`. Cada `evaluate()` grava seu próprio
+`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:118`)
+se algum caso, em qualquer lote, reprovou em qualquer métrica.
 
 ## Rodando
 
@@ -198,12 +238,18 @@ para decidir o que buscar e como reportar) — não só um número pra decidir a
 
 ## Estado atual do veredito
 
-!!! danger "Reprovado — `caso_01` (cláusula ABVAQ) e parte do `caso_03` continuam sem detecção"
-    Última rodada de referência: `Tool Correctness` 4/4, `Argumentos da Tool` 4/4, `Recall de
-    Anomalias` 2/4 (média 0.67), `Fidelidade` 4/4 (média ~0.99). Pass rate geral: 1/4 casos com
-    **todas** as métricas passando.
+!!! info "Baseline pendente — dataset acabou de ser reparticionado em `real`/`sintetico`"
+    Os números de rodadas anteriores (`Recall de Anomalias` medido contra os 4 editais reais)
+    ficaram obsoletos com a mudança descrita em "O golden dataset": a suíte `real` não cobra mais
+    anomalia, e a suíte `sintetico` ainda não tem nenhum caso — os PDFs fabricados estão em
+    elaboração. O primeiro resultado depois que a suíte `sintetico` ganhar casos **é** o novo
+    baseline; não há como comparar número a número com as rodadas anteriores, porque a métrica que
+    gerava esse número (F1 de anomalia contra edital real) não roda mais para esses 4 casos.
 
-    O `caso_01` não acha a cláusula ABVAQ (score 0.0) e o `caso_03` só acha a sanção (H), não a
-    incompatibilidade cadastral (I) — causa é retrieval, não a avaliação em si: o texto embedado do
-    filho não carrega o caminho da seção, e `TableItem` nunca é fatiado (ver "Limitações conhecidas
-    do retrieval" em [Uso de Dados e RAG](rag_dados.md#limitacoes-conhecidas-do-retrieval)).
+    O achado de retrieval que motivou parte dessa migração continua válido e não resolvido: o
+    `caso_01` não recuperava a cláusula ABVAQ e o `caso_03` só achava metade do que precisava —
+    causa apontada foi retrieval (texto embedado do filho sem o caminho da seção, `TableItem` nunca
+    fatiado; ver "Limitações conhecidas do retrieval" em
+    [Uso de Dados e RAG](rag_dados.md#limitacoes-conhecidas-do-retrieval)). É exatamente esse tipo de
+    falha que a `ContextualRecallMetric` na suíte `real` passa a medir diretamente, em vez de
+    aparecer disfarçada de "erro de anomalia".

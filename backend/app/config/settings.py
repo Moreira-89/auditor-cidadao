@@ -15,13 +15,6 @@ LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 LLM_TIMEOUT_SEGUNDOS = int(os.getenv("LLM_TIMEOUT_SEGUNDOS", "60"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "2"))
 
-# Extrator roda no mesmo turno, depois do streaming (ver ai_engine.py) — reusa os
-# limites do agente principal em vez de expor env vars próprias sem necessidade.
-EXTRATOR_MODEL = os.getenv("EXTRATOR_MODEL", "openai:gpt-4o-mini")
-EXTRATOR_TEMPERATURE = float(os.getenv("EXTRATOR_TEMPERATURE", "0.0"))
-EXTRATOR_TIMEOUT_SEGUNDOS = LLM_TIMEOUT_SEGUNDOS
-EXTRATOR_MAX_RETRIES = LLM_MAX_RETRIES
-
 # Busca vetorial do RAG de editais (ver app/storage/vetorial.py).
 TOP_K_EDITAL = int(os.getenv("TOP_K_EDITAL", "5"))
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")

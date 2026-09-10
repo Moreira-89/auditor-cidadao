@@ -5,8 +5,6 @@ python-multipart==0.0.9
 itsdangerous==2.2.0
 
 # IA Orquestração
-langchain-groq==1.1.2
-langchain-google-genai==4.2.7
 langgraph==1.2.9
 langchain-mcp-adapters==0.3.0
 mcp==1.28.1
