@@ -11,22 +11,24 @@ pacote irmão de `backend/app/` — a avaliação importa do `app`, nunca o cont
 
 ## O golden dataset
 
-`evaluation/dataset/casos/caso_*.json`, validados contra o schema `Caso`
-([`evaluation/dataset/schema.py:19-36`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/dataset/schema.py#L19-L36)),
-carregados por `carregar_casos()` (`schema.py:39`). O `id` do caso e o nome do PDF em `editais/`
-usam o mesmo número (`caso_02_saoluis_sancao` → `caso_02.pdf`).
+`evaluation/dataset/golden_dataset.json` — uma lista única de casos, validados contra o schema
+`Caso` ([`evaluation/dataset/schema.py:20-35`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/dataset/schema.py#L20-L35)),
+carregados por `carregar_casos()` (`schema.py:38-40`). O nome do PDF é declarado por caso em
+`edital_pdf` e vive em `evaluation/dataset/editais/` — não há mais convenção de nome
+(`EDITAIS_DIR / caso.edital_pdf`, `indexacao.py:14,35`), então o `id` do caso e o nome do arquivo
+não precisam bater.
 
 **Um dataset, dois `tipo`.** Editais reais têm gabarito de anomalia ambíguo por natureza — não dá
 pra saber com certeza, só olhando o texto extraído, se o agente errou ou se foi o gabarito que
 errou (ver "Por que os 4 editais reais não cobram anomalia" abaixo). Em vez de manter dois
 datasets separados, `Caso.tipo` (`schema.py:14`, `Literal["real", "sintetico"]`) marca o que cada
-caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:81-118`) com listas de métrica
+caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:77-114`) com listas de métrica
 diferentes:
 
 | `tipo` | O que cobra | Editais |
 |---|---|---|
-| `real` | Retrieval do contexto (`ContextualRecallMetric`) + tool correta | os 4 atuais — documentos verdadeiros, PDF real |
-| `sintetico` | Anomalia detectada certa (`RecallAnomaliasMetric`) + tool + argumento | ainda não criados — PDF fabricado com gabarito sem ambiguidade |
+| `real` | Retrieval do contexto (`ContextualRecallMetric`) + tool correta | os 4 originais — documentos verdadeiros, PDF real |
+| `sintetico` | Anomalia detectada certa (`RecallAnomaliasMetric`) + tool + argumento | 9 casos, um por código do catálogo A–I |
 
 | id | Município | Objeto |
 |---|---|---|
@@ -35,13 +37,27 @@ diferentes:
 | `caso_03_belem_limpeza` | Belém/PA | Pregão de limpeza e conservação |
 | `caso_04_controle` | Miracema/RJ | Dispensa para câmeras de vigilância (caso-controle) |
 
-Cada caso declara o gabarito (`schema.py:23-31`):
+Suíte `sintetico` — um caso por código do catálogo (ver [Anomalias](anomalias.md)):
+
+| id | Anomalia | Cenário |
+|---|---|---|
+| `caso_05_sobrepreco_materiais_escolares` | **A** — sobrepreço | Papel sulfite 40% acima da mediana de referência |
+| `caso_06_brejao_direcionamento` | **B** — direcionamento | Credenciamento ABVAQ sem relação demonstrada com o objeto (mesma cláusula do `caso_01`, aqui com gabarito de anomalia) |
+| `caso_07_piumhi_fracionamento_obras` | **C** — fracionamento | Pavimentação dividida em 2 certames, ~2 meses de intervalo |
+| `caso_08_cartel_empresas_endereco_socios` | **D** — indício de conluio | 3 empresas, mesmo endereço/sócios, propostas muito próximas |
+| `caso_09_empresa_recente_obra_complexa` | **E** — empresa incompatível | Vencedora de obra de R$ 4,8 mi constituída 7 meses antes do edital |
+| `caso_10_barra_do_corda_prazo_insuficiente` | **F** — prazo insuficiente | Sem os 30 dias mínimos entre publicação e sessão |
+| `caso_11_reincidencia_empresa_vencedora` | **G** — concentração | Uma empresa venceu 64,3% dos certames do órgão em 12 meses |
+| `caso_12_empresa_sancionada_ceis` | **H** — sanção vigente | Vencedora consta no CEIS, adjudicada mesmo assim |
+| `caso_13_angulo_grafica_cnae_incompativel` | **I** — CNAE incompatível | Gráfica desclassificada por CNAE sem relação com o objeto |
+
+Cada caso declara o gabarito (`schema.py:20-35`):
 
 - `anomalias_esperadas: list[CodigoAnomalia]` — códigos A–I tipados como `Literal` (`schema.py:10`),
   reaproveitado de `app/agents/prompt.py`; um typo no JSON (ex.: `"J"`) não passa validação em
   silêncio. Vazio nos 4 casos `real` de propósito — ver seção seguinte.
 - `tools_esperadas: list[ToolEsperada]` — cada item é `{tool, argumentos_esperados}`
-  (`schema.py:16-17`).
+  (`schema.py:17-18`).
 - `contexto_edital_esperado` — gabarito textual do objeto do edital, consumido pela
   `ContextualRecallMetric` (ver "As métricas" abaixo).
 
@@ -55,13 +71,16 @@ audita o que é objetivamente checável num edital de verdade — o agente recup
 edital e chamou a tool certa — e toda a detecção de anomalia migrou pra suíte `sintetico`, onde o
 gabarito é escrito antes do PDF existir e não tem outra leitura possível.
 
-**Injeção sintética (histórico).** Os 4 editais reais chegaram a usar `caso.trecho_injetado` pra
-simular uma vencedora com sanção sem precisar de um edital real que já a contivesse — mecanismo
-ainda presente no schema (`schema.py:25`) e em `indexar_caso`
-([`evaluation/indexacao.py:51-68`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/indexacao.py#L51-L68),
-vira uma seção sintética no MongoDB, título `"TRECHO INJETADO (AVALIAÇÃO)"`, `indexacao.py:60-61`),
-mas os 4 casos atuais não usam mais — a injeção de vencedora/CNPJ é exatamente o tipo de cenário
-que a suíte `sintetico` assume por inteiro, com controle total do texto do PDF.
+**Injeção sintética.** `caso.trecho_injetado` (`schema.py:29`) simula um trecho que não existe no
+PDF original sem precisar de um edital real que já o contenha — usado hoje só pelo
+`caso_06_brejao_direcionamento` (reaproveita o PDF real do `caso_01`, injetando a cláusula ABVAQ
+como achado com gabarito de anomalia). `indexar_caso`
+([`evaluation/indexacao.py:32-64`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/indexacao.py#L32-L64))
+não concatena o trecho só ao texto plano — ele também vira uma **seção sintética** (título
+`"TRECHO INJETADO (AVALIAÇÃO)"`, `indexacao.py:55-59`), indo pro MongoDB pelo mesmo caminho de
+indexação hierárquica de um edital real. Os 4 casos `real` não usam mais o mecanismo — a injeção de
+vencedora/CNPJ é exatamente o tipo de cenário que a suíte `sintetico` assume por inteiro, com
+controle total do texto do PDF (ex.: `caso_12`, PDF já nasce com a sanção no corpo do documento).
 
 !!! note "Um caso-controle também tem tool esperada"
     `caso_04_controle` não espera nenhuma anomalia, mas **espera** `buscar_contexto_edital` (com
@@ -130,7 +149,7 @@ mais um fator de estabilidade que não precisou ser implementado à mão.
 
 ## As métricas
 
-Comuns aos dois lotes (`_metricas_comuns`, `runner.py:22-27`):
+Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`runner.py:60-74`):
 
 | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|
@@ -138,7 +157,7 @@ Comuns aos dois lotes (`_metricas_comuns`, `runner.py:22-27`):
 | **Argumentos da Tool** | ≥ 1.00 | Customizada (`ArgumentosToolMetric`, [`evaluation/metricas/argumentos_tool.py:17-65`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/argumentos_tool.py#L17-L65)) — subset-match dos argumentos esperados (ex.: `cnpj`), normalizando dígitos (`argumentos_tool.py:5-14`) | Não |
 | **Fidelidade** | ≥ 0.60 | `GEval` com `Rubric` de 5 níveis ([`evaluation/metricas/fidelidade.py:7-59`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/fidelidade.py#L7-L59)) — o laudo só afirma o que as saídas das tools sustentam, sem inventar nem extrapolar | Sim (juiz) |
 
-Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:66-78`):
+Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:60-74`):
 
 | `tipo` | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|---|
@@ -199,12 +218,12 @@ preparar_ambiente()     → grafo montado fora do lifespan: só as 4 TOOLS_NATIV
   finally: limpar_edital(edital_id)
 ```
 
-Depois de rodar todos os casos, `_rodar` (`runner.py:81-118`) monta um `LLMTestCase` por caso e
-chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:101-115`)
+Depois de rodar todos os casos, `_rodar` (`runner.py:77-114`) monta um `LLMTestCase` por caso e
+chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:97-110`)
 — não uma vez só: `real` e `sintetico` cobram métricas diferentes (ver "As métricas" acima), e o
 `evaluate()` do deepeval só aceita uma lista de métrica global por chamada, não uma por
 `test_case`. Cada `evaluate()` grava seu próprio
-`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:118`)
+`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:114`)
 se algum caso, em qualquer lote, reprovou em qualquer métrica.
 
 ## Rodando
@@ -238,13 +257,13 @@ para decidir o que buscar e como reportar) — não só um número pra decidir a
 
 ## Estado atual do veredito
 
-!!! info "Baseline pendente — dataset acabou de ser reparticionado em `real`/`sintetico`"
+!!! info "Baseline pendente — os 9 casos sintéticos são novos, ainda sem rodada de referência"
     Os números de rodadas anteriores (`Recall de Anomalias` medido contra os 4 editais reais)
     ficaram obsoletos com a mudança descrita em "O golden dataset": a suíte `real` não cobra mais
-    anomalia, e a suíte `sintetico` ainda não tem nenhum caso — os PDFs fabricados estão em
-    elaboração. O primeiro resultado depois que a suíte `sintetico` ganhar casos **é** o novo
-    baseline; não há como comparar número a número com as rodadas anteriores, porque a métrica que
-    gerava esse número (F1 de anomalia contra edital real) não roda mais para esses 4 casos.
+    anomalia, e a suíte `sintetico` (`caso_05` a `caso_13`, um por código A–I) acabou de ganhar seus
+    9 casos e PDFs — ainda não foi rodada. O primeiro `evaluate()` sobre ela **é** o novo baseline;
+    não há como comparar número a número com as rodadas anteriores, porque a métrica que gerava esse
+    número (F1 de anomalia contra edital real) não roda mais para os 4 casos `real`.
 
     O achado de retrieval que motivou parte dessa migração continua válido e não resolvido: o
     `caso_01` não recuperava a cláusula ABVAQ e o `caso_03` só achava metade do que precisava —

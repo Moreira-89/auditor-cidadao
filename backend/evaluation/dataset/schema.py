@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-CASOS_DIR = Path(__file__).parent / "casos"
+GOLDEN_DATASET_PATH = Path(__file__).parent / "golden_dataset.json"
 
 # Catálogo completo em docs/ia/anomalias.md.
 CodigoAnomalia = Literal["A", "B", "C", "D", "E", "F", "G", "H", "I"]
@@ -36,7 +36,5 @@ class Caso(BaseModel):
 
 
 def carregar_casos() -> list[Caso]:
-    return [
-        Caso.model_validate(json.loads(caminho.read_text(encoding="utf-8")))
-        for caminho in sorted(CASOS_DIR.glob("caso_*.json"))
-    ]
+    dados = json.loads(GOLDEN_DATASET_PATH.read_text(encoding="utf-8"))
+    return [Caso.model_validate(caso) for caso in dados]

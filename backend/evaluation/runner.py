@@ -56,22 +56,18 @@ async def _montar_test_case(caso: Caso) -> LLMTestCase:
 
 # Comuns aos dois lotes (tool certa + argumento certo). O que muda por `tipo` é só o
 # que cada suíte cobra como gabarito de conteúdo — ver docs/ia/avaliacao.md.
-def _metricas_comuns() -> list:
-    return [
-        ToolCorrectnessMetric(),  # só nome — ver ArgumentosToolMetric pros argumentos
-        ArgumentosToolMetric(),
-    ]
-
 
 def _metricas_por_tipo(juiz: OpenAIModel) -> dict[str, list]:
     return {
         "real": [
-            *_metricas_comuns(),
+            ToolCorrectnessMetric(),
+            ArgumentosToolMetric(),
             ContextualRecallMetric(threshold=0.7, model=juiz),
             metrica_fidelidade(AVALIADOR_MODEL, AVALIADOR_TEMPERATURE),
         ],
         "sintetico": [
-            *_metricas_comuns(),
+            ToolCorrectnessMetric(),
+            ArgumentosToolMetric(),
             RecallAnomaliasMetric(),
             metrica_fidelidade(AVALIADOR_MODEL, AVALIADOR_TEMPERATURE),
         ],

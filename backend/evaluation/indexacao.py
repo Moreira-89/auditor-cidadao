@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from evaluation.dataset.schema import Caso
 
-EDITAIS_DIR = Path(__file__).parent / "editais"
+EDITAIS_DIR = Path(__file__).parent / "dataset" / "editais"
 
 class EditalIndexado(BaseModel):
     caso_id: str
