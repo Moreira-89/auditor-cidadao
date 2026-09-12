@@ -1,7 +1,8 @@
 from deepeval.metrics import GEval
 from deepeval.metrics.g_eval import Rubric
-from deepeval.models import OpenAIModel
 from deepeval.test_case import SingleTurnParams
+
+from evaluation.juiz import construir_juiz
 
 
 def metrica_fidelidade(modelo_juiz: str, temperatura: float = 0.0, threshold: float = 0.6) -> GEval:
@@ -50,5 +51,5 @@ def metrica_fidelidade(modelo_juiz: str, temperatura: float = 0.0, threshold: fl
             ),
         ],
         threshold=threshold,
-        model=OpenAIModel(model=modelo_juiz, temperature=temperatura),
+        model=construir_juiz(modelo_juiz, temperatura),
     )

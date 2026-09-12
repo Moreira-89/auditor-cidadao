@@ -79,7 +79,7 @@ limiting (ver [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidad
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `AVALIADOR_MODEL` | Não | `gpt-4o` | Juiz LLM da métrica de Fidelidade (`GEval`) — ver [Avaliação](../ia/avaliacao.md). Aceita prefixo `openai:` (removido em código); só OpenAI é suportado como juiz hoje |
+| `AVALIADOR_MODEL` | Não | `gpt-4o` | Juiz LLM da Fidelidade (`GEval`) e da Cobertura de Contexto (`ContextualRecallMetric`) — ver [Avaliação](../ia/avaliacao.md). Prefixo `provider:model` (`evaluation/juiz.py`, mesma convenção do `LLM_MODEL`): `openai:` (default) ou `gemini:`. Gemini exige `GOOGLE_API_KEY`; útil pra fugir do TPM baixo do tier gratuito da OpenAI |
 | `AVALIADOR_TEMPERATURE` | Não | `0.0` | Temperatura do juiz — zero de propósito, instabilidade de julgamento foi o motivo de remover o RAGAS |
 | `DEEPEVAL_TELEMETRY_OPT_OUT` | Não | — | `1` desativa a telemetria do `deepeval`, mantendo a avaliação 100% local |
 

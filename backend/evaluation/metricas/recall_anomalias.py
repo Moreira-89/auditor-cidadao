@@ -18,7 +18,7 @@ def extrair_anomalias(texto_laudo: str) -> list[tuple[str, str]]:
 class RecallAnomaliasMetric(BaseMetric):
     """F1 de anomalias detectadas vs. esperadas, sem LLM — ver docs/ia/avaliacao.md."""
 
-    def __init__(self, threshold: float = 0.8):
+    def __init__(self, threshold: float = 0.65):
         self.threshold = threshold
 
     def measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:

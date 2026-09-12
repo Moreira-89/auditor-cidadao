@@ -4,20 +4,34 @@ from pathlib import Path
 
 from app.config.logging import logger
 from app.config.settings import AVALIADOR_MODEL, AVALIADOR_TEMPERATURE
+from app.storage.redis import abrir_client_redis
 from deepeval import evaluate
-from deepeval.evaluate.configs import DisplayConfig
+from deepeval.evaluate.configs import AsyncConfig, DisplayConfig
 from deepeval.metrics import ContextualRecallMetric, ToolCorrectnessMetric
-from deepeval.models import OpenAIModel
+from deepeval.models import DeepEvalBaseLLM
 from deepeval.test_case import LLMTestCase, ToolCall
 
 from evaluation.dataset.schema import Caso, carregar_casos
 from evaluation.execucao import ToolChamada, executar_caso, preparar_ambiente
 from evaluation.indexacao import indexar_caso, limpar_edital
+from evaluation.juiz import construir_juiz
 from evaluation.metricas.argumentos_tool import ArgumentosToolMetric
 from evaluation.metricas.fidelidade import metrica_fidelidade
 from evaluation.metricas.recall_anomalias import RecallAnomaliasMetric
 
 RESULTADOS_DIR = Path(__file__).parent / "resultados"
+
+# Respiro entre casos pra não estourar o limite de tokens/min do provider — usado tanto
+# entre a execução do agente (loop abaixo) quanto entre os julgamentos do deepeval
+# (AsyncConfig.throttle_value, mais abaixo). 40s porque o agente no tier 0 da Maritaca
+# (128k tokens de entrada/min) estourou mesmo com MCP + mais tools por chamada — não
+# elimina o risco (o teto é por minuto, não por caso), só reduz a frequência.
+PAUSA_ENTRE_CASOS_SEGUNDOS = 40
+
+# Banco lógico do Redis dedicado à avaliação (produção/dev usam o db 0 por padrão) —
+# isola o cache de tools da avaliação do de produção, pra uma rodada de teste nunca
+# ler nem escrever em cima de uma entrada real.
+REDIS_DB_AVALIACAO = 1
 
 
 def _tool_call(tool: str, argumentos: dict) -> ToolCall:
@@ -57,7 +71,7 @@ async def _montar_test_case(caso: Caso) -> LLMTestCase:
 # Comuns aos dois lotes (tool certa + argumento certo). O que muda por `tipo` é só o
 # que cada suíte cobra como gabarito de conteúdo — ver docs/ia/avaliacao.md.
 
-def _metricas_por_tipo(juiz: OpenAIModel) -> dict[str, list]:
+def _metricas_por_tipo(juiz: DeepEvalBaseLLM) -> dict[str, list]:
     return {
         "real": [
             ToolCorrectnessMetric(),
@@ -82,12 +96,21 @@ async def _rodar(ids: list[str] | None) -> None:
         raise SystemExit(f"Nenhum caso encontrado para: {ids}")
 
     logger.info("Iniciando avaliação | casos=%s", [c.id for c in casos])
-    preparar_ambiente()
 
-    # Sequencial de propósito: rate limit dos LLMs e logs legíveis.
-    pares = [(caso, await _montar_test_case(caso)) for caso in casos]
+    async with abrir_client_redis(db=REDIS_DB_AVALIACAO) as redis_client:
+        # Limpa antes de cada rodada: sem isso, um resultado cacheado de uma rodada
+        # anterior (ou de um caso já corrigido) mascararia a mudança que se quer medir.
+        await redis_client.flushdb()
+        await preparar_ambiente(redis_client)
 
-    juiz = OpenAIModel(model=AVALIADOR_MODEL, temperature=AVALIADOR_TEMPERATURE)
+        # Sequencial de propósito: rate limit dos LLMs e logs legíveis.
+        pares = []
+        for i, caso in enumerate(casos):
+            if i > 0:
+                await asyncio.sleep(PAUSA_ENTRE_CASOS_SEGUNDOS)
+            pares.append((caso, await _montar_test_case(caso)))
+
+    juiz = construir_juiz(AVALIADOR_MODEL, AVALIADOR_TEMPERATURE)
     metricas_por_tipo = _metricas_por_tipo(juiz)
 
     RESULTADOS_DIR.mkdir(exist_ok=True)
@@ -101,6 +124,11 @@ async def _rodar(ids: list[str] | None) -> None:
         resultado = evaluate(
             test_cases=test_cases,
             metrics=metricas,
+            # max_concurrent=1: um caso por vez (o padrão roda até 20 em paralelo,
+            # estourando o TPM do juiz). throttle_value: pausa entre o lançamento de um
+            # caso e o próximo — sem isso, mesmo serializado, os casos saem em sequência
+            # rápida demais pra janela de 1 min do rate limit.
+            async_config=AsyncConfig(max_concurrent=1, throttle_value=PAUSA_ENTRE_CASOS_SEGUNDOS),
             display_config=DisplayConfig(
                 # inspect_after_run abre um prompt interativo (questionary) no fim da
                 # rodada — trava um script não-interativo esperando input que nunca chega.

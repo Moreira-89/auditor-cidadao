@@ -52,22 +52,11 @@ def _extrair_estado_municipio_para_cache(runtime: ToolRuntime) -> dict:
     return {"estado": runtime.state["estado"], "municipio": runtime.state["municipio"]}
 
 
-def _extrair_contexto_edital_para_cache(runtime: ToolRuntime) -> dict:
-    # Além de estado/municipio, inclui o thread_id: dois editais da mesma cidade
-    # não podem compartilhar entrada de cache para a mesma pergunta.
-    return {
-        "estado": runtime.state["estado"],
-        "municipio": runtime.state["municipio"],
-        "thread_id": runtime.state["thread_id"],
-    }
-
-
 # Aplicado só ao calcular a chave de cache, para o mesmo CNPJ formatado e só-dígitos
 # caírem na mesma entrada — ver docs/arquitetura/protocolo_mcp.md.
 CACHE_KEY_NORMALIZERS = {
     "consultar_receita_federal": {"cnpj": _normalizar_cnpj_para_cache},
     "consultar_sancoes_empresa": {"cnpj": _normalizar_cnpj_para_cache},
-    "buscar_contexto_edital": {"runtime": _extrair_contexto_edital_para_cache},
     "buscar_informacao_web": {"runtime": _extrair_estado_municipio_para_cache},
 }
 
@@ -155,22 +144,31 @@ def _conferir_mensagens_de_status(tools: list[BaseTool]) -> None:
 
 async def montar_tools(redis_client: Redis) -> list[BaseTool]:
     """
-    Monta a lista final de tools entregue ao grafo: nativas + MCP, todas com cache Redis.
+    Monta a lista final de tools entregue ao grafo: nativas + MCP.
 
     É esta lista que o agente executa — não as funções dos arquivos vizinhos, que
-    aqui passam por aplicar_cache() e viram wrappers.
+    aqui passam por aplicar_cache() e viram wrappers (exceto buscar_contexto_edital,
+    ver comentário abaixo).
     """
     tools_mcp = await _obter_tools_mcp()
 
-    tools = aplicar_cache(
-        tools=TOOLS_NATIVAS,
-        redis_client=redis_client,
-        ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
-        normalizadores=CACHE_KEY_NORMALIZERS,
-    ) + aplicar_cache(
-        tools=tools_mcp,
-        redis_client=redis_client,
-        ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+    # buscar_contexto_edital fica de fora do cache: devolve Command (dedup por
+    # thread, contexto_edital.py), que não é serializável em JSON.
+    nativas_cacheaveis = [t for t in TOOLS_NATIVAS if t is not buscar_contexto_edital]
+
+    tools = (
+        aplicar_cache(
+            tools=nativas_cacheaveis,
+            redis_client=redis_client,
+            ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+            normalizadores=CACHE_KEY_NORMALIZERS,
+        )
+        + [buscar_contexto_edital]
+        + aplicar_cache(
+            tools=tools_mcp,
+            redis_client=redis_client,
+            ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+        )
     )
 
     _conferir_mensagens_de_status(tools)

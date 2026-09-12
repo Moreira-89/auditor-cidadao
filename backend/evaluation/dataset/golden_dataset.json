@@ -1,226 +1,242 @@
 [
-{
-  "id": "caso_01_brejao_direcionamento",
-  "tipo": "real",
-  "descricao": "São Francisco do Brejão/MA — Pregão Eletrônico de serviços para eventos culturais. Suíte real: valida só retrieval do contexto do edital e a tool de busca. A cláusula de credenciamento ABVAQ (possível Anomalia B) existe de fato no documento, mas não é cobrada aqui — detecção de anomalia migrou pra suíte sintética.",
-  "edital_pdf": "caso_01_brejao_direcionamento.pdf",
-  "estado": "Maranhão (MA)",
-  "municipio": "São Francisco do Brejão",
-  "trecho_injetado": null,
-  "anomalias_esperadas": [],
-  "tools_esperadas": [
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "O objeto é a contratação de serviços para realização de eventos culturais e festivos (palco, som, iluminação, segurança, vaquejada) no município de São Francisco do Brejão/MA, sob a Lei 14.133/2021."
-},
-{
-  "id": "caso_02_saoluis_sancao",
-  "tipo": "real",
-  "descricao": "São Luís/MA — Dispensa Eletrônica 980921-35/2026 da SEMUSC (aquisição de notebooks). Suíte real: valida só retrieval do contexto do edital e a tool de busca — sem injeção de vencedora/CNPJ. O cenário de sanção + CNAE incompatível (Anomalia H + I) migrou pra suíte sintética, onde o gabarito é inequívoco.",
-  "edital_pdf": "caso_02_saoluis_sancao.pdf",
-  "estado": "Maranhão (MA)",
-  "municipio": "São Luís",
-  "trecho_injetado": null,
-  "anomalias_esperadas": [],
-  "tools_esperadas": [
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "Dispensa eletrônica nº 980921-35/2026 da Secretaria Municipal de Segurança com Cidadania de São Luís/MA para aquisição de notebooks, com fundamento no art. 75, inciso II, da Lei 14.133/2021."
-},
-{
-  "id": "caso_03_belem_limpeza",
-  "tipo": "real",
-  "descricao": "Belém/PA — Pregão SRP 90008/2025 (limpeza e conservação, 12 meses). Suíte real: valida só retrieval do contexto do edital e a tool de busca — sem injeção de vencedora/CNPJ. O cenário de sanção + CNAE incompatível (Anomalia H + I) migrou pra suíte sintética, onde o gabarito é inequívoco.",
-  "edital_pdf": "caso_03_belem_limpeza.pdf",
-  "estado": "Pará (PA)",
-  "municipio": "Belém",
-  "trecho_injetado": null,
-  "anomalias_esperadas": [],
-  "tools_esperadas": [
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "O objeto é a contratação de serviço de limpeza e conservação com mão de obra terceirizada, no município de Belém/PA, pelo período de 12 meses."
-},
-{
-  "id": "caso_04_controle",
-  "tipo": "real",
-  "descricao": "Miracema/RJ — Aviso de Dispensa 06/2025 para configuração, instalação e manutenção de câmeras de vigilância. Caso-controle: edital simples, sem cláusula restritiva e sem empresa vencedora informada — o agente não deve apontar anomalia nem inventar irregularidade.",
-  "edital_pdf": "caso_04_controle.pdf",
-  "estado": "Rio de Janeiro (RJ)",
-  "municipio": "Miracema",
-  "trecho_injetado": null,
-  "anomalias_esperadas": [],
-  "tools_esperadas": [
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "O objeto é a contratação para configuração, instalação e manutenção de sistema de câmeras de vigilância, mediante dispensa de licitação (Aviso de Dispensa nº 06/2025), no município de Miracema/RJ."
-},
-{
-  "id": "caso_05_sobrepreco_materiais_escolares",
-  "tipo": "sintetico",
-  "descricao": "Município de Itapiranga/AM — Pregão Eletrônico para aquisição de papel sulfite A4 destinado à rede municipal de ensino. O edital estimou 10.000 resmas a R$ 42,00 por unidade, enquanto o catálogo de preços de referência indica mediana de R$ 30,00 para produto equivalente nos 12 meses anteriores. O preço estimado é 40% superior à mediana, ultrapassando o limiar de 30% definido para a anomalia.",
-  "edital_pdf": "caso_05_sobrepreco_materiais_escolares.pdf",
-  "estado": "Amazonas (AM)",
-  "municipio": "Itapiranga",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["A"],
-  "tools_esperadas": [
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}},
-    {
-      "tool": "search_licitacoes",
-      "argumentos_esperados": {
-        "palavraChave": "papel sulfite A4",
-        "uf": "AM",
-        "municipio": "Itapiranga"
+  {
+    "id": "caso_01_brejao_direcionamento",
+    "tipo": "real",
+    "descricao": "São Francisco do Brejão/MA — Pregão Eletrônico de serviços para eventos culturais. Suíte real: valida apenas a recuperação do contexto do edital e a ferramenta de busca. A cláusula de credenciamento ABVAQ, que pode sugerir a Anomalia B, existe no documento real, mas não é cobrada neste caso. A detecção de anomalias foi deslocada para a suíte sintética.",
+    "edital_pdf": "caso_01_brejao_direcionamento.pdf",
+    "estado": "Maranhão (MA)",
+    "municipio": "São Francisco do Brejão",
+    "trecho_injetado": null,
+    "anomalias_esperadas": [],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
       }
-    }
-  ],
-  "contexto_edital_esperado": "Pregão Eletrônico para aquisição parcelada de papel sulfite A4 para escolas municipais, com quantidade estimada de 10.000 resmas e preço unitário estimado de R$ 42,00. A análise deve comparar o valor com catálogo de preços ou contratações similares dos 12 meses anteriores."
-},
-{
-  "id": "caso_06_brejao_direcionamento",
-  "tipo": "sintetico",
-  "descricao": "São Francisco do Brejão/MA — Pregão Eletrônico para contratação de serviços de eventos culturais e festivos, incluindo palco, sonorização, iluminação, segurança e estrutura para vaquejada. O documento contém exigência de credenciamento junto à ABVAQ, requisito potencialmente restritivo por não demonstrar relação necessária e proporcional com a capacidade técnica para executar o objeto. O caso é real quanto à existência do edital e da cláusula; para fins desta suíte, a cláusula é utilizada como exemplo de possível direcionamento.",
-  "edital_pdf": "caso_06_brejao_direcionamento.pdf",
-  "estado": "Maranhão (MA)",
-  "municipio": "São Francisco do Brejão",
-  "trecho_injetado": "A licitante deverá apresentar certificado de credenciamento junto à ABVAQ para participar da contratação de serviços de eventos e vaquejada.",
-  "anomalias_esperadas": ["B"],
-  "tools_esperadas": [
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}},
-    {"tool": "buscar_informacao_web", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "Contratação de serviços para realização de eventos culturais e festivos, incluindo palco, som, iluminação, segurança e vaquejada, sob a Lei 14.133/2021. A cláusula de credenciamento ABVAQ deve ser analisada quanto à necessidade, proporcionalidade e impacto na competitividade."
-},
-{
-  "id": "caso_07_piumhi_fracionamento_obras",
-  "tipo": "sintetico",
-  "descricao": "Piumhi/MG — O Ministério Público Federal noticiou acusação relacionada ao fracionamento de despesas de obras de infraestrutura, consistentes em pavimentação com CBUQ e instalação de meio-fio em ruas diversas. As contratações foram divididas em dois certames realizados com intervalo aproximado de dois meses, com adoção de modalidade menos rigorosa no primeiro caso. A documentação pública descreve a divisão de objeto que poderia ser analisado conjuntamente.",
-  "edital_pdf": "caso_07_piumhi_fracionamento_obras.pdf",
-  "estado": "Minas Gerais (MG)",
-  "municipio": "Piumhi",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["C"],
-  "tools_esperadas": [
-    {
-      "tool": "buscar_informacao_web",
-      "argumentos_esperados": {"assunto_busca": "fracionamento despesas pavimentação CBUQ meio fio"}
-    },
-    {
-      "tool": "search_licitacoes",
-      "argumentos_esperados": {
-        "uf": "MG",
-        "municipio": "Piumhi",
-        "palavraChave": "pavimentação CBUQ meio fio"
+    ],
+    "contexto_edital_esperado": "O objeto é a contratação de serviços para realização de eventos culturais e festivos, incluindo palco, som, iluminação, segurança e vaquejada, no município de São Francisco do Brejão/MA, sob a Lei nº 14.133/2021."
+  },
+  {
+    "id": "caso_02_saoluis_sancao",
+    "tipo": "real",
+    "descricao": "São Luís/MA — Dispensa Eletrônica nº 980921-35/2026 da SEMUSC, para aquisição de notebooks. Suíte real: valida apenas a recuperação do contexto do edital e a ferramenta de busca, sem injeção de vencedora ou CNPJ. O cenário de sanção e incompatibilidade de atividade econômica foi deslocado para a suíte sintética, na qual o gabarito é inequívoco.",
+    "edital_pdf": "caso_02_saoluis_sancao.pdf",
+    "estado": "Maranhão (MA)",
+    "municipio": "São Luís",
+    "trecho_injetado": null,
+    "anomalias_esperadas": [],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
       }
-    }
-  ],
-  "contexto_edital_esperado": "Contratações municipais de obras de pavimentação com CBUQ e instalação de meio-fio realizadas em certames distintos, aproximadamente dois meses apartados. Deve ser analisado o objeto global, a proximidade temporal, a identidade da natureza dos serviços e a modalidade escolhida."
-},
-{
-  "id": "caso_08_cartel_empresas_endereco_socios",
-  "tipo": "sintetico",
-  "descricao": "Município de Nova Esperança/PR — Pregão Eletrônico para fornecimento de medicamentos. As três empresas participantes apresentam propostas com diferenças mínimas, duas possuem o mesmo endereço comercial e duas têm sócios em comum. Nos últimos quatro certames do órgão, as empresas alternaram as vitórias e apresentaram propostas perdedoras com valores muito próximos do preço vencedor. O conjunto de indícios deve ser tratado como possível conluio, não como prova isolada.",
-  "edital_pdf": "caso_08_cartel_empresas_endereco_socios.pdf",
-  "estado": "Paraná (PR)",
-  "municipio": "Nova Esperança",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["D"],
-  "tools_esperadas": [
-    {"tool": "consultar_receita_federal", "argumentos_esperados": {"cnpj": "12.345.678/0001-90"}},
-    {"tool": "consultar_receita_federal", "argumentos_esperados": {"cnpj": "23.456.789/0001-01"}},
-    {
-      "tool": "search_licitacoes",
-      "argumentos_esperados": {
-        "uf": "PR",
-        "municipio": "Nova Esperança",
-        "palavraChave": "medicamentos"
+    ],
+    "contexto_edital_esperado": "Dispensa Eletrônica nº 980921-35/2026 da Secretaria Municipal de Segurança com Cidadania de São Luís/MA para aquisição de notebooks, com fundamento no art. 75, inciso II, da Lei nº 14.133/2021."
+  },
+  {
+    "id": "caso_03_belem_limpeza",
+    "tipo": "real",
+    "descricao": "Belém/PA — Pregão para Sistema de Registro de Preços nº 90008/2025, destinado à contratação de serviços de limpeza e conservação pelo período de 12 meses. Suíte real: valida apenas a recuperação do contexto do edital e a ferramenta de busca, sem injeção de vencedora ou CNPJ.",
+    "edital_pdf": "caso_03_belem_limpeza.pdf",
+    "estado": "Pará (PA)",
+    "municipio": "Belém",
+    "trecho_injetado": null,
+    "anomalias_esperadas": [],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
       }
-    },
-    {"tool": "list_licitacao_resultados", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "Pregão Eletrônico para medicamentos com três participantes. A análise deve cruzar CNPJ, endereço, quadro societário, propostas, vencedores e histórico de resultados do órgão nos 12 meses anteriores."
-},
-{
-  "id": "caso_09_empresa_recente_obra_complexa",
-  "tipo": "sintetico",
-  "descricao": "Município de Santa Luzia do Norte/AL — Concorrência Eletrônica para construção de unidade básica de saúde, estimada em R$ 4.800.000,00. A vencedora foi constituída 7 meses antes da publicação do edital, possui capital social de R$ 80.000,00 e não apresenta histórico anterior de obras de complexidade semelhante. A data de início de atividade é inferior a 12 meses antes da licitação.",
-  "edital_pdf": "caso_09_empresa_recente_obra_complexa.pdf",
-  "estado": "Alagoas (AL)",
-  "municipio": "Santa Luzia do Norte",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["E"],
-  "tools_esperadas": [
-    {"tool": "consultar_receita_federal", "argumentos_esperados": {"cnpj": "34.567.890/0001-12"}},
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}},
-    {"tool": "list_licitacao_resultados", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "Concorrência Eletrônica para construção de unidade básica de saúde, valor estimado de R$ 4.800.000,00. A empresa vencedora tem CNPJ com início de atividade 7 meses antes do certame, capital social reduzido e ausência de histórico compatível."
-},
-{
-  "id": "caso_10_barra_do_corda_prazo_insuficiente",
-  "tipo": "sintetico",
-  "descricao": "Barra do Corda/MA — O Ministério Público do Maranhão informou a existência de licitação irregular para execução de convênio na qual não foi respeitado o prazo legal entre a divulgação do certame e a sessão de recebimento das propostas. A publicação pública descreve a ausência do prazo mínimo de 30 dias aplicável ao procedimento analisado, além de outras falhas no edital.",
-  "edital_pdf": "caso_10_barra_do_corda_prazo_insuficiente.pdf",
-  "estado": "Maranhão (MA)",
-  "municipio": "Barra do Corda",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["F"],
-  "tools_esperadas": [{"tool": "buscar_contexto_edital", "argumentos_esperados": {}}],
-  "contexto_edital_esperado": "Procedimento licitatório municipal para execução de objeto relacionado a convênio. A análise deve comparar a data de publicação, a data de abertura e o prazo mínimo exigido para a modalidade e o objeto."
-},
-{
-  "id": "caso_11_reincidencia_empresa_vencedora",
-  "tipo": "sintetico",
-  "descricao": "Município de Boa Vista do Sul/RS — Entre janeiro e dezembro de 2025, a empresa Alfa Serviços Ltda. venceu 9 de 14 licitações municipais de manutenção predial, limpeza e pequenos reparos. Sua participação representa 64,3% dos certames do órgão no período. Em cinco processos houve apenas dois participantes e, em três deles, o preço vencedor ficou próximo do valor máximo estimado.",
-  "edital_pdf": "caso_11_reincidencia_empresa_vencedora.pdf",
-  "estado": "Rio Grande do Sul (RS)",
-  "municipio": "Boa Vista do Sul",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["G"],
-  "tools_esperadas": [
-    {
-      "tool": "search_licitacoes",
-      "argumentos_esperados": {
-        "uf": "RS",
-        "municipio": "Boa Vista do Sul",
-        "palavraChave": "manutenção predial limpeza pequenos reparos"
+    ],
+    "contexto_edital_esperado": "O objeto é a contratação de serviço de limpeza e conservação com mão de obra terceirizada, no município de Belém/PA, pelo período de 12 meses."
+  },
+  {
+    "id": "caso_04_controle",
+    "tipo": "real",
+    "descricao": "Miracema/RJ — Aviso de Dispensa nº 06/2025 para configuração, instalação e manutenção de câmeras de vigilância. Caso-controle: edital simples, sem cláusula restritiva e sem empresa vencedora informada. O agente não deve apontar anomalia nem inventar irregularidade.",
+    "edital_pdf": "caso_04_controle.pdf",
+    "estado": "Rio de Janeiro (RJ)",
+    "municipio": "Miracema",
+    "trecho_injetado": null,
+    "anomalias_esperadas": [],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
       }
-    },
-    {"tool": "list_licitacao_resultados", "argumentos_esperados": {}},
-    {"tool": "consultar_receita_federal", "argumentos_esperados": {"cnpj": "45.678.901/0001-23"}}
-  ],
-  "contexto_edital_esperado": "Histórico de 14 licitações do município entre janeiro e dezembro de 2025. A empresa Alfa Serviços Ltda. venceu 9 certames, totalizando 64,3% dos resultados. A ferramenta deve consolidar os resultados por fornecedor."
-},
-{
-  "id": "caso_12_empresa_sancionada_ceis",
-  "tipo": "sintetico",
-  "descricao": "Município de Campo Verde/MT — Pregão Eletrônico para fornecimento de equipamentos de informática. A empresa vencedora, Beta Tecnologia Ltda., CNPJ 56.789.012/0001-34, consta no CEIS com sanção vigente na data da sessão pública, aplicada por órgão público estadual, com efeitos de impedimento de licitar e contratar. Mesmo assim, a comissão aceitou a documentação e adjudicou o lote à empresa.",
-  "edital_pdf": "caso_12_empresa_sancionada_ceis.pdf",
-  "estado": "Mato Grosso (MT)",
-  "municipio": "Campo Verde",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["H"],
-  "tools_esperadas": [
-    {"tool": "consultar_sancoes_empresa", "argumentos_esperados": {"cnpj": "56.789.012/0001-34"}},
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}},
-    {"tool": "list_licitacao_resultados", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "Pregão Eletrônico para equipamentos de informática. A vencedora é Beta Tecnologia Ltda., CNPJ 56.789.012/0001-34. A consulta CEIS/CNEP deve verificar a existência e a vigência de qualquer registro sancionatório na data da sessão."
-},
-{
-  "id": "caso_13_angulo_grafica_cnae_incompativel",
-  "tipo": "sintetico",
-  "descricao": "Ângulo/PR — Dispensa de Licitação nº 63/2024. Em análise de habilitação publicada pelo município, a empresa Gráfica Paraná Ltda., CNPJ 29.662.622/0001-67, foi considerada sem CNAE compatível com o objeto da contratação e desclassificada. O documento municipal afirma que a atividade econômica registrada não correspondia ao serviço licitado.",
-  "edital_pdf": "caso_13_angulo_grafica_cnae_incompativel.pdf",
-  "estado": "Paraná (PR)",
-  "municipio": "Ângulo",
-  "trecho_injetado": null,
-  "anomalias_esperadas": ["I"],
-  "tools_esperadas": [
-    {"tool": "consultar_receita_federal", "argumentos_esperados": {"cnpj": "29.662.622/0001-67"}},
-    {"tool": "buscar_contexto_edital", "argumentos_esperados": {}}
-  ],
-  "contexto_edital_esperado": "Dispensa de Licitação nº 63/2024 do Município de Ângulo/PR. A documentação de habilitação registra a incompatibilidade entre o CNAE da Gráfica Paraná Ltda. e o objeto da contratação."
-}
+    ],
+    "contexto_edital_esperado": "O objeto é a contratação para configuração, instalação e manutenção de sistema de câmeras de vigilância, mediante dispensa de licitação, conforme o Aviso de Dispensa nº 06/2025, no município de Miracema/RJ."
+  },
+  {
+    "id": "caso_05_sobrepreco_materiais_escolares",
+    "tipo": "sintetico",
+    "descricao": "Itapiranga/AM — Pregão Eletrônico para aquisição de papel sulfite A4 destinado à rede municipal de ensino. O edital estimou 10.000 resmas a R$ 42,00 por unidade, enquanto o catálogo de preços de referência indica mediana de R$ 30,00 para produto equivalente nos 12 meses anteriores. O preço estimado é 40% superior à mediana, ultrapassando o limiar de 30% definido para a Anomalia A. Todos os valores e informações deste caso são sintéticos.",
+    "edital_pdf": "caso_05_sobrepreco_materiais_escolares.pdf",
+    "estado": "Amazonas (AM)",
+    "municipio": "Itapiranga",
+    "trecho_injetado": null,
+    "anomalias_esperadas": [
+      "A"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Pregão Eletrônico sintético para aquisição parcelada de papel sulfite A4 para escolas municipais, com quantidade estimada de 10.000 resmas e preço unitário estimado de R$ 42,00. A análise deve comparar o valor com catálogo de preços ou contratações similares dos 12 meses anteriores. Os preços de referência estão incorporados ao cenário sintético."
+  },
+  {
+    "id": "caso_06_brejao_direcionamento",
+    "tipo": "sintetico",
+    "descricao": "São Francisco do Brejão/MA — Pregão Eletrônico sintético para contratação de serviços de eventos culturais e festivos, incluindo palco, sonorização, iluminação, segurança e estrutura para vaquejada. O documento contém exigência de credenciamento junto à ABVAQ, requisito potencialmente restritivo por não demonstrar relação necessária e proporcional com a capacidade técnica para executar o objeto. A cláusula é utilizada neste caso como exemplo sintético de possível direcionamento.",
+    "edital_pdf": "caso_06_brejao_direcionamento.pdf",
+    "estado": "Maranhão (MA)",
+    "municipio": "São Francisco do Brejão",
+    "trecho_injetado": "A licitante deverá apresentar certificado de credenciamento junto à ABVAQ para participar da contratação de serviços de eventos e vaquejada.",
+    "anomalias_esperadas": [
+      "B"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Contratação sintética de serviços para realização de eventos culturais e festivos, incluindo palco, som, iluminação, segurança e vaquejada, sob a Lei nº 14.133/2021. A exigência de credenciamento junto à ABVAQ deve ser analisada quanto à necessidade, proporcionalidade e impacto na competitividade."
+  },
+  {
+    "id": "caso_07_piumhi_fracionamento_obras",
+    "tipo": "sintetico",
+    "descricao": "Piumhi/MG — Caso sintético baseado em padrão de fracionamento de despesas descrito em documentação pública. Duas contratações de obras de infraestrutura, envolvendo pavimentação com CBUQ e instalação de meio-fio em ruas distintas, foram realizadas com intervalo aproximado de dois meses e com adoção de modalidade menos rigorosa no primeiro procedimento. A divisão do objeto poderia ter sido evitada mediante planejamento conjunto.",
+    "edital_pdf": "caso_07_piumhi_fracionamento_obras.pdf",
+    "estado": "Minas Gerais (MG)",
+    "municipio": "Piumhi",
+    "trecho_injetado": null,
+    "anomalias_esperadas": [
+      "C"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Duas contratações municipais sintéticas de obras de pavimentação com CBUQ e instalação de meio-fio, realizadas em certames distintos com intervalo aproximado de dois meses. Deve ser analisado o objeto global, a proximidade temporal, a identidade da natureza dos serviços e a modalidade escolhida."
+  },
+  {
+    "id": "caso_08_cartel_empresas_endereco_socios",
+    "tipo": "sintetico",
+    "descricao": "Nova Esperança/PR — Pregão Eletrônico sintético para fornecimento de medicamentos. Três empresas participantes apresentaram propostas com diferenças mínimas. Duas possuem o mesmo endereço comercial e duas têm sócios em comum. Nos quatro certames anteriores do órgão, as empresas alternaram as vitórias e apresentaram propostas perdedoras com valores muito próximos do preço vencedor. O conjunto de indícios deve ser tratado como possível conluio, não como prova isolada. Não há CNPJs reais neste caso.",
+    "edital_pdf": "caso_08_cartel_empresas_endereco_socios.pdf",
+    "estado": "Paraná (PR)",
+    "municipio": "Nova Esperança",
+    "trecho_injetado": "As empresas participantes A, B e C apresentam os seguintes padrões: as empresas A e B compartilham endereço comercial; as empresas A e C possuem sócio em comum; as propostas têm diferenças inferiores a 0,5% em 18 dos 20 itens; e houve alternância de vencedores nos quatro certames anteriores.",
+    "anomalias_esperadas": [
+      "D"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Pregão Eletrônico sintético para medicamentos com três participantes identificadas como empresas A, B e C. A análise deve cruzar endereços, vínculos societários, propostas, vencedores e histórico de resultados do órgão nos 12 meses anteriores. A coincidência de sócios ou endereço não deve ser tratada isoladamente como prova de cartel."
+  },
+  {
+    "id": "caso_09_empresa_recente_obra_complexa",
+    "tipo": "sintetico",
+    "descricao": "Santa Luzia do Norte/AL — Concorrência Eletrônica sintética para construção de unidade básica de saúde, estimada em R$ 4.800.000,00. A empresa vencedora foi constituída 7 meses antes da publicação do edital, possui capital social de R$ 80.000,00 e não apresenta histórico anterior de obras de complexidade semelhante. A idade da empresa e os demais dados cadastrais são fatos sintéticos incorporados ao PDF. Não há CNPJ neste caso.",
+    "edital_pdf": "caso_09_empresa_recente_obra_complexa.pdf",
+    "estado": "Alagoas (AL)",
+    "municipio": "Santa Luzia do Norte",
+    "trecho_injetado": "A empresa vencedora foi constituída 7 meses antes da publicação do edital, possui capital social de R$ 80.000,00 e não apresenta histórico anterior de obras de complexidade semelhante.",
+    "anomalias_esperadas": [
+      "E"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Concorrência Eletrônica sintética para construção de unidade básica de saúde, com valor estimado de R$ 4.800.000,00. A empresa vencedora iniciou suas atividades 7 meses antes do certame, possui capital social reduzido e não apresenta histórico compatível. A data de início de atividade é um fato sintético do cenário, não uma informação a ser obtida de base externa."
+  },
+  {
+    "id": "caso_10_barra_do_corda_prazo_insuficiente",
+    "tipo": "sintetico",
+    "descricao": "Barra do Corda/MA — Caso sintético de licitação para execução de objeto relacionado a convênio. O prazo entre a divulgação do certame e a sessão de recebimento das propostas foi inferior ao mínimo legal aplicável ao procedimento. O edital informa que a publicação ocorreu em 3 de janeiro de 2020 e a sessão em 17 de janeiro de 2020, intervalo de 14 dias corridos, embora fosse exigido prazo mínimo de 30 dias para o procedimento analisado.",
+    "edital_pdf": "caso_10_barra_do_corda_prazo_insuficiente.pdf",
+    "estado": "Maranhão (MA)",
+    "municipio": "Barra do Corda",
+    "trecho_injetado": "Data de divulgação do edital: 3 de janeiro de 2020. Data da sessão de recebimento das propostas: 17 de janeiro de 2020. Intervalo: 14 dias corridos. Prazo mínimo aplicável ao procedimento: 30 dias.",
+    "anomalias_esperadas": [
+      "F"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Procedimento licitatório municipal sintético para execução de objeto relacionado a convênio. A análise deve comparar a data de publicação, a data de abertura e o prazo mínimo exigido para a modalidade e o objeto."
+  },
+  {
+    "id": "caso_11_reincidencia_empresa_vencedora",
+    "tipo": "sintetico",
+    "descricao": "Boa Vista do Sul/RS — Histórico sintético de 14 licitações municipais realizadas entre janeiro e dezembro de 2025 para manutenção predial, limpeza e pequenos reparos. A empresa Alfa Serviços Ltda. venceu 9 dos 14 certames, correspondentes a 64,3% das licitações do órgão no período. Em cinco processos houve apenas dois participantes e, em três deles, o preço vencedor ficou próximo do valor máximo estimado. Os objetos também foram licitados separadamente por unidade administrativa apesar de descrições e requisitos técnicos semelhantes — caso cobre G (reincidência) e C (fracionamento). Não há CNPJ neste caso.",
+    "edital_pdf": "caso_11_reincidencia_empresa_vencedora.pdf",
+    "estado": "Rio Grande do Sul (RS)",
+    "municipio": "Boa Vista do Sul",
+    "trecho_injetado": "Entre janeiro e dezembro de 2025, foram realizadas 14 licitações relacionadas a manutenção predial, limpeza e pequenos reparos. A empresa Alfa Serviços Ltda. venceu 9 certames, totalizando 64,3% dos resultados. Cinco certames tiveram apenas dois participantes.",
+    "anomalias_esperadas": [
+      "C",
+      "G"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Histórico sintético de 14 licitações do município entre janeiro e dezembro de 2025. A empresa Alfa Serviços Ltda. venceu 9 certames, totalizando 64,3% dos resultados. A ferramenta deve consolidar os resultados por fornecedor. A concentração acima de 50% é uma bandeira vermelha, mas não constitui isoladamente prova de fraude. Os objetos foram licitados separadamente por unidade administrativa apesar de descrições e requisitos técnicos semelhantes — indício de fracionamento (C) somado à reincidência (G)."
+  },
+  {
+    "id": "caso_12_empresa_sancionada_ceis",
+    "tipo": "sintetico",
+    "descricao": "Campo Verde/MT — Pregão Eletrônico sintético para fornecimento de equipamentos de informática. A empresa vencedora, identificada no cenário como Beta Tecnologia Ltda., possui registro sancionatório vigente no CEIS na data da sessão pública, com efeitos de impedimento de licitar e contratar. Mesmo assim, a comissão aceitou a documentação e adjudicou o lote à empresa. O registro CEIS é sintético e deve ser fornecido pelo PDF ou por fixture/mock; não há CNPJ real neste caso.",
+    "edital_pdf": "caso_12_empresa_sancionada_ceis.pdf",
+    "estado": "Mato Grosso (MT)",
+    "municipio": "Campo Verde",
+    "trecho_injetado": "A empresa Beta Tecnologia Ltda., vencedora do Lote 1, possui registro vigente no CEIS na data da sessão pública. A sanção foi aplicada por órgão público estadual, tem efeitos de impedimento de licitar e contratar e permanece vigente na data da adjudicação.",
+    "anomalias_esperadas": [
+      "H"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Pregão Eletrônico sintético para equipamentos de informática. A vencedora é Beta Tecnologia Ltda. O PDF informa que existe registro vigente no CEIS na data da sessão, com impedimento de licitar e contratar. A ocorrência caracteriza a Anomalia H e deve ser classificada como risco crítico. Como não há CNPJ real, a consulta externa ao CEIS não é esperada sem fixture/mock."
+  },
+  {
+    "id": "caso_13_sintetico_incompatibilidade_cnae",
+    "tipo": "sintetico",
+    "descricao": "Ângulo/PR — Dispensa de Licitação sintética para contratação de serviços de manutenção preventiva e corretiva de equipamentos de climatização. A empresa participante foi descrita no processo como atuante exclusivamente no segmento gráfico, sem atividade econômica ou atestado técnico compatível com manutenção de ar-condicionado e sistemas de refrigeração. Não há CNPJ neste caso.",
+    "edital_pdf": "caso_13_sintetico_incompatibilidade_cnae.pdf",
+    "estado": "Paraná (PR)",
+    "municipio": "Ângulo",
+    "trecho_injetado": "A empresa participante atua exclusivamente com impressão de material gráfico, encadernação e reprodução de documentos, sem atividade econômica compatível com manutenção de equipamentos de climatização. Também não apresentou atestado de capacidade técnica compatível com o objeto.",
+    "anomalias_esperadas": [
+      "I"
+    ],
+    "tools_esperadas": [
+      {
+        "tool": "buscar_contexto_edital",
+        "argumentos_esperados": {}
+      }
+    ],
+    "contexto_edital_esperado": "Dispensa de Licitação sintética para manutenção preventiva e corretiva de equipamentos de climatização. A empresa descrita no processo atua exclusivamente no segmento gráfico e não apresenta atividade econômica ou atestado técnico compatível. A incompatibilidade deve ser identificada pelo contexto do edital e dos documentos, sem consulta a CNPJ."
+  }
 ]

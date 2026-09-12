@@ -3,11 +3,12 @@ from app.agents.conversa import run_agent
 from app.agents.eventos import ErroNoTurno, TokenGerado
 from app.agents.graph import get_graph, initialize_graph
 from app.agents.prompt import PROMPT_RELATORIO_INICIAL
-from app.agents.tools.registry import TOOLS_NATIVAS
+from app.agents.tools.registry import montar_tools
 from app.config.logging import logger
 from langchain_core.messages import ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import BaseModel
+from redis.asyncio import Redis
 
 from evaluation.indexacao import EditalIndexado
 
@@ -23,11 +24,13 @@ class ResultadoExecucao(BaseModel):
     saidas_ferramentas: list[str]
     contexto_edital_recuperado: str | None
 
-def preparar_ambiente() -> None:
-    """Monta o grafo fora do lifespan do FastAPI — ver docs/ia/avaliacao.md."""
+async def preparar_ambiente(redis_client: Redis) -> None:
+    """Monta o grafo fora do lifespan do FastAPI, com as mesmas tools da produção
+    (nativas + MCP) — ver docs/ia/avaliacao.md."""
     graph_mod.LLM_TEMPERATURE = 0.0  # reprodutível; produção usa 0.1
-    initialize_graph(tools=TOOLS_NATIVAS, checkpointer=InMemorySaver())
-    logger.info("Grafo de avaliação inicializado | tools=%d | temperature=0", len(TOOLS_NATIVAS))
+    tools = await montar_tools(redis_client)
+    initialize_graph(tools=tools, checkpointer=InMemorySaver())
+    logger.info("Grafo de avaliação inicializado | tools=%d | temperature=0", len(tools))
 
 async def executar_caso(edital: EditalIndexado) -> ResultadoExecucao:
     """Roda o edital indexado pelo mesmo run_agent() da produção — ver docs/ia/avaliacao.md."""

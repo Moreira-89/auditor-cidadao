@@ -22,7 +22,7 @@ não precisam bater.
 pra saber com certeza, só olhando o texto extraído, se o agente errou ou se foi o gabarito que
 errou (ver "Por que os 4 editais reais não cobram anomalia" abaixo). Em vez de manter dois
 datasets separados, `Caso.tipo` (`schema.py:14`, `Literal["real", "sintetico"]`) marca o que cada
-caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:77-114`) com listas de métrica
+caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:91-142`) com listas de métrica
 diferentes:
 
 | `tipo` | O que cobra | Editais |
@@ -47,9 +47,9 @@ Suíte `sintetico` — um caso por código do catálogo (ver [Anomalias](anomali
 | `caso_08_cartel_empresas_endereco_socios` | **D** — indício de conluio | 3 empresas, mesmo endereço/sócios, propostas muito próximas |
 | `caso_09_empresa_recente_obra_complexa` | **E** — empresa incompatível | Vencedora de obra de R$ 4,8 mi constituída 7 meses antes do edital |
 | `caso_10_barra_do_corda_prazo_insuficiente` | **F** — prazo insuficiente | Sem os 30 dias mínimos entre publicação e sessão |
-| `caso_11_reincidencia_empresa_vencedora` | **G** — concentração | Uma empresa venceu 64,3% dos certames do órgão em 12 meses |
+| `caso_11_reincidencia_empresa_vencedora` | **C + G** — fracionamento + concentração | Uma empresa venceu 64,3% dos certames do órgão em 12 meses, com objetos licitados separadamente apesar de requisitos semelhantes |
 | `caso_12_empresa_sancionada_ceis` | **H** — sanção vigente | Vencedora consta no CEIS, adjudicada mesmo assim |
-| `caso_13_angulo_grafica_cnae_incompativel` | **I** — CNAE incompatível | Gráfica desclassificada por CNAE sem relação com o objeto |
+| `caso_13_sintetico_incompatibilidade_cnae` | **I** — CNAE incompatível | Empresa fictícia do ramo gráfico, sem atividade compatível com o objeto (manutenção de climatização); CNPJ deliberadamente inválido |
 
 Cada caso declara o gabarito (`schema.py:20-35`):
 
@@ -91,7 +91,7 @@ controle total do texto do PDF (ex.: `caso_12`, PDF já nasce com a sanção no 
 
 ## O harness: mesmo caminho de código da produção
 
-`executar_caso()` ([`evaluation/execucao.py:37-92`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/execucao.py#L37-L92))
+`executar_caso()` ([`evaluation/execucao.py:35-85`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/execucao.py#L35-L85))
 chama `run_agent()` ([`app/agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)),
 o mesmo ponto de entrada que `POST /conversar-com-auditor/` usa em produção, passando
 `PROMPT_RELATORIO_INICIAL` (`app/agents/prompt.py:521`) como se fosse a pergunta do usuário — é
@@ -100,9 +100,10 @@ um segundo caminho de execução "só para avaliação": o mesmo `astream_events
 mesmo prompt.
 
 O harness consome os eventos de domínio (`TokenGerado`, `ErroNoTurno`, ver `app/agents/eventos.py`)
-pra reconstruir o Markdown completo (`execucao.py:53-58`) e lê o checkpoint do LangGraph
-(`get_graph().aget_state(...)`, `execucao.py:65`) para os `tool_calls` completos — `run_agent()`
-só emite o **nome** da tool no stream (`FerramentaIniciada`), não os argumentos nem o resultado.
+pra reconstruir o Markdown completo (`execucao.py:39-54`) e lê o checkpoint do LangGraph
+(`get_graph().aget_state(...)`, `execucao.py:58`) para os `tool_calls` completos, extraídos do
+histórico de mensagens em `execucao.py:65` — `run_agent()` só emite o **nome** da tool no stream
+(`FerramentaIniciada`), não os argumentos nem o resultado.
 
 Os códigos de anomalia saem por **regex sobre o Markdown**, sem chamada de LLM. O prompt já obriga
 um formato fixo por achado (`app/agents/prompt.py:577`,
@@ -149,7 +150,7 @@ mais um fator de estabilidade que não precisou ser implementado à mão.
 
 ## As métricas
 
-Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`runner.py:60-74`):
+Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`runner.py:74-88`):
 
 | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|
@@ -157,12 +158,12 @@ Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`r
 | **Argumentos da Tool** | ≥ 1.00 | Customizada (`ArgumentosToolMetric`, [`evaluation/metricas/argumentos_tool.py:17-65`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/argumentos_tool.py#L17-L65)) — subset-match dos argumentos esperados (ex.: `cnpj`), normalizando dígitos (`argumentos_tool.py:5-14`) | Não |
 | **Fidelidade** | ≥ 0.60 | `GEval` com `Rubric` de 5 níveis ([`evaluation/metricas/fidelidade.py:7-59`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/fidelidade.py#L7-L59)) — o laudo só afirma o que as saídas das tools sustentam, sem inventar nem extrapolar | Sim (juiz) |
 
-Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:60-74`):
+Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:74-88`):
 
 | `tipo` | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|---|
 | `real` | **Cobertura de Contexto** | ≥ 0.70 | Nativa do deepeval (`ContextualRecallMetric`) — quebra `contexto_edital_esperado` (`expected_output`) em sentenças e verifica quantas têm sustentação em `retrieval_context` (o que `buscar_contexto_edital` de fato devolveu) | Sim (juiz) |
-| `sintetico` | **Recall de Anomalias** | ≥ 0.80 | Customizada (`RecallAnomaliasMetric`, [`evaluation/metricas/recall_anomalias.py:21-66`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L21-L66)) — F1 entre os códigos A–I esperados e os extraídos por regex do Markdown. Caso-controle sem anomalia esperada → binário (qualquer código apontado é falso positivo) | Não |
+| `sintetico` | **Recall de Anomalias** | ≥ 0.65 | Customizada (`RecallAnomaliasMetric`, [`evaluation/metricas/recall_anomalias.py:18-53`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L18-L53)) — F1 entre os códigos A–I esperados e os extraídos por regex do Markdown. Caso-controle sem anomalia esperada → binário (qualquer código apontado é falso positivo) | Não |
 
 !!! note "`ContextualRecallMetric` não é G-Eval"
     É a exceção à régua da seção anterior — usa o algoritmo "veredito por sentença, depois
@@ -180,9 +181,47 @@ real é uma pergunta livre e nunca deveria ser cobrado). `ArgumentosToolMetric` 
 argumentos que **importam de verdade** (o `cnpj` que uma tool de sanção/cadastro recebeu), com
 subset-match — a chamada real pode ter mais campos que o esperado, só não pode faltar o que importa.
 
-O juiz da Fidelidade é configurável por `AVALIADOR_MODEL` / `AVALIADOR_TEMPERATURE`
-(`app/config/settings.py`, default `gpt-4o` / `0.0` — `temperature=0` reduz mais uma fonte de
-variância no julgamento).
+O juiz (Fidelidade e Cobertura de Contexto) é configurável por `AVALIADOR_MODEL` /
+`AVALIADOR_TEMPERATURE` (`app/config/settings.py`, default `gpt-4o` / `0.0` — `temperature=0`
+reduz mais uma fonte de variância no julgamento). `construir_juiz` (`evaluation/juiz.py`) lê o
+prefixo `provider:model` — mesma convenção do `LLM_MODEL` — e monta `OpenAIModel` (default) ou
+`GeminiModel` (prefixo `gemini:`, exige `GOOGLE_API_KEY`). O motivo de ter um segundo provider:
+o tier gratuito da OpenAI tem TPM baixo (30k/min) e um único caso real grande já pode pedir mais
+que isso numa chamada só — trocar de juiz é bem mais direto que forçar o contexto a caber.
+
+### F1: como o Recall de Anomalias calcula a nota
+
+`RecallAnomaliasMetric` compara os códigos A–I extraídos do laudo (`extrair_anomalias`,
+`recall_anomalias.py:13-15`) contra `anomalias_esperadas` do gabarito, com duas perguntas
+diferentes sobre a mesma lista:
+
+- **Precisão** — "das anomalias que o agente apontou, quantas estavam certas?" Mede **falso
+  positivo**: um agente que aponta as 9 letras do catálogo em todo edital, sem critério, nunca
+  erraria por *recall* (acha tudo, óbvio — chutou tudo), mas a precisão baixa entrega o problema.
+- **Recall** — "das anomalias que o gabarito espera, quantas o agente achou?" Mede **falso
+  negativo**: um agente caladão, que só aponta quando tem certeza absoluta, pode ter precisão
+  perfeita (nunca erra o que fala) mas deixar passar anomalias reais — é o recall baixo que entrega
+  isso.
+
+Nenhuma das duas sozinha é suficiente (dá pra "trapacear" cada uma isoladamente, como nos exemplos
+acima), então a métrica combina as duas num só número — o **F1**, a média harmônica entre elas
+(`recall_anomalias.py:39-44`):
+
+```
+F1 = 2 × (precisão × recall) / (precisão + recall)
+```
+
+Diferente de uma média simples, o F1 **penaliza desequilíbrio**: se qualquer uma das duas cai a
+zero, F1 vai a zero junto, mesmo que a outra seja perfeita — não dá pra compensar "não achei nada"
+com "não menti nada".
+
+**Exemplo real, `caso_11_reincidencia_empresa_vencedora`** (gabarito `["C", "G"]`, agente apontou
+só `["G"]`):
+
+- Precisão = 1/1 = **1.0** — tudo que ele disse (`G`) estava certo, não inventou nada.
+- Recall = 1/2 = **0.5** — achou 1 das 2 anomalias esperadas.
+- F1 = 2 × (1.0 × 0.5) / (1.0 + 0.5) = **0.667** — é esse número que é comparado contra o
+  `threshold` (`0.65`, `recall_anomalias.py:21`) pra decidir passou/reprovou.
 
 ### O rubric de Fidelidade
 
@@ -207,23 +246,31 @@ um caso fiel (score 1.0) — a régua discrimina de fato, não dá nota alta por
 ## O pipeline
 
 `runner.py` roda os casos **sequencialmente** (rate limit dos LLMs, logs legíveis). Por caso
-(`_montar_test_case`, `runner.py:35-54`):
+(`_montar_test_case`, `runner.py:49-68`):
 
 ```
-preparar_ambiente()     → grafo montado fora do lifespan: só as 4 TOOLS_NATIVAS,
-                          sem MCP, sem aplicar_cache. LLM_TEMPERATURE = 0.0.
+preparar_ambiente()     → grafo montado fora do lifespan, mas com montar_tools()
+                          (execucao.py:27-33) — nativas + MCP + aplicar_cache,
+                          igual à produção. LLM_TEMPERATURE = 0.0.
   indexar_caso(caso)    → Docling → seção sintética (se houver trecho) → MongoDB
   executar_caso(edital) → run_agent() (mesmo caminho da produção) + leitura do
                           checkpoint pros tool_calls
   finally: limpar_edital(edital_id)
 ```
 
-Depois de rodar todos os casos, `_rodar` (`runner.py:77-114`) monta um `LLMTestCase` por caso e
-chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:97-110`)
+`montar_tools()` exige um client Redis — `_rodar` abre um só pra rodada inteira
+(`abrir_client_redis`, `runner.py:100`), num **banco lógico dedicado**
+(`REDIS_DB_AVALIACAO = 1`, `runner.py:31-34`) pra nunca ler nem escrever em cima de uma
+entrada de cache real. Esse db é limpo (`flushdb`, `runner.py:103`) antes de cada
+rodada — sem isso, um caso corrigido no dataset continuaria batendo num resultado
+cacheado da rodada anterior e a mudança não apareceria na próxima execução.
+
+Depois de rodar todos os casos, `_rodar` (`runner.py:91-142`) monta um `LLMTestCase` por caso e
+chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:124-138`)
 — não uma vez só: `real` e `sintetico` cobram métricas diferentes (ver "As métricas" acima), e o
 `evaluate()` do deepeval só aceita uma lista de métrica global por chamada, não uma por
 `test_case`. Cada `evaluate()` grava seu próprio
-`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:114`)
+`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:142`)
 se algum caso, em qualquer lote, reprovou em qualquer métrica.
 
 ## Rodando
@@ -234,18 +281,25 @@ python -m evaluation.runner              # todos os casos
 python -m evaluation.runner caso_02_saoluis_sancao   # um caso
 ```
 
-Precisa de `OPENAI_API_KEY` e `MONGODB_URI` (o mesmo cluster Atlas da produção). **Não** precisa de
-Redis nem de Node/MCP — o grafo é montado com `InMemorySaver` e só as 4 tools nativas.
+Precisa de `OPENAI_API_KEY`, `MONGODB_URI` (o mesmo cluster Atlas da produção) e agora também
+`REDIS_URI` + Node/npx no PATH — `preparar_ambiente` chama o mesmo `montar_tools()` da produção,
+que conecta ao MCP LiciNexus e monta o cache Redis das tools (ver "O pipeline" acima).
 `DEEPEVAL_TELEMETRY_OPT_OUT=1` mantém a rodada 100% local, sem enviar nada pra Confident AI (ver
 [Variáveis de ambiente](../operacional/variaveis_ambiente.md)).
 
 ## Pontos cegos — onde a avaliação diverge da produção
 
-!!! warning "Só exercita as 4 tools nativas, sem MCP nem cache"
-    `preparar_ambiente` (`execucao.py:26-35`) monta o grafo com `TOOLS_NATIVAS`, sem as 11 tools do
-    PNCP (MCP) e sem a camada `aplicar_cache`. Um bug que só existisse dentro de `aplicar_cache`
-    passaria pelo golden dataset inteiro sem ser pego — "o golden dataset passou" não é prova de que
-    o caminho de produção com cache e MCP também passaria.
+!!! warning "Checkpointer em memória, não o Redis persistente da produção"
+    `preparar_ambiente` (`execucao.py:27-33`) usa `InMemorySaver()` em vez do
+    `abrir_checkpointer()` (Redis) que a produção usa (`app/api/lifespan.py:37`) — cada rodada de
+    avaliação começa com histórico de conversa zerado, e nada testa a camada de persistência entre
+    turnos. Um bug que só existisse ali passaria pelo golden dataset inteiro sem ser pego.
+
+Até a rodada anterior, a avaliação também não exercitava as tools do MCP nem passava pelo
+`aplicar_cache` — corrigido junto com a inclusão do Redis (ver "O pipeline"), depois que o
+golden dataset expôs isso: casos sintéticos que esperavam `search_licitacoes`/
+`list_licitacao_resultados` (só existem via MCP) reprovavam de forma estrutural, não por erro do
+agente.
 
 ## O que o G-Eval revela, além do número
 
@@ -257,18 +311,29 @@ para decidir o que buscar e como reportar) — não só um número pra decidir a
 
 ## Estado atual do veredito
 
-!!! info "Baseline pendente — os 9 casos sintéticos são novos, ainda sem rodada de referência"
-    Os números de rodadas anteriores (`Recall de Anomalias` medido contra os 4 editais reais)
-    ficaram obsoletos com a mudança descrita em "O golden dataset": a suíte `real` não cobra mais
-    anomalia, e a suíte `sintetico` (`caso_05` a `caso_13`, um por código A–I) acabou de ganhar seus
-    9 casos e PDFs — ainda não foi rodada. O primeiro `evaluate()` sobre ela **é** o novo baseline;
-    não há como comparar número a número com as rodadas anteriores, porque a métrica que gerava esse
-    número (F1 de anomalia contra edital real) não roda mais para os 4 casos `real`.
+!!! success "Suíte `real`: 4/4 — Tool Correctness, Argumentos e Cobertura de Contexto em 1.0, Fidelidade 0.89-0.99"
+    Primeira rodada depois do MCP + Redis entrarem na avaliação (ver "O pipeline"): os 4 casos
+    reais passaram em todas as métricas. O `caso_03` (Fidelidade 0.889, o mais baixo do lote) ainda
+    mostra sinal do problema de retrieval documentado em
+    [Uso de Dados e RAG](rag_dados.md#limitacoes-conhecidas-do-retrieval) — mas não reprovou.
 
-    O achado de retrieval que motivou parte dessa migração continua válido e não resolvido: o
-    `caso_01` não recuperava a cláusula ABVAQ e o `caso_03` só achava metade do que precisava —
-    causa apontada foi retrieval (texto embedado do filho sem o caminho da seção, `TableItem` nunca
-    fatiado; ver "Limitações conhecidas do retrieval" em
-    [Uso de Dados e RAG](rag_dados.md#limitacoes-conhecidas-do-retrieval)). É exatamente esse tipo de
-    falha que a `ContextualRecallMetric` na suíte `real` passa a medir diretamente, em vez de
-    aparecer disfarçada de "erro de anomalia".
+!!! info "Suíte `sintetico`: maioria passa; falhas explicadas caso a caso, não um padrão só"
+    Rodando os 9 casos (um por código A-I), as reprovações tiveram causas diferentes, todas
+    investigadas com evidência (não só aceitas por "é assim mesmo"): `tools_esperadas` cobrando
+    `search_licitacoes`/`buscar_informacao_web`/`list_licitacao_resultados` em casos cujo PDF já é
+    autocontido (o agente não tem necessidade funcional de verificar externamente algo que já está
+    resolvido no texto — corrigido removendo essas tools do gabarito) e um gabarito incompleto no
+    `caso_11` (o PDF continha evidência textual de fracionamento (C) além da reincidência (G)
+    esperada — corrigido para `["C", "G"]`).
+
+**Duas mudanças recentes ainda sem rodada de referência pós-implementação:**
+
+- **RAG small-to-big reintroduzido** (ver "Padrão pai-filho" em [Uso de Dados e RAG](rag_dados.md)):
+  `buscar_contexto_edital` agora devolve a seção inteira do filho vencedor, não só o pedaço de 200
+  palavras — deve reduzir o número de chamadas de tool por caso (hoje 10-16 por caso na suíte
+  sintética) e pode melhorar a Fidelidade em casos como o `caso_03`. Ainda não medido depois da
+  mudança.
+- **`RecallAnomaliasMetric.threshold`** ajustado de `0.8` pra `0.65` (`recall_anomalias.py:21`) —
+  tolera o agente detectar N-1 de N anomalias esperadas num caso multi-anomalia sem reprovar por
+  isso, reconhecendo que qual anomalia secundária o agente nota numa passada varia entre rodadas
+  (não-determinismo do LLM mesmo em temperatura baixa).

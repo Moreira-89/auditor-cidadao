@@ -46,7 +46,7 @@ flowchart TB
     MERGE --> GRAFO["initialize_graph"]
 ```
 
-1. **Localiza o `npx`** (`registry.py:66`) — no Windows injeta o caminho do Node.js no `PATH` do
+1. **Localiza o `npx`** (`registry.py:64`) — no Windows injeta o caminho do Node.js no `PATH` do
    processo; em qualquer plataforma, aborta o boot com erro claro se não encontrar.
 2. **Conecta ao MCP** via `MultiServerMCPClient` (transporte `stdio`) e chama `get_tools()`.
 3. **Filtra a whitelist** — só as 11 tools de `TOOLS_MCP_SELECIONADAS` (`registry.py:30`) entram no
@@ -91,7 +91,7 @@ Cada chamada MCP dispara uma requisição ao PNCP, e esses dados mudam pouco ao 
 [`app/agents/tools/cache.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/cache.py)
 guarda os resultados no **Redis** — no mesmo client compartilhado com o rate limiter — sob a chave
 `mcp_cache:{nome_da_tool}_{MD5(argumentos)}`, com validade de 24h (`TTL_CACHE_TOOLS_SEGUNDOS`,
-`registry.py:19`). O Redis expira a chave sozinho; não há limpeza manual.
+`registry.py:18`). O Redis expira a chave sozinho; não há limpeza manual.
 
 O Redis é a escolha em vez de um cache em memória porque atende dois requisitos que um `TTLCache`
 local não atende: sobreviver a restart e ser compartilhado entre as
@@ -123,30 +123,32 @@ consulta — geram chaves diferentes e o cache nunca dá HIT entre uma formataç
 
 `aplicar_cache` aceita `normalizadores: dict[str, dict[str, Callable]]` (`tool_name -> {arg: função}`),
 aplicado **só para calcular a chave**, sem alterar o valor que chega à tool. O mapa é declarado em
-`registry.py:58`, que é quem sabe o que é um CNPJ — `cache.py` permanece genérico:
+`registry.py:57`, que é quem sabe o que é um CNPJ — `cache.py` permanece genérico:
 
-```python title="app/agents/tools/registry.py:58-63"
+```python title="app/agents/tools/registry.py:57-61"
 CACHE_KEY_NORMALIZERS = {
     "consultar_receita_federal": {"cnpj": _normalizar_cnpj_para_cache},
     "consultar_sancoes_empresa": {"cnpj": _normalizar_cnpj_para_cache},
-    "buscar_contexto_edital": {"runtime": _extrair_contexto_edital_para_cache},
     "buscar_informacao_web": {"runtime": _extrair_estado_municipio_para_cache},
 }
 ```
 
 !!! warning "`ToolRuntime` não é serializável em JSON — e por isso precisa de normalizador próprio"
-    `buscar_contexto_edital` e `buscar_informacao_web` recebem o contexto geográfico via um
-    parâmetro `runtime: ToolRuntime`, que é um objeto (`state`, `config`, `store`, `tools`...), não
-    uma string. Sem tratamento, o cálculo da chave quebra com
-    `TypeError: Object of type ToolRuntime is not JSON serializable` em **toda** chamada dessas duas
-    tools.
+    `buscar_informacao_web` recebe o contexto geográfico via um parâmetro `runtime: ToolRuntime`,
+    que é um objeto (`state`, `config`, `store`, `tools`...), não uma string. Sem tratamento, o
+    cálculo da chave quebra com `TypeError: Object of type ToolRuntime is not JSON serializable` em
+    **toda** chamada dessa tool. `_extrair_estado_municipio_para_cache` resolve extraindo só
+    `estado` e `município` do `runtime.state` — esses campos **precisam** continuar na chave, a
+    mesma pergunta em município diferente tem que gerar MISS, nunca reaproveitar o resultado de
+    outro edital.
 
-    Para `buscar_informacao_web`, `_extrair_estado_municipio_para_cache` resolve extraindo só
-    `estado` e `municipio` do `runtime.state`. Para `buscar_contexto_edital`,
-    `_extrair_contexto_edital_para_cache` extrai também o `thread_id`: como a thread é 1:1 com o
-    edital, dois editais da mesma cidade não podem compartilhar entrada de cache para a mesma
-    pergunta. Esses campos **precisam** continuar na chave — a mesma pergunta em contexto diferente
-    tem que gerar MISS, nunca reaproveitar o resultado de outro edital.
+!!! note "`buscar_contexto_edital` não passa por esse cache"
+    Ela também recebe `ToolRuntime`, mas fica de fora de `aplicar_cache` por um motivo diferente:
+    desde que passou a devolver `Command` (dedup de seção por thread, ver
+    [Uso de Dados e RAG](../ia/rag_dados.md)), o retorno **não é mais JSON-serializável**, e a
+    decisão de dedup fica desatualizada se um cache HIT devolver a resposta de uma chamada
+    anterior. `registry.py:145-176` (`montar_tools`) monta essa tool sem passar por
+    `aplicar_cache`, direto na lista final.
 
 ### Reconstrução da tool e o `args_schema`
 

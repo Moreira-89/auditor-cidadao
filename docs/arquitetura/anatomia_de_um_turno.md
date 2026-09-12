@@ -77,7 +77,7 @@ O prompt **não** fica no histórico — é preposto a cada chamada. Por isso al
 vai para o nó `ferramentas`; senão, `END`.
 
 **No nó `ferramentas` está a armadilha nº 1 do projeto.** A função executada **não** é a que você lê
-em `app/agents/tools/sancoes.py`. No startup, `aplicar_cache` (`app/agents/tools/registry.py:156`)
+em `app/agents/tools/sancoes.py`. No startup, `aplicar_cache` (`app/agents/tools/registry.py:160`)
 reconstruiu cada tool trocando a coroutine por um wrapper (`app/agents/tools/cache.py:60`). O que
 roda é:
 
@@ -137,7 +137,7 @@ de ferramenta de vazarem como texto na tela.
 - o vocabulário vira o formato de fio: `data: {"type": "token", ...}\n\n`;
 - o **nome técnico da tool vira o texto que o usuário lê**, pelo `TOOL_STATUS_MAP`
   (`app/config/tool_status_map.py`). Tool sem entrada no mapa cai em `"Analisando..."` — e o
-  `registry.py:126` avisa isso no log do startup.
+  `registry.py:124` avisa isso no log do startup.
 
 ### 11. De volta ao navegador
 

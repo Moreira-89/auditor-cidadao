@@ -85,7 +85,7 @@ contexto geográfico até a busca vetorial no MongoDB, descrito na seção segui
 
 [`app/agents/state.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/state.py)
 estende `MessagesState` do LangGraph — que já traz `messages` com o reducer `add_messages`, ou seja,
-cada nó **anexa** ao histórico em vez de sobrescrevê-lo — com três chaves próprias:
+cada nó **anexa** ao histórico em vez de sobrescrevê-lo — com quatro chaves próprias:
 
 ```python title="app/agents/state.py"
 class AgentState(MessagesState):
@@ -94,6 +94,7 @@ class AgentState(MessagesState):
     estado: str
     municipio: str
     thread_id: str
+    secoes_vistas: Annotated[set[int], operator.or_]
 ```
 
 `estado` e `municipio` são o contexto geográfico do edital em análise; `thread_id` é o
@@ -101,6 +102,13 @@ identificador do edital (a thread é 1:1 com o edital). Nenhum dos três faz par
 LLM nunca os lê diretamente: quem os consome são as tools que declaram `runtime: ToolRuntime`,
 lendo `runtime.state["estado"]` etc. É esse trio que filtra a busca semântica para o edital certo
 (ver [Uso de Dados e RAG](../ia/rag_dados.md)).
+
+`secoes_vistas` é diferente dos outros três: em vez de ser reenviado a cada turno, ele
+**acumula** — o reducer `operator.or_` une o que já tinha com o que uma tool devolve de novo, em
+vez de sobrescrever. É a única tool que escreve nesse estado hoje: `buscar_contexto_edital`
+devolve um `Command` (não uma string) justamente pra atualizar essa chave como efeito colateral da
+chamada, marcando quais seções do edital já foram mostradas nesta thread (ver
+[Uso de Dados e RAG](../ia/rag_dados.md#padrao-pai-filho-descartado-uma-vez-reintroduzido-depois)).
 
 Como o checkpointer só persiste as chaves declaradas no schema, e quem sabe estado/município/thread
 é quem chama o grafo, os três são **reenviados a cada turno** —
@@ -176,21 +184,30 @@ LLM decidir como reagir, em vez de derrubar o turno.
 ### Montagem: `montar_tools()`
 
 `registry.py` é o único lugar que responde "quais ferramentas o agente tem". Ele reúne as nativas,
-conecta ao MCP, filtra a whitelist, aplica o patch de schema e envolve tudo com cache:
+conecta ao MCP, filtra a whitelist, aplica o patch de schema e envolve com cache (menos
+`buscar_contexto_edital`, ver [Protocolo MCP](protocolo_mcp.md#cache-das-ferramentas-aplicar_cache)):
 
-```python title="app/agents/tools/registry.py:147-163"
+```python title="app/agents/tools/registry.py:145-176"
 async def montar_tools(redis_client: Redis) -> list[BaseTool]:
     tools_mcp = await _obter_tools_mcp()
 
-    tools = aplicar_cache(
-        tools=TOOLS_NATIVAS,
-        redis_client=redis_client,
-        ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
-        normalizadores=CACHE_KEY_NORMALIZERS,
-    ) + aplicar_cache(
-        tools=tools_mcp,
-        redis_client=redis_client,
-        ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+    # buscar_contexto_edital fica de fora do cache: devolve Command (dedup por
+    # thread, contexto_edital.py), que não é serializável em JSON.
+    nativas_cacheaveis = [t for t in TOOLS_NATIVAS if t is not buscar_contexto_edital]
+
+    tools = (
+        aplicar_cache(
+            tools=nativas_cacheaveis,
+            redis_client=redis_client,
+            ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+            normalizadores=CACHE_KEY_NORMALIZERS,
+        )
+        + [buscar_contexto_edital]
+        + aplicar_cache(
+            tools=tools_mcp,
+            redis_client=redis_client,
+            ttl_segundos=TTL_CACHE_TOOLS_SEGUNDOS,
+        )
     )
 
     _conferir_mensagens_de_status(tools)
@@ -200,12 +217,12 @@ async def montar_tools(redis_client: Redis) -> list[BaseTool]:
 
 Duas verificações rodam no startup e transformam falhas silenciosas em avisos no log:
 
-- **`_conferir_mensagens_de_status`** (`registry.py:126`) compara os nomes das tools montadas com as
+- **`_conferir_mensagens_de_status`** (`registry.py:124`) compara os nomes das tools montadas com as
   chaves de
   [`app/config/tool_status_map.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/tool_status_map.py),
   nos dois sentidos. Sem ela, uma tool sem mensagem cai no fallback `"Analisando..."` do streaming
   sem que ninguém perceba, e uma entrada órfã no mapa fica invisível.
-- **Whitelist MCP não atendida** (`registry.py:114`): se um nome de `TOOLS_MCP_SELECIONADAS` não
+- **Whitelist MCP não atendida** (`registry.py:113`): se um nome de `TOOLS_MCP_SELECIONADAS` não
   vier do servidor — porque o pacote renomeou a ferramenta, por exemplo —, sai um `WARNING` com o
   nome exato. Sem isso, a ferramenta simplesmente desapareceria do agente.
 

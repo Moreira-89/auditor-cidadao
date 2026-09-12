@@ -5,23 +5,25 @@ from langchain_openai import OpenAIEmbeddings
 
 
 class GerenciadorVetorial:
-    """RAG do edital: indexa e busca os filhos (parágrafos/tabelas) no MongoDB,
-    cada um rotulado com o caminho da sua seção."""
+    """RAG hierárquico do edital: o filho (parágrafo/tabela) é o que é vetorizado e
+    buscado; o texto completo da seção-pai viaja junto (sem embedding próprio) e é
+    o que de fato volta pro agente quando o filho vence a busca — ver docs/ia/rag_dados.md."""
 
     def __init__(self):
         self.modelo_embedding = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
     def indexar_hierarquia(
         self,
-        secoes: list[dict],  # ordem/caminho (EditalExtraido) — só para rotular o filho
+        secoes: list[dict],  # ordem/caminho/texto_completo (EditalExtraido)
         filhos_brutos: list[dict],  # secao_ordem/tipo/texto (EditalExtraido)
         metadados_base: dict,  # edital_id, estado, municipio, arquivo, origem, timestamp_indexacao
     ) -> None:
-        """A seção não vira documento nem é vetorizada — só o filho é indexado,
-        levando o caminho da seção como rótulo."""
+        """A seção não é vetorizada (nunca é buscada por si só) — mas seu texto
+        completo vai junto de cada filho, pra devolução expandir pro pai na busca."""
         mapa_caminhos = {s["ordem"]: s["caminho"] for s in secoes}
+        mapa_textos_secao = {s["ordem"]: s["texto_completo"] for s in secoes}
 
-        filhos_prontos = _fatiar_filhos(filhos_brutos, mapa_caminhos)
+        filhos_prontos = _fatiar_filhos(filhos_brutos, mapa_caminhos, mapa_textos_secao)
         if not filhos_prontos:
             return
 
@@ -39,8 +41,11 @@ class GerenciadorVetorial:
         municipio: str,
         edital_id: str,
         top_k: int = 5,
-    ) -> str:
-        """Busca os `top_k` trechos mais parecidos com a pergunta."""
+    ) -> list[dict]:
+        """Busca os `top_k` trechos mais parecidos com a pergunta e devolve a seção
+        inteira de cada filho vencedor — sem repetir a mesma seção 2x nesta chamada
+        (dedup contra o histórico da thread é responsabilidade de quem chama, ver
+        app/agents/tools/contexto_edital.py)."""
         vetor = self.modelo_embedding.embed_query(pergunta)
 
         pipeline = [
@@ -69,19 +74,28 @@ class GerenciadorVetorial:
             len(resultados),
         )
 
-        if not resultados:
-            return (
-                "Nenhum trecho relevante encontrado no edital para a combinação de "
-                "estado, município e pergunta informados. Verifique se o edital foi "
-                "indexado corretamente."
-            )
+        # Dedup por secao_ordem, não por caminho: um edital real pode ter títulos
+        # repetidos ("DO OBJETO" em lotes diferentes, por exemplo) que são seções
+        # fisicamente distintas — dedup por título trataria conteúdo novo como já visto.
+        vistas: set[int] = set()
+        secoes: list[dict] = []
+        for d in resultados:
+            ordem = d["secao_ordem"]
+            if ordem in vistas:
+                continue
+            vistas.add(ordem)
+            texto_secao = d.get("secao_texto_completo") or d["texto"]
+            secoes.append({"ordem": ordem, "caminho": d["secao_caminho"], "texto": texto_secao})
 
-        return "\n\n".join(f"[{d['secao_caminho']}]\n{d['texto']}" for d in resultados)
+        return secoes
 
 
-def _fatiar_filhos(filhos_brutos: list[dict], mapa_caminhos: dict) -> list[dict]:
-    """Rotula cada filho com o caminho da seção e fatia TextItem longo em pedaços
-    de 200 palavras (TableItem nunca é fatiado — quebraria a relação linha/coluna)."""
+def _fatiar_filhos(
+    filhos_brutos: list[dict], mapa_caminhos: dict, mapa_textos_secao: dict
+) -> list[dict]:
+    """Rotula cada filho com o caminho da seção (+ o texto completo dela, pra
+    devolução expandir do filho pro pai) e fatia TextItem longo em pedaços de 200
+    palavras (TableItem nunca é fatiado — quebraria a relação linha/coluna)."""
     max_palavras = 200
     prontos: list[dict] = []
 
@@ -89,6 +103,7 @@ def _fatiar_filhos(filhos_brutos: list[dict], mapa_caminhos: dict) -> list[dict]
         caminho = mapa_caminhos.get(filho["secao_ordem"])
         if caminho is None:
             continue  # conteúdo antes do 1º cabeçalho — órfão, não indexa
+        texto_secao = mapa_textos_secao.get(filho["secao_ordem"], "")
 
         if filho["tipo"] == "TableItem":
             pedacos = [filho["texto"]]
@@ -101,7 +116,13 @@ def _fatiar_filhos(filhos_brutos: list[dict], mapa_caminhos: dict) -> list[dict]
 
         for pedaco in pedacos:
             prontos.append(
-                {"texto": pedaco, "secao_caminho": caminho, "tipo_bloco": filho["tipo"]}
+                {
+                    "texto": pedaco,
+                    "secao_ordem": filho["secao_ordem"],
+                    "secao_caminho": caminho,
+                    "secao_texto_completo": texto_secao,
+                    "tipo_bloco": filho["tipo"],
+                }
             )
 
     return prontos
