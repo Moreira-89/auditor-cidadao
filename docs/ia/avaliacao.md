@@ -106,7 +106,7 @@ histórico de mensagens em `execucao.py:65` — `run_agent()` só emite o **nome
 (`FerramentaIniciada`), não os argumentos nem o resultado.
 
 Os códigos de anomalia saem por **regex sobre o Markdown**, sem chamada de LLM. O prompt já obriga
-um formato fixo por achado (`app/agents/prompt.py:577`,
+um formato fixo por achado (`app/agents/prompt.py:578`,
 `**[ESTADO: CONFIRMADO | INDÍCIO] [NÍVEL DE RISCO: ...] — <código>. <categoria>**`), então ler esse
 padrão é ler o dado real, não um proxy:
 
@@ -336,23 +336,60 @@ para decidir o que buscar e como reportar) — não só um número pra decidir a
     mostra sinal do problema de retrieval documentado em
     [Uso de Dados e RAG](rag_dados.md#limitacoes-conhecidas-do-retrieval) — mas não reprovou.
 
-!!! info "Suíte `sintetico`: maioria passa; falhas explicadas caso a caso, não um padrão só"
-    Rodando os 9 casos (um por código A-I), as reprovações tiveram causas diferentes, todas
-    investigadas com evidência (não só aceitas por "é assim mesmo"): `tools_esperadas` cobrando
-    `search_licitacoes`/`buscar_informacao_web`/`list_licitacao_resultados` em casos cujo PDF já é
-    autocontido (o agente não tem necessidade funcional de verificar externamente algo que já está
-    resolvido no texto — corrigido removendo essas tools do gabarito) e um gabarito incompleto no
-    `caso_11` (o PDF continha evidência textual de fracionamento (C) além da reincidência (G)
-    esperada — corrigido para `["C", "G"]`).
+!!! success "Suíte `sintetico`: 9/9 estável em 3 rodadas seguidas, depois do apertamento do prompt de achado"
+    Três rodadas completas contra os 9 casos (um por código A-I), sem mudança de código entre a 2ª
+    e a 3ª: `Tool Correctness` e `Argumentos da Tool` em 1.0 nas 3, `Fidelidade` sempre ≥ 0.92. A
+    2ª rodada reprovou `caso_05`/`caso_12` por um problema de **formato**, não de conteúdo: o
+    modelo escrevia códigos numerados (`"A1."`) e colchetes fundidos (`[ESTADO: X | NÍVEL: Y]`),
+    fora do padrão que `_PADRAO_ACHADO` (`recall_anomalias.py:115-119`) exige — corrigido apertando
+    a instrução de formato em `app/agents/prompt.py:574-586` (exemplo preenchido + exemplo do
+    formato errado, explícito). A 3ª rodada confirmou a correção: ambos os casos voltaram a
+    parsear limpo.
 
-**Duas mudanças recentes ainda sem rodada de referência pós-implementação:**
+    Duas divergências de conteúdo (não de formato) se repetiram de forma consistente nas 3
+    rodadas — tratadas como limitações conhecidas, não bugs de pipeline:
+
+    - `caso_09_empresa_recente_obra_complexa` (esperado **E**): o modelo às vezes classifica o
+      mesmo achado (empresa recém-constituída vencendo obra complexa) como **I** (CNAE
+      incompatível) em vez de **E** (empresa incompatível/capacidade técnica) — uma confusão entre
+      duas categorias vizinhas do catálogo, não uma alucinação de fato.
+    - `caso_11_reincidencia_empresa_vencedora` (esperado **C + G**): o modelo consistentemente só
+      aponta **G** (reincidência), nunca o **C** (fracionamento) que também tem evidência textual
+      no PDF — F1 fica em 0.667 (ver ["F1: como o Recall de Anomalias calcula a
+      nota"](#f1-como-o-recall-de-anomalias-calcula-a-nota)), acima do `threshold` de 0.65, então
+      passa, mas não detecta a anomalia secundária.
+
+    `caso_08_cartel_empresas_endereco_socios` (esperado **D**) teve uma ocorrência intermitente
+    (1 das 3 rodadas) de apontar também **B** (direcionamento), emprestando evidência do próprio
+    achado D sem uma cláusula de direcionamento real no edital — não é 3/3 consistente como os dois
+    acima, por ora só anotado.
+
+**Duas mudanças de infraestrutura, já medidas nas rodadas acima:**
 
 - **RAG small-to-big reintroduzido** (ver "Padrão pai-filho" em [Uso de Dados e RAG](rag_dados.md)):
   `buscar_contexto_edital` agora devolve a seção inteira do filho vencedor, não só o pedaço de 200
-  palavras — deve reduzir o número de chamadas de tool por caso (hoje 10-16 por caso na suíte
-  sintética) e pode melhorar a Fidelidade em casos como o `caso_03`. Ainda não medido depois da
-  mudança.
+  palavras.
 - **`RecallAnomaliasMetric.threshold`** ajustado de `0.8` pra `0.65` (`recall_anomalias.py:21`) —
   tolera o agente detectar N-1 de N anomalias esperadas num caso multi-anomalia sem reprovar por
   isso, reconhecendo que qual anomalia secundária o agente nota numa passada varia entre rodadas
-  (não-determinismo do LLM mesmo em temperatura baixa).
+  (não-determinismo do LLM mesmo em temperatura baixa). É exatamente o caso do `caso_11` acima.
+
+## Trabalhos futuros
+
+Escopo deliberadamente deixado de fora deste MVP — as capacidades centrais (tool use, retrieval,
+detecção de anomalia) já estão validadas; o que resta é refinamento de classificação fina, não
+correção de pipeline:
+
+- **Reforçar a distinção E/I no prompt.** O `caso_09` confunde as duas categorias em 3/3 rodadas —
+  candidato a um exemplo negativo explícito perto da regra já existente em `prompt.py:271` ("não
+  confunda CNAE com capacidade técnica"), no mesmo estilo do exemplo negativo já adicionado pro
+  formato de achado.
+- **Reescrever `RecallAnomaliasMetric` como G-Eval.** Hoje é regex determinístico sobre o Markdown
+  — rápido e sem custo de LLM, mas frágil a variação de formato (foi a causa do `caso_05`/`caso_12`
+  na 2ª rodada, contornada apertando o prompt em vez de tornar a métrica mais tolerante). Uma
+  versão G-Eval extrairia os achados por julgamento semântico em vez de padrão fixo — mais robusta
+  a parafraseio, ao custo de uma chamada de LLM a mais por caso e da mesma variância entre rodadas
+  que motivou usar G-Eval em vez de RAGAS na Fidelidade (ver "Por que G-Eval..." acima).
+- **Investigar o over-detection intermitente do `caso_08`.** Só 1 ocorrência em 3 rodadas — não dá
+  pra descartar ruído do LLM, mas também não dá pra afirmar que é um padrão real ainda; precisa de
+  mais rodadas antes de decidir se é prompt, PDF do caso, ou threshold de precisão.

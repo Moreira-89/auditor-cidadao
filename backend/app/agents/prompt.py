@@ -572,9 +572,19 @@ fontes — não infira quantidades, valores ou datas que não constem de uma con
 Não descreva limitações genéricas aqui; elas ficam nas seções próprias.
 
 ## Achados
-Para cada categoria em estado CONFIRMADO ou INDÍCIO:
+Para cada categoria em estado CONFIRMADO ou INDÍCIO, exatamente dois colchetes
+separados, nessa ordem, escolhendo um valor de cada — nunca funda os dois num só:
 
 **[ESTADO: CONFIRMADO | INDÍCIO] [NÍVEL DE RISCO: BAIXO | MÉDIO | ALTO | CRÍTICO] — <código>. <categoria>**
+
+Exemplo de linha já preenchida (não é o texto a copiar, é o formato a seguir):
+`**[ESTADO: CONFIRMADO] [NÍVEL DE RISCO: CRÍTICO] — H. SANÇÃO COM POSSÍVEL IMPACTO NA PARTICIPAÇÃO**`
+
+`<código>` é **só a letra do catálogo (A a I), sem número, sufixo ou índice** — nunca
+"A1.", "H2." etc., mesmo que a categoria tenha mais de um achado no laudo. Formato
+errado: `**[ESTADO: CONFIRMADO | NÍVEL DE RISCO: CRÍTICO] — H1. ...**` (colchetes
+fundidos com "|" e código numerado — os dois quebram a leitura automática do laudo).
+
 - **Fatos observados:** o que foi verificado (valor literal retornado por uma fonte)
 - **Evidência:** trecho/campo literal
 - **Fonte:** documento / API consultada / cruzamento de dados
