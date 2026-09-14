@@ -9,6 +9,7 @@ from app.agents.eventos import (
     TokenGerado,
     TurnoConcluido,
 )
+from app.agents.prompt import PROMPT_RELATORIO_INICIAL
 from app.api.dependencies import get_client_id
 from app.api.rate_limiter import RateLimiter
 from app.api.schemas.pergunta import PerguntaRequest
@@ -73,18 +74,23 @@ async def executar_pergunta(
 ):
     """Recebe a pergunta do usuário e retorna a resposta do agente de auditoria via streaming."""
 
+    # inicial=true: o primeiro turno da thread é o relatório automático, disparado
+    # pelo frontend logo após o upload. O prompt vem do backend (o cliente manda
+    # pergunta vazia), e o envelope com CNPJs/estado/município é montado igual ao
+    # primeiro turno normal, dentro de run_agent.
+    pergunta = PROMPT_RELATORIO_INICIAL if request.inicial else request.pergunta
+
     logger.info(
-        "Pergunta recebida | thread=%s | estado=%s | municipio=%s | cnpjs=%s | client_id=%s",
+        "Pergunta recebida | thread=%s | inicial=%s | estado=%s | municipio=%s | cnpjs=%s | client_id=%s",
         request.thread_id,
+        request.inicial,
         request.estado,
         request.municipio,
         request.lista_cnpjs,
         client_id,
     )
     logger.info(
-        "Texto da pergunta | chars=%d | preview=%s",
-        len(request.pergunta),
-        request.pergunta[:80],
+        "Texto da pergunta | chars=%d | preview=%s", len(pergunta), pergunta[:80]
     )
 
     logger.info(
@@ -96,7 +102,7 @@ async def executar_pergunta(
     return StreamingResponse(
         _stream_sse(
             run_agent(
-                pergunta_usuario=request.pergunta,
+                pergunta_usuario=pergunta,
                 lista_cnpj=request.lista_cnpjs,
                 estado=request.estado,
                 municipio=request.municipio,

@@ -155,9 +155,17 @@ export default function Chat() {
                     </div>
 
                     <div className="modal-msg error hidden" id="modal-error" role="alert"></div>
-                    <div className="modal-msg loading hidden" id="modal-loading" role="status">
-                        <span className="spinner"></span>
-                        <span id="modal-loading-text">Indexando o edital…</span>
+                    <div className="modal-msg loading hidden" id="modal-loading" role="status" aria-live="polite">
+                        <div className="upload-progress">
+                            <div className="upload-progress-head">
+                                <span className="spinner spinner-lg"></span>
+                                <span id="modal-loading-text">Indexando o edital…</span>
+                            </div>
+                            <div className="upload-progress-track" aria-hidden="true">
+                                <div className="upload-progress-fill" id="modal-progress-fill"></div>
+                            </div>
+                            <p className="upload-progress-hint">Editais grandes podem levar alguns minutos para processar — isso é normal.</p>
+                        </div>
                     </div>
 
                     <button className="btn btn-primary btn-block" id="btn-confirm" disabled><span>Confirmar e iniciar</span><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>

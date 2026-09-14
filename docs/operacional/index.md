@@ -30,7 +30,7 @@ flowchart TB
  subgraph external["Serviços externos gerenciados"]
     direction TB
         openai["OpenAI<br>LLM + embeddings"]
-        pinecone[("Pinecone<br>banco vetorial")]
+        mongo[("MongoDB Atlas<br>banco vetorial (chunks_edital)")]
         redis[("Redis<br>histórico + rate limit + cache")]
         cgu["Portal da Transparência / CGU<br>CEIS · CNEP"]
         receita["BrasilAPI<br>Receita Federal"]
@@ -40,7 +40,7 @@ flowchart TB
     fastapi <-- MCP via stdio --> mcp
     browser["Navegador do usuário"] <-- HTTPS --> front
     browser <-- HTTPS --> fastapi
-    fastapi --> openai & pinecone & redis & cgu & receita & tavily
+    fastapi --> openai & mongo & redis & cgu & receita & tavily
     mcp --> pncp
 ```
 
@@ -57,8 +57,8 @@ Pontos que valem destaque:
   `thread_id`, a contagem do rate limiter e o cache de ferramentas (TTL 24h). É esse estado
   externalizado que viabiliza as 2 réplicas em produção, já que o Railway não oferece sticky
   sessions (ver [Docker & Deploy](docker.md#escalonamento-replicas-e-limites-de-recurso)).
-- **Pinecone guarda os editais indexados**, consultados sob demanda pela tool de RAG — o conteúdo do
-  edital nunca é pré-carregado no contexto do agente.
+- **MongoDB Atlas guarda os editais indexados**, consultados sob demanda pela tool de RAG — o
+  conteúdo do edital nunca é pré-carregado no contexto do agente.
 - **Variáveis de ambiente** são cadastradas diretamente no painel do Railway (mesmas chaves de
   [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas.
 

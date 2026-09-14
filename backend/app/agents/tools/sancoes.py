@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+from datetime import UTC, date, datetime
 from typing import Annotated
 
 import httpx
@@ -10,6 +11,29 @@ from validate_docbr import CNPJ
 
 URL_CEIS = "https://api.portaldatransparencia.gov.br/api-de-dados/ceis"
 URL_CNEP = "https://api.portaldatransparencia.gov.br/api-de-dados/cnep"
+
+
+def _parse_data_br(valor: str | None) -> date | None:
+    if not valor:
+        return None
+    try:
+        dia, mes, ano = (int(parte) for parte in valor.split("/"))
+        return date(ano, mes, dia)
+    except (ValueError, TypeError):
+        return None
+
+
+def _sancao_vigente(data_inicio: str | None, data_fim: str | None) -> bool | None:
+    """Diz se a sanção está vigente hoje, a partir das datas 'DD/MM/AAAA' da fonte.
+    Calculado aqui para o agente não errar comparação de datas. None quando uma data
+    foi informada mas não pôde ser interpretada."""
+    hoje = datetime.now(UTC).date()
+    inicio, fim = _parse_data_br(data_inicio), _parse_data_br(data_fim)
+    if (data_inicio and inicio is None) or (data_fim and fim is None):
+        return None
+    if inicio and hoje < inicio:
+        return False
+    return not (fim and hoje > fim)
 
 
 async def _consultar_cadastro(url_base: str, cnpj: str, headers: dict) -> list | None:
@@ -37,6 +61,9 @@ def _achatar_sancao(registro: dict, fonte_cadastro: str) -> dict:
     return {
         "dataInicioSancao": registro["dataInicioSancao"],
         "dataFimSancao": registro["dataFimSancao"],
+        "vigente": _sancao_vigente(
+            registro["dataInicioSancao"], registro["dataFimSancao"]
+        ),
         "tipoSancao": registro["tipoSancao"]["descricaoResumida"],
         "orgaoSancionadorNome": registro["orgaoSancionador"]["nome"],
         "orgaoSancionadorUf": registro["orgaoSancionador"]["siglaUf"],
@@ -123,7 +150,9 @@ async def consultar_sancoes_empresa(
         Lista de dicionários, um por sanção encontrada (pode ser vazia se a empresa
         não tiver sanções). Cada item tem "tipo_registro": "sancao" (dado real) ou
         "aviso" (CNPJ inválido ou CEIS/CNEP indisponível na consulta) — trate "aviso"
-        como "não verificado", nunca como "empresa sem sanções".
+        como "não verificado", nunca como "empresa sem sanções". Registros de sanção
+        trazem "vigente" (true/false já calculado contra a data de hoje; null se as
+        datas não puderam ser interpretadas) — use este campo direto, não recompare datas.
     """
     cnpj_limpo = re.sub(r"[./-]", "", cnpj)
 

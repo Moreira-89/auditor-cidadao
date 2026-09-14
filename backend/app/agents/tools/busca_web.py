@@ -52,9 +52,15 @@ async def buscar_informacao_web(
     """
     Busca informações atualizadas na internet sobre um tema específico.
 
-    Use esta ferramenta sempre que precisar de contexto adicional, notícias recentes,
-    ou informações complementares sobre um assunto relacionado ao edital ou à licitação.
-    A busca é feita em fontes confiáveis e relevantes para garantir a qualidade da informação.
+    Use sempre que precisar de contexto que não vem do edital nem das APIs de
+    governo: notícias recentes, histórico de uma empresa, repercussão de uma obra.
+
+    Para auditar uma empresa ou uma licitação, boas fontes a mirar na busca:
+    - acórdãos do TCU e dos Tribunais de Contas estaduais (TCE) sobre a empresa,
+      o órgão contratante ou o objeto da contratação;
+    - ações de improbidade do MPF ou dos Ministérios Públicos estaduais;
+    - notícia local com termos como "atraso", "obra paralisada", "superfaturamento",
+      "denúncia" ou "operação" junto do nome da empresa e do município.
 
     Args:
         assunto_busca: Termo ou frase curta de pesquisa. Seja específico. NÃO inclua cidade, estado ou país.

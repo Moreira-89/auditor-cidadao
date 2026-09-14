@@ -43,30 +43,8 @@ async def get_client_id(request: Request, response: Response) -> str:
         # valor só para recuperar o que já se tinha em mãos.
         client_id, cookie_assinado = gerar_cookie_assinado()
 
-        # httponly=True: o cookie fica invisível para JavaScript no navegador
-        # (document.cookie não o enxerga), o que impede um ataque XSS de roubar
-        # ou forjar o identificador de sessão — decisão já registrada no roadmap.
-        #
-        # secure=AMBIENTE_PRODUCAO: em produção (HTTPS, Railway) o navegador só
-        # reenvia um cookie Secure em conexões HTTPS — é o comportamento que
-        # queremos. Mas se deixássemos `secure=True` fixo, em desenvolvimento local
-        # (uvicorn em http://localhost, sem TLS) o navegador aceitaria o cookie na
-        # resposta e NUNCA o devolveria nas requisições seguintes — cada request
-        # pareceria vir de um cliente novo, e o rate limiter nunca acumularia
-        # contagem pra ninguém. Um bug silencioso: nenhum erro aparece, o rate
-        # limit simplesmente nunca dispara. Por isso a flag varia com o ambiente.
-        #
-        # samesite="lax" bloquearia o cookie em QUALQUER requisição cross-site —
-        # inclusive o fetch que o frontend faz do seu próprio domínio para o do
-        # backend, já que são dois serviços/domínios separados no Railway. Por
-        # isso "none" em produção: exige Secure (garantido por AMBIENTE_PRODUCAO
-        # ali em cima, já que "none" sem Secure é rejeitado pelo navegador) e
-        # exige CORS com allow_credentials=True (ver main.py) para o navegador
-        # aceitar enviar/receber o cookie entre origens diferentes.
-        #
-        # Em dev local (AMBIENTE_PRODUCAO=False) mantém "lax": front e back
-        # normalmente rodam na mesma origem (o backend também serve o frontend,
-        # ver main.py), então CSRF não precisa da abertura de "none".
+        # Por que cada flag varia com o ambiente: ver docs/arquitetura/visao_geral.md
+        # ("Identificação do cliente: cookie assinado e CORS cross-site").
         response.set_cookie(
             key=NOME_COOKIE_SESSAO,
             value=cookie_assinado,
@@ -76,17 +54,9 @@ async def get_client_id(request: Request, response: Response) -> str:
             samesite="none" if AMBIENTE_PRODUCAO else "lax",
         )
 
-        # Por padrão, se QUALQUER exceção (HTTPException ou erro de validação do
-        # corpo da requisição) acontecer depois desse ponto — em outra dependency
-        # OU dentro do próprio endpoint —, o FastAPI descarta este `response` e
-        # monta uma resposta de erro do zero, perdendo o Set-Cookie que acabamos
-        # de gravar. Um visitante novo cujo primeiro request falhasse por QUALQUER
-        # motivo (ex.: upload de um PDF inválido) nunca receberia o cookie, e
-        # seguiria sendo tratado como "visitante novo" a cada tentativa seguinte.
-        #
-        # Por isso guardamos uma cópia do header em request.state: o exception
-        # handler central (ver main.py) sabe reaplicar esse cookie em QUALQUER
-        # resposta de erro da requisição, não só na do próprio rate limiter.
+        # Guardado para o exception handler central reaplicar em respostas de
+        # erro (ver "Cookie perdido em resposta de erro" em
+        # docs/arquitetura/visao_geral.md e _reaplicar_cookie_pendente em main.py).
         request.state.cookie_pendente = response.headers.get("set-cookie")
 
     return client_id

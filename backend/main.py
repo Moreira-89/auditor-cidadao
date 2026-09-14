@@ -29,12 +29,8 @@ app = FastAPI(
 app.include_router(upload_router)
 app.include_router(perguntar_router)
 
-# Frontend e backend são serviços separados no Railway (domínios públicos
-# diferentes), então o navegador trata toda chamada do frontend como cross-site
-# e bloqueia a resposta sem esses headers. allow_credentials=True é obrigatório
-# porque get_client_id (app/api/dependencies.py) depende do cookie de sessão
-# chegar na requisição — sem ele, o rate limiter trataria cada request como um
-# visitante novo.
+# allow_credentials=True é obrigatório para o cookie de sessão cross-site (ver
+# "Identificação do cliente" em docs/arquitetura/visao_geral.md).
 if CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
@@ -46,21 +42,10 @@ if CORS_ORIGINS:
 
 
 def _reaplicar_cookie_pendente(request: Request, resposta: Response) -> Response:
-    """
-    Reaplica na resposta de erro um cookie de sessão que uma dependency (ver
-    get_client_id em app/api/dependencies.py) já tinha gravado antes de
-    alguma exceção interromper a requisição.
-
-    Por que isso é necessário: por padrão, quando qualquer exceção (HTTPException
-    ou erro de validação do corpo) interrompe uma requisição, o FastAPI descarta
-    o `Response` que as dependencies anteriores já tinham modificado e monta uma
-    resposta de erro do zero — junto com o `Response` descartado vai qualquer
-    Set-Cookie que tivesse sido gravado nele. Sem essa função, um visitante novo
-    cujo primeiro request falhasse por QUALQUER motivo (ex.: 415 upload de
-    arquivo inválido, 422 corpo malformado, 429 rate limit) nunca receberia o
-    cookie de sessão — e seguiria sendo tratado como "visitante novo" a cada
-    tentativa seguinte, indefinidamente.
-    """
+    """Reaplica na resposta de erro um cookie de sessão que get_client_id
+    (app/api/dependencies.py) já tinha gravado antes de a exceção interromper a
+    requisição — ver "Cookie perdido em resposta de erro" em
+    docs/arquitetura/visao_geral.md."""
     cookie_pendente = getattr(request.state, "cookie_pendente", None)
     if cookie_pendente:
         resposta.headers.append("set-cookie", cookie_pendente)

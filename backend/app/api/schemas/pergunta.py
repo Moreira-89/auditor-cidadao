@@ -20,7 +20,7 @@ class PerguntaRequest(BaseModel):
 
     Papel de cada campo:
     - `pergunta`    — o texto que o usuário digitou.
-    - `estado` e `municipio` — filtram a busca vetorial no Pinecone, evitando misturar
+    - `estado` e `municipio` — filtram a busca vetorial no MongoDB, evitando misturar
       trechos de editais de municípios diferentes.
     - `lista_cnpjs` — CNPJs já extraídos do edital, entregues ao LLM para ele saber de
       antemão quem investigar (revalidados abaixo, por segurança).
@@ -28,12 +28,18 @@ class PerguntaRequest(BaseModel):
       histórico e dar continuidade entre uma pergunta e a seguinte.
     """
 
-    pergunta: str = Field(description="Pergunta sobre o edital.")
+    pergunta: str = Field(description="Pergunta sobre o edital. Ignorada quando `inicial=true`.")
     estado: str = Field(description="Estado do edital.")
     municipio: str = Field(description="Município do edital.")
     lista_cnpjs: list[str] = Field(description="Lista de CNPJs encontrados no edital.")
     thread_id: str | None = Field(
         default=None, description="Identificador único da thread/sessão de conversa."
+    )
+    inicial: bool = Field(
+        default=False,
+        description="Quando true, o backend ignora `pergunta` e roda o relatório inicial "
+        "automático como primeiro turno da thread (o agente 'fala primeiro'). Antes "
+        "isso era feito de forma síncrona dentro do /upload/.",
     )
 
     @field_validator("lista_cnpjs")

@@ -1,13 +1,12 @@
 """
 A chave de cache é calculada a partir dos argumentos crus que o LLM envia. Estes testes
-cobrem os dois normalizadores que existem para que isso não gere chave errada — o
-segundo nasceu de um TypeError que derrubava duas tools em produção.
+cobrem os normalizadores que existem para que isso não gere chave errada — o segundo
+nasceu de um TypeError que derrubava tools com ToolRuntime em produção.
 """
 
 from types import SimpleNamespace
 
 import pytest
-
 from app.agents.tools.cache import _gerar_chave
 from app.agents.tools.registry import CACHE_KEY_NORMALIZERS
 
@@ -35,32 +34,32 @@ def _runtime(estado: str, municipio: str):
 
 def test_toolruntime_sem_normalizador_quebra_a_chave():
     # Regressão: sem o normalizador, calcular a chave levantava
-    # "TypeError: Object of type ... is not JSON serializable" em TODA chamada
-    # de buscar_contexto_edital e buscar_informacao_web.
+    # "TypeError: Object of type ... is not JSON serializable" em toda chamada
+    # de buscar_informacao_web.
     with pytest.raises(TypeError):
-        _gerar_chave("buscar_contexto_edital", {"pergunta": "prazo", "runtime": _runtime("PA", "Belém")})
+        _gerar_chave("buscar_informacao_web", {"assunto_busca": "obra", "runtime": _runtime("PA", "Belém")})
 
 
 def test_toolruntime_com_normalizador_gera_chave():
     chave = _gerar_chave(
-        "buscar_contexto_edital",
-        {"pergunta": "prazo", "runtime": _runtime("PA", "Belém")},
+        "buscar_informacao_web",
+        {"assunto_busca": "obra", "runtime": _runtime("PA", "Belém")},
         CACHE_KEY_NORMALIZERS,
     )
-    assert chave.startswith("mcp_cache:buscar_contexto_edital_")
+    assert chave.startswith("mcp_cache:buscar_informacao_web_")
 
 
 def test_mesma_pergunta_em_municipios_diferentes_nao_compartilha_cache():
     # A correção do TypeError não pode ter custado a separação por município:
     # reaproveitar o contexto de outro edital seria um erro de auditoria.
     belem = _gerar_chave(
-        "buscar_contexto_edital",
-        {"pergunta": "prazo", "runtime": _runtime("PA", "Belém")},
+        "buscar_informacao_web",
+        {"assunto_busca": "obra", "runtime": _runtime("PA", "Belém")},
         CACHE_KEY_NORMALIZERS,
     )
     macapa = _gerar_chave(
-        "buscar_contexto_edital",
-        {"pergunta": "prazo", "runtime": _runtime("AP", "Macapá")},
+        "buscar_informacao_web",
+        {"assunto_busca": "obra", "runtime": _runtime("AP", "Macapá")},
         CACHE_KEY_NORMALIZERS,
     )
     assert belem != macapa

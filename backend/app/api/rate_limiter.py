@@ -4,25 +4,8 @@ from fastapi import Depends, HTTPException
 from redis.asyncio import Redis
 from redis.commands.core import AsyncScript
 
-# Texto do script Lua — não é código Python, é interpretado pelo próprio Redis.
-#
-# KEYS[1] = chave do contador desse cliente nessa rota (ex.: "upload:<client_id>",
-#           onde client_id vem do cookie assinado, ver app/api/dependencies.py)
-# ARGV[1] = limite máximo de requisições permitidas na janela
-# ARGV[2] = duração da janela, em segundos
-#
-# Lógica:
-# 1. Lê o valor atual do contador (pode não existir ainda — primeira requisição).
-# 2. Se já existe E já atingiu o limite, BLOQUEIA (retorna -1) sem incrementar —
-#    assim o contador não continua subindo indefinidamente enquanto o cliente
-#    insiste dentro da mesma janela.
-# 3. Caso contrário, incrementa o contador (INCR cria a chave com valor 1 se ela
-#    não existir) e, SÓ na primeira requisição da janela (count == 1), define o
-#    TTL. O Redis apaga a chave sozinho quando o TTL expira, o que reinicia a
-#    contagem — não precisamos limpar nada manualmente.
-# 4. Retorna o valor do contador após o incremento (permitido), para o Python
-#    poder logar quanto da cota já foi consumido sem precisar de um segundo
-#    round-trip ao Redis (GET) só para isso.
+# Contador atômico executado dentro do Redis — como/por quê, ver
+# "O contador atômico do rate limiter" em docs/arquitetura/visao_geral.md.
 _SCRIPT_RATE_LIMIT = """
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
@@ -73,15 +56,8 @@ def _formatar_tempo_restante(segundos: int) -> str:
 
 
 def inicializar_rate_limiter(redis_client: Redis) -> None:
-    """
-    Chamado uma única vez pelo lifespan, no startup do servidor: registra no
-    client Redis recebido o script Lua de rate limit.
-
-    `register_script` não executa o script — ele só cria um objeto Python que sabe
-    ENVIAR esse script para o Redis. O Redis então guarda o script em cache (pelo
-    hash do texto) e, nas chamadas seguintes, a lib reenvia apenas o hash (EVALSHA)
-    em vez do texto completo do script — mais rápido, mas transparente para quem usa.
-    """
+    """Chamado uma única vez pelo lifespan: registra o script Lua de rate limit
+    no client Redis (ver docs/arquitetura/visao_geral.md)."""
     global _script_instance
     _script_instance = redis_client.register_script(_SCRIPT_RATE_LIMIT)
 

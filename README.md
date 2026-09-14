@@ -49,31 +49,37 @@ Lista completa de ferramentas, catálogo de anomalias e trade-offs de engenharia
 | Persistência / rate limiting | [Redis](https://redis.io/) |
 | Dados de licitação | [PNCP](https://pncp.gov.br/) via MCP (`@licinexusbr/mcp`) |
 | Sanções / cadastro | Portal da Transparência (CEIS/CNEP) + BrasilAPI |
-| Avaliação automatizada | [RAGAS](https://docs.ragas.io/) — golden dataset + pipeline de métricas |
+| Avaliação automatizada | [deepeval](https://deepeval.com/) (G-Eval) — golden dataset + pipeline de métricas |
 
-Versões exatas em [`requirements.txt`](./requirements.txt) e [`requirements-dev.txt`](./requirements-dev.txt).
+Versões exatas em [`requirements.txt`](./backend/requirements.txt).
 
 ---
 
 ## ⚙️ Rodando localmente
 
-Pré-requisitos: **Python 3.12+**, **Node.js 20 LTS** (tools de PNCP via MCP) e **Redis** acessível
-(sem ele o boot falha). Chaves obrigatórias: OpenAI, Pinecone, Tavily e Portal da Transparência/CGU.
+Pré-requisitos: **Python 3.12+**, **Node.js 20 LTS**, **Redis** e **MongoDB** acessíveis (sem eles o
+boot falha). Chaves obrigatórias: OpenAI, Pinecone, Tavily e Portal da Transparência/CGU.
 
 ```bash
 git clone https://github.com/Moreira-89/auditor-cidadao.git
 cd auditor-cidadao
-
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 docker run -d --name redis-auditor -p 6379:6379 redis:latest
+docker run -d --name mongo-auditor -p 27017:27017 mongo:latest
 
-cp .env.example .env   # preencha suas chaves
-uvicorn main:app --reload
+cp .env.example .env                       # preencha suas chaves (AMBIENTE_PRODUCAO=False em dev)
+
+# backend (terminal 1)
+cd backend && uvicorn main:app --port 8000
+
+# frontend (terminal 2)
+cd frontend && npm install && cp .env.example .env && npm run dev
 ```
 
-A aplicação sobe em `http://127.0.0.1:8000` (`/chat` para a interface, `/docs` para o Swagger).
+Frontend em `http://localhost:5173`, API/Swagger em `http://localhost:8000/docs`. Em dev o backend
+libera o CORS de `localhost:5173` automaticamente (`AMBIENTE_PRODUCAO=False`).
 Passo a passo detalhado, todas as variáveis de ambiente e instruções de Docker/deploy:
 [Setup local](https://moreira-89.github.io/auditor-cidadao/operacional/setup_local/) ·
 [Docker & Deploy](https://moreira-89.github.io/auditor-cidadao/operacional/docker/) ·

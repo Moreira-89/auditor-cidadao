@@ -31,6 +31,13 @@ Pontos da imagem que valem explicação:
     Com o contexto de build em `backend/`, a pasta `frontend/` fica de fora — assim como `docs/` e
     o roadmap. O container serve a API; o frontend é publicado como serviço próprio (ver abaixo).
 
+!!! warning "Modelos do Docling não estão na imagem"
+    `docling` está no `requirements.txt` (Bloco 14), mas os pesos dos modelos de layout/tabela/OCR
+    (~1 GB) **não** são baixados no build — o `lifespan` os baixa no primeiro `initialize_pipeline`.
+    Num filesystem efêmero (Railway sem volume) isso significa ~1 GB de download a **cada** cold
+    start, alongando o boot. Opções para produção: baixar os modelos no `Dockerfile` (imagem maior,
+    boot rápido) ou montar um volume persistente para o cache do Docling.
+
 ## Backend — rodando o container
 
 O Redis **não** está embutido na imagem — precisa de um container separado no ar antes:
@@ -138,13 +145,15 @@ réplica** — o `CMD` não passa `--workers` ao `uvicorn`, de propósito.
   todo o estado vive fora da RAM local — checkpointer de conversa, contador de rate limit e cache de
   tools estão no Redis. Sem sticky sessions no Railway, qualquer uma dessas peças em memória local
   quebraria silenciosamente com múltiplas réplicas.
-- **Por que 1 worker por réplica:** a carga é dominada por I/O (LLM, PNCP, Pinecone) e por rede, não
-  por CPU — mais workers por processo trariam ganho marginal. Manter um eixo de escala só (réplicas)
-  facilita depurar.
+- **Por que 1 worker por réplica:** fora a conversão do Docling (ver abaixo), a carga é dominada por
+  I/O (LLM, PNCP, MongoDB) e por rede, não por CPU — mais workers por processo trariam ganho
+  marginal. Manter um eixo de escala só (réplicas) facilita depurar.
 - **Teto de 4 vCPU / 4 GB por réplica** (Replica Limits) **+ Usage Limit no workspace** como
-  proteção agregada de custo. Dado real de ~3 meses mostrou pico de 1,38 GB de RAM e CPU próxima de
-  zero; 4/4 dá margem de ~3× sobre o pico e funciona como disjuntor contra anomalia (bug, loop), não
-  como limite de operação normal.
+  proteção agregada de custo. O dado histórico de pico de 1,38 GB de RAM é **anterior ao Docling**
+  (Bloco 14): agora o processo carrega `torch` + dois conjuntos de modelo de layout/tabela (com e
+  sem OCR) de forma permanente, então o piso de RAM sobe de forma relevante e o teto precisa ser
+  reavaliado para cima (plano pago do Railway). Durante a conversão de um edital, um core fica
+  ocupado por segundos a ~2 min.
 
 !!! warning "Números calibrados com tráfego de um único usuário"
     O pico de 1,38 GB usado acima vem de ~3 meses de uso, mas **todo esse uso é do próprio autor**

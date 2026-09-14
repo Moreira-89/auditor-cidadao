@@ -100,7 +100,7 @@ async def test_turno_seguinte_manda_so_a_pergunta(monkeypatch):
     grafo = GrafoFalso([], mensagens_no_estado=[HumanMessage(content="turno anterior")])
     await _coletar(grafo, monkeypatch, lista_cnpj=["11.222.333/0001-81"])
     [mensagem] = grafo.entrada_recebida["messages"]
-    assert mensagem.content == "<PERGUNTA>Há sobrepreço?</PERGUNTA>"
+    assert mensagem.content == "<PROMPT_USUARIO>Há sobrepreço?</PROMPT_USUARIO>"
 
 
 async def test_campos_do_usuario_sao_escapados_antes_do_prompt(monkeypatch):

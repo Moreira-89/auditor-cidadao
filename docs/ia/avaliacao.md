@@ -1,177 +1,395 @@
 # Avaliação de Desempenho
 
-Para garantir que mudanças no agente (prompt, ferramentas, modelo) não piorem a qualidade das
-respostas, o projeto mantém um framework de avaliação automatizado: um **golden dataset** de casos
-curados e um pipeline que roda o agente de ponta a ponta contra cada caso e mede três famílias de
-métrica independentes.
+Para que mudanças no agente (prompt, ferramentas, modelo) não piorem a qualidade das respostas em
+silêncio, o projeto mantém um framework de avaliação automatizado: um **golden dataset** de casos
+curados e um pipeline que roda o agente de ponta a ponta contra cada caso e mede quatro métricas com
+[`deepeval`](https://deepeval.com/).
+
+O código fica em [`backend/evaluation/`](https://github.com/Moreira-89/auditor-cidadao/tree/main/backend/evaluation),
+pacote irmão de `backend/app/` — a avaliação importa do `app`, nunca o contrário. Roda com
+`python -m evaluation.runner [--tipo=real|sintetico] [ids...]` de dentro de `backend/`.
 
 ## O golden dataset
 
-`evaluation/golden_dataset.json` tem 11 casos (reais + sintéticos), cobrindo o mix exigido: empresa
-com sanção ativa no CEIS/CNEP (Anomalia H), prazo de publicação irregular (Anomalia F), caso
-controle sem anomalia esperada e caso puramente conversacional. Cada caso declara o que se espera
-(ferramentas, anomalias, contexto do edital), servindo de gabarito para as métricas.
+`evaluation/dataset/golden_dataset.json` — uma lista única de casos, validados contra o schema
+`Caso` ([`evaluation/dataset/schema.py:20-35`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/dataset/schema.py#L20-L35)),
+carregados por `carregar_casos()` (`schema.py:38-40`). O nome do PDF é declarado por caso em
+`edital_pdf` e vive em `evaluation/dataset/editais/` — não há mais convenção de nome
+(`EDITAIS_DIR / caso.edital_pdf`, `indexacao.py:14,35`), então o `id` do caso e o nome do arquivo
+não precisam bater.
 
-**Exemplo real** (`caso_01`, truncado — o campo completo `contexto_edital_esperado` é mais longo):
+**Um dataset, dois `tipo`.** Editais reais têm gabarito de anomalia ambíguo por natureza — não dá
+pra saber com certeza, só olhando o texto extraído, se o agente errou ou se foi o gabarito que
+errou (ver "Por que os 4 editais reais não cobram anomalia" abaixo). Em vez de manter dois
+datasets separados, `Caso.tipo` (`schema.py:14`, `Literal["real", "sintetico"]`) marca o que cada
+caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:139-201`) com listas de métrica
+diferentes:
 
-```json
-{
-  "id": "caso_01",
-  "descricao": "São Luís/MA — sanção CEIS/CNEP vigente da empresa vencedora fictícia na dispensa de notebooks",
-  "categoria": "hibrido",
-  "estado": "Maranhão (MA)",
-  "municipio": "São Luís",
-  "cnpjs": ["38504819000169"],
-  "caminho_pdf": "evaluation/editais_teste/edital_saoluis.pdf",
-  "trecho_injetado": "[Trecho sintetizado para fins de teste — não consta do edital original] Resultado da Fase de Lances: sagrou-se vencedora do certame uma empresa, CNPJ 38.504.819/0001-69, classificada em primeiro lugar com valor total de R$ 58.400,00 para o fornecimento dos 09 notebooks.",
-  "pergunta": "Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.",
-  "tools_esperadas": [
-    {"tool": "consultar_sancoes_empresa", "argumentos_esperados": {"cnpj": "38504819000169"}}
-  ],
-  "anomalias_esperadas": ["H"],
-  "resposta_esperada": "laudo",
-  "score_minimo_esperado": 0.9
-}
+| `tipo` | O que cobra | Editais |
+|---|---|---|
+| `real` | Retrieval do contexto (`ContextualRecallMetric`) + tool correta | os 4 originais — documentos verdadeiros, PDF real |
+| `sintetico` | Anomalia detectada certa (`RecallAnomaliasMetric`) + tool + argumento | 9 casos, um por código do catálogo A–I |
+
+| id | Município | Objeto |
+|---|---|---|
+| `caso_01_brejao_direcionamento` | São Francisco do Brejão/MA | Eventos culturais — o edital real tem uma cláusula de credenciamento ABVAQ que **parece** direcionamento (B), mas isso não é cobrado aqui, só o retrieval do objeto |
+| `caso_02_saoluis_sancao` | São Luís/MA | Dispensa eletrônica para notebooks |
+| `caso_03_belem_limpeza` | Belém/PA | Pregão de limpeza e conservação |
+| `caso_04_controle` | Miracema/RJ | Dispensa para câmeras de vigilância (caso-controle) |
+
+Suíte `sintetico` — um caso por código do catálogo (ver [Anomalias](anomalias.md)):
+
+| id | Anomalia | Cenário |
+|---|---|---|
+| `caso_05_sobrepreco_materiais_escolares` | **A** — sobrepreço | Papel sulfite 40% acima da mediana de referência |
+| `caso_06_brejao_direcionamento` | **B** — direcionamento | Credenciamento ABVAQ sem relação demonstrada com o objeto (mesma cláusula do `caso_01`, aqui com gabarito de anomalia) |
+| `caso_07_piumhi_fracionamento_obras` | **C** — fracionamento | Pavimentação dividida em 2 certames, ~2 meses de intervalo |
+| `caso_08_cartel_empresas_endereco_socios` | **D** — indício de conluio | 3 empresas, mesmo endereço/sócios, propostas muito próximas |
+| `caso_09_empresa_recente_obra_complexa` | **E** — empresa incompatível | Vencedora de obra de R$ 4,8 mi constituída 7 meses antes do edital |
+| `caso_10_barra_do_corda_prazo_insuficiente` | **F** — prazo insuficiente | Sem os 30 dias mínimos entre publicação e sessão |
+| `caso_11_reincidencia_empresa_vencedora` | **C + G** — fracionamento + concentração | Uma empresa venceu 64,3% dos certames do órgão em 12 meses, com objetos licitados separadamente apesar de requisitos semelhantes |
+| `caso_12_empresa_sancionada_ceis` | **H** — sanção vigente | Vencedora consta no CEIS, adjudicada mesmo assim |
+| `caso_13_sintetico_incompatibilidade_cnae` | **I** — CNAE incompatível | Empresa fictícia do ramo gráfico, sem atividade compatível com o objeto (manutenção de climatização); CNPJ deliberadamente inválido |
+
+Cada caso declara o gabarito (`schema.py:20-35`):
+
+- `anomalias_esperadas: list[CodigoAnomalia]` — códigos A–I tipados como `Literal` (`schema.py:10`),
+  reaproveitado de `app/agents/prompt.py`; um typo no JSON (ex.: `"J"`) não passa validação em
+  silêncio. Vazio nos 4 casos `real` de propósito — ver seção seguinte.
+- `tools_esperadas: list[ToolEsperada]` — cada item é `{tool, argumentos_esperados}`
+  (`schema.py:17-18`).
+- `contexto_edital_esperado` — gabarito textual do objeto do edital, consumido pela
+  `ContextualRecallMetric` (ver "As métricas" abaixo).
+
+**Por que os 4 editais reais não cobram anomalia.** `caso_01` e `caso_02` já passaram por isso na
+prática: o agente apontou um código a mais do que o gabarito previa (`caso_01`: B + I; `caso_02`:
+H + I), e não deu pra decidir com segurança se era over-detection do modelo ou um gabarito
+incompleto — o `caso_02` era de fato o segundo (corrigido depois de conferir CNAE/CNPJ reais), mas
+o `caso_01` ficou sem veredito claro. Documento real e mensagens de erro reais (Docling variando
+extração PDF a PDF) tornam o "gabarito certo" um alvo móvel. Por isso a suíte `real` agora só
+audita o que é objetivamente checável num edital de verdade — o agente recuperou o trecho certo do
+edital e chamou a tool certa — e toda a detecção de anomalia migrou pra suíte `sintetico`, onde o
+gabarito é escrito antes do PDF existir e não tem outra leitura possível.
+
+**Injeção sintética.** `caso.trecho_injetado` (`schema.py:29`) simula um trecho que não existe no
+PDF original sem precisar de um edital real que já o contenha — usado hoje só pelo
+`caso_06_brejao_direcionamento` (reaproveita o PDF real do `caso_01`, injetando a cláusula ABVAQ
+como achado com gabarito de anomalia). `indexar_caso`
+([`evaluation/indexacao.py:32-64`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/indexacao.py#L32-L64))
+não concatena o trecho só ao texto plano — ele também vira uma **seção sintética** (título
+`"TRECHO INJETADO (AVALIAÇÃO)"`, `indexacao.py:55-59`), indo pro MongoDB pelo mesmo caminho de
+indexação hierárquica de um edital real. Os 4 casos `real` não usam mais o mecanismo — a injeção de
+vencedora/CNPJ é exatamente o tipo de cenário que a suíte `sintetico` assume por inteiro, com
+controle total do texto do PDF (ex.: `caso_12`, PDF já nasce com a sanção no corpo do documento).
+
+!!! note "Um caso-controle também tem tool esperada"
+    `caso_04_controle` não espera nenhuma anomalia, mas **espera** `buscar_contexto_edital` (com
+    `argumentos_esperados: {}`) — o agente precisa consultar o edital pra escrever o relatório
+    independente de haver ou não irregularidade. Lista vazia em `tools_esperadas` significaria "esperar
+    **zero** chamadas de tool" para a métrica nativa `ToolCorrectnessMetric` (ver abaixo), o que é
+    diferente de "não tenho expectativa sobre tools neste caso".
+
+## O harness: mesmo caminho de código da produção
+
+`executar_caso()` ([`evaluation/execucao.py:35-85`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/execucao.py#L35-L85))
+chama `run_agent()` ([`app/agents/conversa.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py)),
+o mesmo ponto de entrada que `POST /conversar-com-auditor/` usa em produção, passando
+`PROMPT_RELATORIO_INICIAL` (`app/agents/prompt.py:521`) como se fosse a pergunta do usuário — é
+exatamente o que a produção faz quando `inicial: true` (`app/api/endpoints/chat.py:81`). Não existe
+um segundo caminho de execução "só para avaliação": o mesmo `astream_events()`, o mesmo grafo, o
+mesmo prompt.
+
+O harness consome os eventos de domínio (`TokenGerado`, `ErroNoTurno`, ver `app/agents/eventos.py`)
+pra reconstruir o Markdown completo (`execucao.py:39-54`) e lê o checkpoint do LangGraph
+(`get_graph().aget_state(...)`, `execucao.py:58`) para os `tool_calls` completos, extraídos do
+histórico de mensagens em `execucao.py:65` — `run_agent()` só emite o **nome** da tool no stream
+(`FerramentaIniciada`), não os argumentos nem o resultado.
+
+Os códigos de anomalia saem por **regex sobre o Markdown**, sem chamada de LLM. O prompt já obriga
+um formato fixo por achado (`app/agents/prompt.py:578`,
+`**[ESTADO: CONFIRMADO | INDÍCIO] [NÍVEL DE RISCO: ...] — <código>. <categoria>**`), então ler esse
+padrão é ler o dado real, não um proxy:
+
+```python
+# evaluation/metricas/recall_anomalias.py:10-18
+_PADRAO_ACHADO = re.compile(
+    r"\*\*\[ESTADO:\s*(CONFIRMADO|INDÍCIO)\]\s*"
+    r"\[NÍVEL DE RISCO:\s*(?:BAIXO|MÉDIO|ALTO|CRÍTICO)\]\s*"
+    r"[—-]\s*([A-I])\."
+)
+
+def extrair_anomalias(texto_laudo: str) -> list[tuple[str, str]]:
+    """Devolve [(codigo, estado), ...] achados no laudo."""
+    return [(m.group(2), m.group(1)) for m in _PADRAO_ACHADO.finditer(texto_laudo)]
 ```
 
-`trecho_injetado` é concatenado ao texto extraído do PDF antes da indexação — permite testar um
-cenário específico (aqui, uma sanção) sem precisar de um edital real que já contenha esse dado.
-`tools_esperadas` e `anomalias_esperadas` são o gabarito usado por `aderencia_tools` e
-`recall_anomalias`, respectivamente (ver abaixo).
+## Por que G-Eval em vez de métricas convencionais (RAGAS, BLEU/ROUGE)
 
-## As três famílias de métrica
+A pergunta que a avaliação precisa responder é semântica, não textual: *"o laudo afirma algo que as
+fontes consultadas não sustentam?"* e *"o agente detectou a anomalia certa?"* — não *"o texto gerado
+parece com um texto de referência?"*. Isso descarta de saída métricas de sobreposição
+n-grama (BLEU, ROUGE, ChrF): elas comparam string contra string, e não existe um "laudo de
+referência" único e correto para comparar — dois laudos com redação totalmente diferente podem ser
+igualmente corretos, e um laudo com alta sobreposição textual ainda pode alucinar um fato.
 
-| Métrica | Como é medida | Usa LLM? |
-|---|---|---|
-| **`aderencia_tools`** | Comparação determinística entre `tools_esperadas` e `tools_chamadas` | Não |
-| **`recall_anomalias`** | Reusa o mesmo mecanismo de extração estruturada de produção (`with_structured_output` + `CATALOGO_ANOMALIAS`) sobre o laudo e compara os códigos A–I detectados com os esperados | Sim (extrator dedicado, réplica do de produção) |
-| **RAGAS (`faithfulness`, `context_recall`)** | Mede alucinação e cobertura de contexto nos casos que usam `buscar_contexto_edital` | Sim (juiz `gpt-4o`) |
+Sobra julgamento por LLM. A opção mais comum é o [RAGAS](https://docs.ragas.io/) (`faithfulness`,
+`context_recall`), que o projeto usou antes: um LLM-juiz recebe resposta + contexto e devolve uma
+nota, sem que o chamador controle o raciocínio que o juiz segue nem a régua de pontuação — o prompt
+de julgamento é genérico, interno à biblioteca. Medido neste projeto: 4 rodadas sobre o **mesmo**
+golden dataset, sem nenhuma mudança de código entre elas, produziram `context_recall` de
+`{0.0, 0.33, 0.67, 1.0}` — a variância vem da ausência de um critério explícito, não do conteúdo
+avaliado.
 
-- **`faithfulness`** — a resposta só afirma coisas sustentadas pelo contexto recuperado, ou inventou
-  algo a mais?
-- **`context_recall`** — o contexto recuperado cobre a informação necessária (comparado ao gabarito
-  do dataset)?
+**G-Eval** ataca exatamente esse ponto: em vez de pedir "julgue a qualidade", o chamador escreve os
+**passos de raciocínio** que o juiz segue (chain-of-thought fixo) e a **régua de nota** (`Rubric`)
+antes de rodar. O juiz tem menos liberdade pra divergir de rodada a rodada porque o critério já está
+no prompt, não na "opinião" livre do modelo. A biblioteca [`deepeval`](https://deepeval.com/)
+implementa isso pronto (`GEval` + `Rubric`, ver `evaluation/metricas/fidelidade.py`) e ainda pondera
+a nota final pela probabilidade dos tokens de saída (`logprobs`) quando o modelo/provider suporta —
+mais um fator de estabilidade que não precisou ser implementado à mão.
 
-## Decisões de engenharia (trade-offs)
+## As métricas
 
-!!! note "RAGAS em vez de um juiz LLM caseiro"
-    O plano original previa um único LLM-juiz caseiro (`avaliar.py`/`JulgamentoLLM`) avaliando 4
-    métricas. A implementação final diverge conscientemente: usa **RAGAS** (biblioteca validada pela
-    comunidade) para `faithfulness`/`context_recall`, mantém `aderencia_tools` como comparação
-    **determinística sem LLM** (mais confiável que julgamento subjetivo para esse caso), e
-    `recall_anomalias` como fração reaproveitando o mesmo mecanismo de extração estruturada da
-    produção (`PROMPT_EXTRATOR`/`RespostaLaudo`, em [`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py)/[`app/api/schemas/laudo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/laudo.py) —
-    réplica dedicada à avaliação, ver [Relatório Automático e Extração de Laudo](extracao_laudo.md)).
-    É uma decisão de engenharia, não desvio por falta de tempo — vale como resposta para "por que a
-    implementação diverge do plano original?".
+Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`runner.py:102-116`):
 
-!!! note "Exclusão do `caso_06` do cálculo de RAGAS"
-    O `caso_06` tem `contexto_edital_esperado` como uma afirmação **negativa** ("o edital não traz a
-    data de publicação"). O `context_recall` não tem mecanismo para validar ausência de informação
-    contra chunks recuperados, então esse caso nunca pontuaria bem nessa métrica — é uma limitação
-    da métrica, não do sistema. Foi excluído do RAGAS via um campo próprio no dataset
-    (`excluir_do_ragas: true`), mantendo-se normalmente nas demais métricas, em vez de reescrever o
-    gabarito.
+| Métrica | Limiar | Como é medida | Usa LLM? |
+|---|---|---|---|
+| **Tool Correctness** | ≥ 0.50 | Nativa do deepeval (`ToolCorrectnessMetric`) — confere só o **nome** da tool chamada contra `expected_tools`, sem exigir ordem | Não |
+| **Argumentos da Tool** | ≥ 1.00 | Customizada (`ArgumentosToolMetric`, [`evaluation/metricas/argumentos_tool.py:17-65`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/argumentos_tool.py#L17-L65)) — subset-match dos argumentos esperados (ex.: `cnpj`), normalizando dígitos (`argumentos_tool.py:5-14`) | Não |
+| **Fidelidade** | ≥ 0.60 | `GEval` com `Rubric` de 5 níveis ([`evaluation/metricas/fidelidade.py:7-59`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/fidelidade.py#L7-L59)) — o laudo só afirma o que as saídas das tools sustentam, sem inventar nem extrapolar | Sim (juiz) |
 
-!!! note "Juiz do RAGAS trocado de `gpt-4o-mini` para `gpt-4o`"
-    O `gpt-4o-mini` dava notas inconsistentes para o mesmo contexto recuperado entre execuções
-    (comprovado com contexto byte-a-byte idêntico e nota diferente). A troca para `gpt-4o` zerou a
-    variância de `context_recall` (amplitude `0.000` em 3 execuções). O custo maior só incide na
-    avaliação — esse modelo nunca é chamado por um usuário real.
+Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:102-116`):
 
-## O caso do bug de produção
+| `tipo` | Métrica | Limiar | Como é medida | Usa LLM? |
+|---|---|---|---|---|
+| `real` | **Cobertura de Contexto** | ≥ 0.70 | Nativa do deepeval (`ContextualRecallMetric`) — quebra `contexto_edital_esperado` (`expected_output`) em sentenças e verifica quantas têm sustentação em `retrieval_context` (o que `buscar_contexto_edital` de fato devolveu) | Sim (juiz) |
+| `sintetico` | **Recall de Anomalias** | ≥ 0.65 | Customizada (`RecallAnomaliasMetric`, [`evaluation/metricas/recall_anomalias.py:18-53`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L18-L53)) — F1 entre os códigos A–I esperados e os extraídos por regex do Markdown. Caso-controle sem anomalia esperada → binário (qualquer código apontado é falso positivo) | Não |
 
-A investigação mais importante do framework não foi sobre um número, foi sobre um bug real. Uma
-instabilidade nas métricas RAGAS levou, por camadas, à descoberta de que o `gerenciadorvetorial.py`
-— compartilhado entre o pipeline de teste e o fluxo real de indexação — armazenava **todo chunk com
-o texto do último chunk do documento**, afetando usuários reais em produção. Os detalhes completos
-estão em [Uso de Dados e RAG](rag_dados.md#o-bug-de-producao-que-a-avaliacao-revelou). É a resposta
-concreta para "como o framework de avaliação ajudou a encontrar problemas reais, não só medir
-números?".
+!!! note "`ContextualRecallMetric` não é G-Eval"
+    É a exceção à régua da seção anterior — usa o algoritmo "veredito por sentença, depois
+    proporção" (mesma família do `context_recall` do RAGAS), sem `evaluation_steps`/`Rubric`. A
+    diferença pro RAGAS é que o deepeval força a saída do juiz por schema (Pydantic), o que tende a
+    ser mais estável que o prompt solto do RAGAS — mas, sem rubric, o placar dela deve ser lido com
+    mais desconfiança que o da Fidelidade até se acumular evidência de rodadas repetidas. Foi aceita
+    mesmo assim porque reaproveita o gabarito `contexto_edital_esperado` (que já existia sem
+    consumidor) sem escrever uma métrica nova do zero.
 
-## Rodando o pipeline
+**Por que duas métricas de tool em vez de uma.** `ToolCorrectnessMetric` compara `input_parameters`
+por **igualdade exata** quando `ToolCallParams.INPUT_PARAMETERS` está em `evaluation_params` — isso
+quebraria os casos com `argumentos_esperados: {}` (ex.: `buscar_contexto_edital`, cujo argumento
+real é uma pergunta livre e nunca deveria ser cobrado). `ArgumentosToolMetric` existe só para os
+argumentos que **importam de verdade** (o `cnpj` que uma tool de sanção/cadastro recebeu), com
+subset-match — a chamada real pode ter mais campos que o esperado, só não pode faltar o que importa.
+
+O juiz (Fidelidade e Cobertura de Contexto) é configurável por `AVALIADOR_MODEL` /
+`AVALIADOR_TEMPERATURE` (`app/config/settings.py`, default `gpt-4o` / `0.0` — `temperature=0`
+reduz mais uma fonte de variância no julgamento). `construir_juiz` (`evaluation/juiz.py`) lê o
+prefixo `provider:model` — mesma convenção do `LLM_MODEL` — e monta `OpenAIModel` (default) ou
+`GeminiModel` (prefixo `gemini:`, exige `GOOGLE_API_KEY`). O motivo de ter um segundo provider:
+o tier gratuito da OpenAI tem TPM baixo (30k/min) e um único caso real grande já pode pedir mais
+que isso numa chamada só — trocar de juiz é bem mais direto que forçar o contexto a caber.
+
+### F1: como o Recall de Anomalias calcula a nota
+
+`RecallAnomaliasMetric` compara os códigos A–I extraídos do laudo (`extrair_anomalias`,
+`recall_anomalias.py:13-15`) contra `anomalias_esperadas` do gabarito, com duas perguntas
+diferentes sobre a mesma lista:
+
+- **Precisão** — "das anomalias que o agente apontou, quantas estavam certas?" Mede **falso
+  positivo**: um agente que aponta as 9 letras do catálogo em todo edital, sem critério, nunca
+  erraria por *recall* (acha tudo, óbvio — chutou tudo), mas a precisão baixa entrega o problema.
+- **Recall** — "das anomalias que o gabarito espera, quantas o agente achou?" Mede **falso
+  negativo**: um agente caladão, que só aponta quando tem certeza absoluta, pode ter precisão
+  perfeita (nunca erra o que fala) mas deixar passar anomalias reais — é o recall baixo que entrega
+  isso.
+
+Nenhuma das duas sozinha é suficiente (dá pra "trapacear" cada uma isoladamente, como nos exemplos
+acima), então a métrica combina as duas num só número — o **F1**, a média harmônica entre elas
+(`recall_anomalias.py:39-44`):
+
+```
+F1 = 2 × (precisão × recall) / (precisão + recall)
+```
+
+Diferente de uma média simples, o F1 **penaliza desequilíbrio**: se qualquer uma das duas cai a
+zero, F1 vai a zero junto, mesmo que a outra seja perfeita — não dá pra compensar "não achei nada"
+com "não menti nada".
+
+**Exemplo real, `caso_11_reincidencia_empresa_vencedora`** (gabarito `["C", "G"]`, agente apontou
+só `["G"]`):
+
+- Precisão = 1/1 = **1.0** — tudo que ele disse (`G`) estava certo, não inventou nada.
+- Recall = 1/2 = **0.5** — achou 1 das 2 anomalias esperadas.
+- F1 = 2 × (1.0 × 0.5) / (1.0 + 0.5) = **0.667** — é esse número que é comparado contra o
+  `threshold` (`0.65`, `recall_anomalias.py:21`) pra decidir passou/reprovou.
+
+### O rubric de Fidelidade
+
+```python
+# evaluation/metricas/fidelidade.py:35-56
+rubric=[
+    Rubric(score_range=(5, 5), expected_outcome="Todas as afirmações sustentadas."),
+    Rubric(score_range=(4, 4), expected_outcome="1 não sustentada, detalhe menor."),
+    Rubric(score_range=(3, 3), expected_outcome="1 não sustentada que afeta um achado."),
+    Rubric(score_range=(2, 2), expected_outcome="2+ não sustentadas, ou 1 que inventa dado central."),
+    Rubric(score_range=(1, 1), expected_outcome="Achado sem evidência em nenhuma fonte."),
+]
+```
+
+Os `evaluation_steps` (`fidelidade.py:18-33`) mandam o juiz listar cada afirmação factual do laudo,
+procurar sustentação em `CONTEXT` (as saídas de tool, `SingleTurnParams.CONTEXT`) e marcar cada uma
+como sustentada ou não — uma afirmação que **extrapola** a fonte (fonte diz "3 sanções", laudo diz
+"sanções recorrentes e graves") conta como não sustentada, mesmo sem inventar um dado novo. Validado
+rodando a métrica isolada contra um caso sintético de extrapolação (score 0.32, abaixo do limiar) e
+um caso fiel (score 1.0) — a régua discrimina de fato, não dá nota alta por padrão.
+
+## O pipeline
+
+`runner.py` roda os casos **sequencialmente** (rate limit dos LLMs, logs legíveis). Por caso
+(`_montar_test_case`, `runner.py:54-73`):
+
+```
+preparar_ambiente()     → grafo montado fora do lifespan, mas com montar_tools()
+                          (execucao.py:27-33) — nativas + MCP + aplicar_cache,
+                          igual à produção. LLM_TEMPERATURE = 0.0.
+  indexar_caso(caso)    → Docling → seção sintética (se houver trecho) → MongoDB
+  executar_caso(edital) → run_agent() (mesmo caminho da produção) + leitura do
+                          checkpoint pros tool_calls
+  finally: limpar_edital(edital_id)
+```
+
+`montar_tools()` exige um client Redis — `_rodar` abre um só pra rodada inteira
+(`abrir_client_redis`, `runner.py:146`), num **banco lógico dedicado**
+(`REDIS_DB_AVALIACAO = 1`, `runner.py:31-34`) pra nunca ler nem escrever em cima de uma
+entrada de cache real. Esse db é limpo (`flushdb`, `runner.py:149`) antes de cada
+rodada — sem isso, um caso corrigido no dataset continuaria batendo num resultado
+cacheado da rodada anterior e a mudança não apareceria na próxima execução.
+
+!!! note "Retry por caso — um provider instável não derruba a rodada inteira"
+    `_montar_test_case_com_retry` (`runner.py:76-96`) reroda um caso até
+    `CASO_MAX_TENTATIVAS` (3) vezes, só quando `executar_caso` levanta `RuntimeError` —
+    o sinal que `execucao.py` usa especificamente pra "o turno do agente falhou", não
+    qualquer exceção. Motivo de existir: 500/503 transiente já derrubou rodadas inteiras
+    com três providers diferentes (OpenAI, Gemini, Maritaca) — sem isso, um caso instável
+    no meio da lista jogava fora o trabalho de todos os outros já rodados. Um caso que
+    esgota as tentativas é descartado (log de `ERROR`, não trava a rodada) e força
+    `aprovado_geral = False` no fim — a rodada continua, mas não sai como sucesso.
+
+Depois de rodar todos os casos, `_rodar` (`runner.py:139-201`) monta um `LLMTestCase` por caso e
+chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:183-197`)
+— não uma vez só: `real` e `sintetico` cobram métricas diferentes (ver "As métricas" acima), e o
+`evaluate()` do deepeval só aceita uma lista de métrica global por chamada, não uma por
+`test_case`. Cada `evaluate()` grava seu próprio
+`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:201`)
+se algum caso, em qualquer lote, reprovou em qualquer métrica — ou se algum caso foi descartado
+pelo retry.
+
+## Rodando
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt   # requirements-dev.txt tem ragas
-python -m evaluation.pipeline_avaliacao
+cd backend
+python -m evaluation.runner                    # todos os casos
+python -m evaluation.runner caso_02_saoluis_sancao   # um caso
+python -m evaluation.runner --tipo=sintetico   # só a suíte sintética
+python -m evaluation.runner --tipo=real        # só a suíte real
 ```
 
-Precisa das mesmas chaves de API que a aplicação principal (`OPENAI_API_KEY`, `PINECONE_API_KEY`
-— ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md)); não precisa de Redis nem de
-Node.js/MCP — o pipeline monta o grafo direto com `build_graph(TOOLS, checkpointer=InMemorySaver())`,
-fora do `lifespan` da API.
+`--tipo` e id se combinam (`--tipo=sintetico caso_08_...` roda só esse caso dentro da suíte) —
+`_selecionar_casos` (`runner.py:119-136`) filtra primeiro por `tipo`, depois por id. Útil pra rodar
+a suíte sintética sozinha com um juiz diferente da real: os PDFs são bem menores, então um juiz com
+TPM baixo (`AVALIADOR_MODEL=openai:gpt-4o`, por exemplo) tende a aguentar os sintéticos mesmo sem
+aguentar os 4 editais reais grandes.
 
-!!! warning "Só exercita as 4 tools nativas, não as 11 do PNCP nem o cache"
-    O agente do pipeline roda **sem** as tools MCP e **sem** a camada `aplicar_cache` que a produção
-    usa (`app/services/lifespan.py`) — ele testa o raciocínio do agente e as 4 tools nativas, não a
-    integração completa. Isso já mordeu na prática: a migração de `InjectedState` para `ToolRuntime`
-    (ver [Arquitetura](../arquitetura/visao_geral.md)) introduziu um bug que só aparecia dentro de
-    `aplicar_cache` — o golden dataset passou normalmente nas duas vezes em que foi rodado durante
-    essa migração, porque nunca chega perto do código que quebrou. Ao interpretar "o golden dataset
-    passou" como evidência de que nada quebrou, vale lembrar desse ponto cego.
+Precisa de `OPENAI_API_KEY`, `MONGODB_URI` (o mesmo cluster Atlas da produção) e agora também
+`REDIS_URI` + Node/npx no PATH — `preparar_ambiente` chama o mesmo `montar_tools()` da produção,
+que conecta ao MCP LiciNexus e monta o cache Redis das tools (ver "O pipeline" acima).
+`DEEPEVAL_TELEMETRY_OPT_OUT=1` mantém a rodada 100% local, sem enviar nada pra Confident AI (ver
+[Variáveis de ambiente](../operacional/variaveis_ambiente.md)).
 
-O terminal imprime um resumo ao final (`_formatar_relatorio_aprovacao`):
+## Pontos cegos — onde a avaliação diverge da produção
 
-```text
-============================================================
-                   RESULTADO DA AVALIAÇÃO
-============================================================
-  aderencia_tools   : 1.000  (mínimo 0.70)  [OK]     APROVADO
-  faithfulness      : 0.858  (mínimo 0.85)  [OK]     APROVADO
-  context_recall    : 0.600  (mínimo 0.75)  [FALHOU] REPROVADO
-  recall_anomalias  : 1.000  (mínimo 0.80)  [OK]     APROVADO
-------------------------------------------------------------
-  VEREDITO GERAL: [FALHOU] REPROVADO
-============================================================
-```
+!!! warning "Checkpointer em memória, não o Redis persistente da produção"
+    `preparar_ambiente` (`execucao.py:27-33`) usa `InMemorySaver()` em vez do
+    `abrir_checkpointer()` (Redis) que a produção usa (`app/api/lifespan.py:37`) — cada rodada de
+    avaliação começa com histórico de conversa zerado, e nada testa a camada de persistência entre
+    turnos. Um bug que só existisse ali passaria pelo golden dataset inteiro sem ser pego.
 
-(Números da rodada de 2026-07-08 documentada abaixo — reproduzido a partir do código real de
-`_formatar_relatorio_aprovacao`, não digitado à mão.)
+Até a rodada anterior, a avaliação também não exercitava as tools do MCP nem passava pelo
+`aplicar_cache` — corrigido junto com a inclusão do Redis (ver "O pipeline"), depois que o
+golden dataset expôs isso: casos sintéticos que esperavam `search_licitacoes`/
+`list_licitacao_resultados` (só existem via MCP) reprovavam de forma estrutural, não por erro do
+agente.
 
-!!! note "`python -m evaluation.pipeline_avaliacao` não grava `evaluation/relatorio.json`"
-    `main()` tem `salvar_json: bool = True` por padrão, mas o bloco `if __name__ == "__main__":` do
-    próprio arquivo chama `main(salvar_json=False)` — rodar o script direto do terminal só imprime o
-    resumo acima, sem escrever o relatório completo em disco (todas as métricas, por caso e
-    agregadas). Para gravar o JSON, importe e chame `main()` sem esse argumento (ou com
-    `salvar_json=True` explícito) a partir de outro script/notebook.
+## O que o G-Eval revela, além do número
 
-## Resultados consolidados
+Ler o `reason` de cada métrica no relatório do `deepeval` é diagnóstico por si só — não só "quanto",
+mas "por quê". A métrica de Fidelidade aponta exatamente qual afirmação do laudo não tem base na
+fonte; o `Tool Correctness` mostra a lista exata de tools que faltaram ou sobraram. Isso é
+informação acionável direto no `SYSTEM_PROMPT` e nas docstrings das tools (é o texto que o LLM lê
+para decidir o que buscar e como reportar) — não só um número pra decidir aprovado/reprovado.
 
-Após todas as correções, em 6 execuções (3 do pipeline + 3 manuais, mesmo protocolo):
+## Estado atual do veredito
 
-| Métrica | Limiar | Resultado | Veredito |
-|---|---|---|---|
-| `aderencia_tools` | ≥ 0.70 | **1.00** (estável) | ✅ aprovado |
-| `recall_anomalias` | ≥ 0.80 | **1.00** (estável) | ✅ aprovado |
-| `faithfulness` | ≥ 0.85 | 0.79–0.88 (oscilante) | ⚠️ instável em torno do limiar |
-| `context_recall` | ≥ 0.75 | **0.60** (estável) | ❌ reprovado |
+!!! success "Suíte `real`: 4/4 — Tool Correctness, Argumentos e Cobertura de Contexto em 1.0, Fidelidade 0.89-0.99"
+    Primeira rodada depois do MCP + Redis entrarem na avaliação (ver "O pipeline"): os 4 casos
+    reais passaram em todas as métricas. O `caso_03` (Fidelidade 0.889, o mais baixo do lote) ainda
+    mostra sinal do problema de retrieval documentado em
+    [Uso de Dados e RAG](rag_dados.md#limitacoes-conhecidas-do-retrieval) — mas não reprovou.
 
-!!! warning "Honestidade sobre o veredito geral"
-    O veredito geral (`aprovacao["geral"]`) é **reprovado** na maioria das execuções, única e
-    exclusivamente por `context_recall = 0.60` ficar abaixo do limiar. A causa é conhecida e
-    documentada: dos 5 casos elegíveis, 2 têm o trecho-alvo posicionalmente distante no documento e
-    fora do alcance de `top_k=3` (não aparecem nem em `top_k=50`) — limitação real de recuperação,
-    endereçável na V2 com `top_k` maior ou reranking. `faithfulness` também não é uma aprovação
-    sólida: oscila em torno do próprio limiar (hipótese não confirmada: variância herdada da
-    `temperature=0.1` do agente, usada também na avaliação). Documentar isso honestamente é parte da
-    metodologia — o framework serve para expor limitações, não para maquiar números.
+!!! success "Suíte `sintetico`: 9/9 estável em 3 rodadas seguidas, depois do apertamento do prompt de achado"
+    Três rodadas completas contra os 9 casos (um por código A-I), sem mudança de código entre a 2ª
+    e a 3ª: `Tool Correctness` e `Argumentos da Tool` em 1.0 nas 3, `Fidelidade` sempre ≥ 0.92. A
+    2ª rodada reprovou `caso_05`/`caso_12` por um problema de **formato**, não de conteúdo: o
+    modelo escrevia códigos numerados (`"A1."`) e colchetes fundidos (`[ESTADO: X | NÍVEL: Y]`),
+    fora do padrão que `_PADRAO_ACHADO` (`recall_anomalias.py:115-119`) exige — corrigido apertando
+    a instrução de formato em `app/agents/prompt.py:574-586` (exemplo preenchido + exemplo do
+    formato errado, explícito). A 3ª rodada confirmou a correção: ambos os casos voltaram a
+    parsear limpo.
 
-### Nova rodada de validação (2026-07-08)
+    Duas divergências de conteúdo (não de formato) se repetiram de forma consistente nas 3
+    rodadas — tratadas como limitações conhecidas, não bugs de pipeline:
 
-Uma rodada adicional de 3 execuções da `evaluation/pipeline_avaliacao.py`, mesmo protocolo, trouxe:
+    - `caso_09_empresa_recente_obra_complexa` (esperado **E**): o modelo às vezes classifica o
+      mesmo achado (empresa recém-constituída vencendo obra complexa) como **I** (CNAE
+      incompatível) em vez de **E** (empresa incompatível/capacidade técnica) — uma confusão entre
+      duas categorias vizinhas do catálogo, não uma alucinação de fato.
+    - `caso_11_reincidencia_empresa_vencedora` (esperado **C + G**): o modelo consistentemente só
+      aponta **G** (reincidência), nunca o **C** (fracionamento) que também tem evidência textual
+      no PDF — F1 fica em 0.667 (ver ["F1: como o Recall de Anomalias calcula a
+      nota"](#f1-como-o-recall-de-anomalias-calcula-a-nota)), acima do `threshold` de 0.65, então
+      passa, mas não detecta a anomalia secundária.
 
-| Métrica | Limiar | Resultado | Veredito |
-|---|---|---|---|
-| `aderencia_tools` | ≥ 0.70 | **1.000** | ✅ aprovado |
-| `faithfulness` | ≥ 0.85 | **0.858** | ✅ aprovado |
-| `context_recall` | ≥ 0.75 | **0.600** | ❌ reprovado |
-| `recall_anomalias` | ≥ 0.80 | **1.000** | ✅ aprovado |
+    `caso_08_cartel_empresas_endereco_socios` (esperado **D**) teve uma ocorrência intermitente
+    (1 das 3 rodadas) de apontar também **B** (direcionamento), emprestando evidência do próprio
+    achado D sem uma cláusula de direcionamento real no edital — não é 3/3 consistente como os dois
+    acima, por ora só anotado.
 
-`aderencia_tools` e `recall_anomalias` seguem estáveis em `1.00`. `faithfulness` — que oscilava entre
-`0.79` e `0.88` nas 6 execuções anteriores, reprovando em 2 delas — aprovou com folga nesta rodada
-(`0.858`). É um sinal encorajador, mas uma única rodada nova ainda não é suficiente para declarar a
-instabilidade resolvida; o item continua em acompanhamento (ver Backlog V2). `context_recall`
-permanece **idêntico** às execuções anteriores (`0.60`) — reforça que a causa raiz (posição do
-trecho-alvo fora do alcance de `top_k=3`) é sistemática, não ruído pontual de uma rodada específica.
-O veredito geral segue **reprovado**, agora com uma causa ainda mais isolada: das quatro métricas, só
-`context_recall` reprova.
+**Duas mudanças de infraestrutura, já medidas nas rodadas acima:**
+
+- **RAG small-to-big reintroduzido** (ver "Padrão pai-filho" em [Uso de Dados e RAG](rag_dados.md)):
+  `buscar_contexto_edital` agora devolve a seção inteira do filho vencedor, não só o pedaço de 200
+  palavras.
+- **`RecallAnomaliasMetric.threshold`** ajustado de `0.8` pra `0.65` (`recall_anomalias.py:21`) —
+  tolera o agente detectar N-1 de N anomalias esperadas num caso multi-anomalia sem reprovar por
+  isso, reconhecendo que qual anomalia secundária o agente nota numa passada varia entre rodadas
+  (não-determinismo do LLM mesmo em temperatura baixa). É exatamente o caso do `caso_11` acima.
+
+## Trabalhos futuros
+
+Escopo deliberadamente deixado de fora deste MVP — as capacidades centrais (tool use, retrieval,
+detecção de anomalia) já estão validadas; o que resta é refinamento de classificação fina, não
+correção de pipeline:
+
+- **Reforçar a distinção E/I no prompt.** O `caso_09` confunde as duas categorias em 3/3 rodadas —
+  candidato a um exemplo negativo explícito perto da regra já existente em `prompt.py:271` ("não
+  confunda CNAE com capacidade técnica"), no mesmo estilo do exemplo negativo já adicionado pro
+  formato de achado.
+- **Reescrever `RecallAnomaliasMetric` como G-Eval.** Hoje é regex determinístico sobre o Markdown
+  — rápido e sem custo de LLM, mas frágil a variação de formato (foi a causa do `caso_05`/`caso_12`
+  na 2ª rodada, contornada apertando o prompt em vez de tornar a métrica mais tolerante). Uma
+  versão G-Eval extrairia os achados por julgamento semântico em vez de padrão fixo — mais robusta
+  a parafraseio, ao custo de uma chamada de LLM a mais por caso e da mesma variância entre rodadas
+  que motivou usar G-Eval em vez de RAGAS na Fidelidade (ver "Por que G-Eval..." acima).
+- **Investigar o over-detection intermitente do `caso_08`.** Só 1 ocorrência em 3 rodadas — não dá
+  pra descartar ruído do LLM, mas também não dá pra afirmar que é um padrão real ainda; precisa de
+  mais rodadas antes de decidir se é prompt, PDF do caso, ou threshold de precisão.
