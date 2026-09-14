@@ -22,7 +22,7 @@ não precisam bater.
 pra saber com certeza, só olhando o texto extraído, se o agente errou ou se foi o gabarito que
 errou (ver "Por que os 4 editais reais não cobram anomalia" abaixo). Em vez de manter dois
 datasets separados, `Caso.tipo` (`schema.py:14`, `Literal["real", "sintetico"]`) marca o que cada
-caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:91-142`) com listas de métrica
+caso cobra, e `runner.py` roda um `evaluate()` por tipo (`runner.py:139-201`) com listas de métrica
 diferentes:
 
 | `tipo` | O que cobra | Editais |
@@ -150,7 +150,7 @@ mais um fator de estabilidade que não precisou ser implementado à mão.
 
 ## As métricas
 
-Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`runner.py:74-88`):
+Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`runner.py:102-116`):
 
 | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|
@@ -158,7 +158,7 @@ Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`r
 | **Argumentos da Tool** | ≥ 1.00 | Customizada (`ArgumentosToolMetric`, [`evaluation/metricas/argumentos_tool.py:17-65`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/argumentos_tool.py#L17-L65)) — subset-match dos argumentos esperados (ex.: `cnpj`), normalizando dígitos (`argumentos_tool.py:5-14`) | Não |
 | **Fidelidade** | ≥ 0.60 | `GEval` com `Rubric` de 5 níveis ([`evaluation/metricas/fidelidade.py:7-59`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/fidelidade.py#L7-L59)) — o laudo só afirma o que as saídas das tools sustentam, sem inventar nem extrapolar | Sim (juiz) |
 
-Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:74-88`):
+Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:102-116`):
 
 | `tipo` | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|---|
@@ -246,7 +246,7 @@ um caso fiel (score 1.0) — a régua discrimina de fato, não dá nota alta por
 ## O pipeline
 
 `runner.py` roda os casos **sequencialmente** (rate limit dos LLMs, logs legíveis). Por caso
-(`_montar_test_case`, `runner.py:49-68`):
+(`_montar_test_case`, `runner.py:54-73`):
 
 ```
 preparar_ambiente()     → grafo montado fora do lifespan, mas com montar_tools()
@@ -259,19 +259,30 @@ preparar_ambiente()     → grafo montado fora do lifespan, mas com montar_tools
 ```
 
 `montar_tools()` exige um client Redis — `_rodar` abre um só pra rodada inteira
-(`abrir_client_redis`, `runner.py:100`), num **banco lógico dedicado**
+(`abrir_client_redis`, `runner.py:146`), num **banco lógico dedicado**
 (`REDIS_DB_AVALIACAO = 1`, `runner.py:31-34`) pra nunca ler nem escrever em cima de uma
-entrada de cache real. Esse db é limpo (`flushdb`, `runner.py:103`) antes de cada
+entrada de cache real. Esse db é limpo (`flushdb`, `runner.py:149`) antes de cada
 rodada — sem isso, um caso corrigido no dataset continuaria batendo num resultado
 cacheado da rodada anterior e a mudança não apareceria na próxima execução.
 
-Depois de rodar todos os casos, `_rodar` (`runner.py:91-142`) monta um `LLMTestCase` por caso e
-chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:124-138`)
+!!! note "Retry por caso — um provider instável não derruba a rodada inteira"
+    `_montar_test_case_com_retry` (`runner.py:76-96`) reroda um caso até
+    `CASO_MAX_TENTATIVAS` (3) vezes, só quando `executar_caso` levanta `RuntimeError` —
+    o sinal que `execucao.py` usa especificamente pra "o turno do agente falhou", não
+    qualquer exceção. Motivo de existir: 500/503 transiente já derrubou rodadas inteiras
+    com três providers diferentes (OpenAI, Gemini, Maritaca) — sem isso, um caso instável
+    no meio da lista jogava fora o trabalho de todos os outros já rodados. Um caso que
+    esgota as tentativas é descartado (log de `ERROR`, não trava a rodada) e força
+    `aprovado_geral = False` no fim — a rodada continua, mas não sai como sucesso.
+
+Depois de rodar todos os casos, `_rodar` (`runner.py:139-201`) monta um `LLMTestCase` por caso e
+chama `deepeval.evaluate(test_cases=..., metrics=...)` **uma vez por `tipo`** (`runner.py:183-197`)
 — não uma vez só: `real` e `sintetico` cobram métricas diferentes (ver "As métricas" acima), e o
 `evaluate()` do deepeval só aceita uma lista de métrica global por chamada, não uma por
 `test_case`. Cada `evaluate()` grava seu próprio
-`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:142`)
-se algum caso, em qualquer lote, reprovou em qualquer métrica.
+`evaluation/resultados/test_run_<timestamp>.json`; `_rodar` sai com `sys.exit(1)` (`runner.py:201`)
+se algum caso, em qualquer lote, reprovou em qualquer métrica — ou se algum caso foi descartado
+pelo retry.
 
 ## Rodando
 
@@ -284,7 +295,7 @@ python -m evaluation.runner --tipo=real        # só a suíte real
 ```
 
 `--tipo` e id se combinam (`--tipo=sintetico caso_08_...` roda só esse caso dentro da suíte) —
-`_selecionar_casos` (`runner.py:91-108`) filtra primeiro por `tipo`, depois por id. Útil pra rodar
+`_selecionar_casos` (`runner.py:119-136`) filtra primeiro por `tipo`, depois por id. Útil pra rodar
 a suíte sintética sozinha com um juiz diferente da real: os PDFs são bem menores, então um juiz com
 TPM baixo (`AVALIADOR_MODEL=openai:gpt-4o`, por exemplo) tende a aguentar os sintéticos mesmo sem
 aguentar os 4 editais reais grandes.

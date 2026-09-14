@@ -33,6 +33,11 @@ PAUSA_ENTRE_CASOS_SEGUNDOS = 40
 # ler nem escrever em cima de uma entrada real.
 REDIS_DB_AVALIACAO = 1
 
+# Retry por caso: 500/503 transiente de provider (já vimos OpenAI, Gemini e Maritaca)
+# não pode derrubar a rodada inteira — só o caso em questão tenta de novo.
+CASO_MAX_TENTATIVAS = 3
+CASO_PAUSA_RETRY_SEGUNDOS = 20
+
 
 def _tool_call(tool: str, argumentos: dict) -> ToolCall:
     return ToolCall(name=tool, input_parameters=argumentos or None)
@@ -66,6 +71,29 @@ async def _montar_test_case(caso: Caso) -> LLMTestCase:
         metadata={"anomalias_esperadas": caso.anomalias_esperadas},
         name=caso.id,
     )
+
+
+async def _montar_test_case_com_retry(caso: Caso) -> LLMTestCase | None:
+    """Reroda `_montar_test_case` até CASO_MAX_TENTATIVAS vezes — só pra RuntimeError,
+    o sinal que execucao.py usa pra "run_agent falhou" (provider com 500/503
+    transiente, já vimos OpenAI, Gemini e Maritaca). Devolve None se esgotar as
+    tentativas, pra esse caso ser pulado sem derrubar os outros já rodados."""
+    for tentativa in range(1, CASO_MAX_TENTATIVAS + 1):
+        try:
+            return await _montar_test_case(caso)
+        except RuntimeError:
+            if tentativa == CASO_MAX_TENTATIVAS:
+                logger.error(
+                    "Caso descartado após %d tentativas | caso=%s",
+                    CASO_MAX_TENTATIVAS, caso.id,
+                )
+                return None
+            logger.warning(
+                "Falha na tentativa %d/%d, retry em %ds | caso=%s",
+                tentativa, CASO_MAX_TENTATIVAS, CASO_PAUSA_RETRY_SEGUNDOS, caso.id,
+            )
+            await asyncio.sleep(CASO_PAUSA_RETRY_SEGUNDOS)
+    return None  # inalcançável, só pra o type checker
 
 
 # Comuns aos dois lotes (tool certa + argumento certo). O que muda por `tipo` é só o
@@ -123,16 +151,29 @@ async def _rodar(argv: list[str]) -> None:
 
         # Sequencial de propósito: rate limit dos LLMs e logs legíveis.
         pares = []
+        casos_descartados = []
         for i, caso in enumerate(casos):
             if i > 0:
                 await asyncio.sleep(PAUSA_ENTRE_CASOS_SEGUNDOS)
-            pares.append((caso, await _montar_test_case(caso)))
+            tc = await _montar_test_case_com_retry(caso)
+            if tc is None:
+                casos_descartados.append(caso.id)
+                continue
+            pares.append((caso, tc))
+
+    if casos_descartados:
+        logger.warning(
+            "Casos descartados (provider instável, ver logs acima) | casos=%s",
+            casos_descartados,
+        )
+    if not pares:
+        raise SystemExit("Nenhum caso sobrou depois dos retries — nada pra avaliar.")
 
     juiz = construir_juiz(AVALIADOR_MODEL, AVALIADOR_TEMPERATURE)
     metricas_por_tipo = _metricas_por_tipo(juiz)
 
     RESULTADOS_DIR.mkdir(exist_ok=True)
-    aprovado_geral = True
+    aprovado_geral = not casos_descartados
     # Um evaluate() por tipo: real e sintético cobram métricas diferentes, e o
     # deepeval só aceita uma lista de métricas global por chamada.
     for tipo, metricas in metricas_por_tipo.items():
