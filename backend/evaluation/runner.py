@@ -88,12 +88,30 @@ def _metricas_por_tipo(juiz: DeepEvalBaseLLM) -> dict[str, list]:
     }
 
 
-async def _rodar(ids: list[str] | None) -> None:
+def _selecionar_casos(argv: list[str]) -> list[Caso]:
+    """Filtra o golden dataset pelos argumentos da CLI: `--tipo=real`/`--tipo=sintetico`
+    seleciona a suíte inteira; qualquer outro argumento é tratado como id de caso — os
+    dois se combinam (--tipo filtra primeiro, ids restringem o que sobrou)."""
+    tipo = None
+    ids = []
+    for arg in argv:
+        if arg.startswith("--tipo="):
+            tipo = arg.removeprefix("--tipo=")
+        else:
+            ids.append(arg)
+
     casos = carregar_casos()
+    if tipo:
+        casos = [c for c in casos if c.tipo == tipo]
     if ids:
         casos = [c for c in casos if c.id in ids]
+    return casos
+
+
+async def _rodar(argv: list[str]) -> None:
+    casos = _selecionar_casos(argv)
     if not casos:
-        raise SystemExit(f"Nenhum caso encontrado para: {ids}")
+        raise SystemExit(f"Nenhum caso encontrado para: {argv}")
 
     logger.info("Iniciando avaliação | casos=%s", [c.id for c in casos])
 
@@ -170,7 +188,7 @@ if __name__ == "__main__":
     tee.stdin.close()
 
     try:
-        asyncio.run(_rodar(sys.argv[1:] or None))
+        asyncio.run(_rodar(sys.argv[1:]))
     finally:
         sys.stdout.flush()
         sys.stderr.flush()

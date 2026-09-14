@@ -7,7 +7,7 @@ curados e um pipeline que roda o agente de ponta a ponta contra cada caso e mede
 
 O código fica em [`backend/evaluation/`](https://github.com/Moreira-89/auditor-cidadao/tree/main/backend/evaluation),
 pacote irmão de `backend/app/` — a avaliação importa do `app`, nunca o contrário. Roda com
-`python -m evaluation.runner [ids...]` de dentro de `backend/`.
+`python -m evaluation.runner [--tipo=real|sintetico] [ids...]` de dentro de `backend/`.
 
 ## O golden dataset
 
@@ -277,9 +277,17 @@ se algum caso, em qualquer lote, reprovou em qualquer métrica.
 
 ```bash
 cd backend
-python -m evaluation.runner              # todos os casos
+python -m evaluation.runner                    # todos os casos
 python -m evaluation.runner caso_02_saoluis_sancao   # um caso
+python -m evaluation.runner --tipo=sintetico   # só a suíte sintética
+python -m evaluation.runner --tipo=real        # só a suíte real
 ```
+
+`--tipo` e id se combinam (`--tipo=sintetico caso_08_...` roda só esse caso dentro da suíte) —
+`_selecionar_casos` (`runner.py:91-108`) filtra primeiro por `tipo`, depois por id. Útil pra rodar
+a suíte sintética sozinha com um juiz diferente da real: os PDFs são bem menores, então um juiz com
+TPM baixo (`AVALIADOR_MODEL=openai:gpt-4o`, por exemplo) tende a aguentar os sintéticos mesmo sem
+aguentar os 4 editais reais grandes.
 
 Precisa de `OPENAI_API_KEY`, `MONGODB_URI` (o mesmo cluster Atlas da produção) e agora também
 `REDIS_URI` + Node/npx no PATH — `preparar_ambiente` chama o mesmo `montar_tools()` da produção,
