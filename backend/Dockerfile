@@ -10,8 +10,19 @@ ENV NO_UPDATE_NOTIFIER=1
 # Instala Node.js 20 LTS via NodeSource
 # Node.js é necessário para o subprocess do MCP LiciNexus (npx @licinexusbr/mcp)
 # curl é necessário para baixar o script de instalação do NodeSource
+#
+# libgl1/libglib2.0-0/libsm6/libxext6/libxrender1/libxcb1: o opencv-python
+# (dependência transitiva do docling/rapidocr, usado no reconhecimento de
+# tabelas) precisa dessas libs gráficas do sistema mesmo rodando headless —
+# sem elas o boot crasha em loop no "import cv2" (ImportError: libxcb.so.1).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libxcb1 \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     # Limpa cache do apt para reduzir o tamanho da imagem final
