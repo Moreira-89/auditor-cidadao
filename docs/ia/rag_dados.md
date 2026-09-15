@@ -67,7 +67,7 @@ a relação linha/coluna. Cada filho vira um documento na coleção `chunks_edit
   _id: ObjectId("..."),
   edital_id: "thread-abc-123",  // == thread_id; filtro principal de toda busca
   texto: "Juiz de vaquejada, com credenciamento junto à ABVAQ...",  // só usado pra vetorizar
-  embedding: [0.013, -0.224, ...],       // text-embedding-3-large, gerado na indexação
+  embedding: [0.013, -0.224, ...],       // text-embedding-3-small, gerado na indexação
   secao_ordem: 12,                       // posição da seção na extração — chave do dedup, não o título
   secao_caminho: "Termo de Referência > Qualificação Técnica",  // rótulo, só exibição
   secao_texto_completo: "...",           // texto inteiro da seção — o que de fato volta pro agente
@@ -112,7 +112,7 @@ colecao.create_search_index(
                 {
                     "type": "vector",
                     "path": "embedding",
-                    "numDimensions": 3072,       # dimensão nativa do text-embedding-3-large
+                    "numDimensions": 1536,       # dimensão nativa do text-embedding-3-small
                     "similarity": "cosine",
                 },
                 {"type": "filter", "path": "edital_id"},
@@ -177,9 +177,13 @@ tool (`app/agents/tools/contexto_edital.py`), porque é lá que mora o dedup con
 thread inteira** (não só desta chamada): a mesma seção já mostrada numa pergunta anterior vira uma
 nota curta em vez do texto repetido, também por `ordem`.
 
-O `top_k` default é **5**, configurável via `TOP_K_EDITAL` sem mudar código. `numCandidates` é
-quantos vizinhos o índice HNSW examina antes de ranquear os `limit` finais — hoje igual ao
-`top_k`, o mínimo aceito (sem margem de exploração).
+O `top_k=5` na assinatura acima é só o default do parâmetro da função — na prática a tool sempre
+chama `buscar_contexto` passando `top_k=TOP_K_EDITAL` explicitamente
+([`app/agents/tools/contexto_edital.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py)),
+e o default real de `TOP_K_EDITAL` é **3** (configurável sem mudar código, ver
+[Variáveis de ambiente](../operacional/variaveis_ambiente.md)). `numCandidates` é quantos vizinhos o
+índice HNSW examina antes de ranquear os `limit` finais — hoje igual ao `top_k`, o mínimo aceito
+(sem margem de exploração).
 
 Se nada é encontrado, a ferramenta retorna uma mensagem explícita ("Nenhum trecho relevante
 encontrado...") em vez de contexto vazio — para o agente não "adivinhar" o edital.
@@ -273,7 +277,7 @@ ferramentas do agente, e o resultado é cacheado por 24h (ver [Protocolo MCP](..
 
 ## Limitações conhecidas do retrieval
 
-- **`top_k=5` não alcança trechos posicionalmente distantes.** Em alguns editais, o trecho-alvo
+- **`top_k=3` (default de produção) não alcança trechos posicionalmente distantes.** Em alguns editais, o trecho-alvo
   pode não aparecer nem em `top_k` altos — limitação genuína de recuperação por similaridade,
   endereçável com reranking ou contextualização do texto embedado (ver próximo ponto) na V2.
 - **O texto embedado de cada filho é o texto cru do bloco, sem o `secao_caminho`.** Uma linha de

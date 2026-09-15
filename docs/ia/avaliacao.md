@@ -111,7 +111,7 @@ um formato fixo por achado (`app/agents/prompt.py:578`,
 padrão é ler o dado real, não um proxy:
 
 ```python
-# evaluation/metricas/recall_anomalias.py:10-18
+# evaluation/metricas/recall_anomalias.py:7-15
 _PADRAO_ACHADO = re.compile(
     r"\*\*\[ESTADO:\s*(CONFIRMADO|INDÍCIO)\]\s*"
     r"\[NÍVEL DE RISCO:\s*(?:BAIXO|MÉDIO|ALTO|CRÍTICO)\]\s*"
@@ -155,7 +155,7 @@ Comuns aos dois lotes — declaradas nas duas listas de `_metricas_por_tipo` (`r
 | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|
 | **Tool Correctness** | ≥ 0.50 | Nativa do deepeval (`ToolCorrectnessMetric`) — confere só o **nome** da tool chamada contra `expected_tools`, sem exigir ordem | Não |
-| **Argumentos da Tool** | ≥ 1.00 | Customizada (`ArgumentosToolMetric`, [`evaluation/metricas/argumentos_tool.py:17-65`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/argumentos_tool.py#L17-L65)) — subset-match dos argumentos esperados (ex.: `cnpj`), normalizando dígitos (`argumentos_tool.py:5-14`) | Não |
+| **Argumentos da Tool** | ≥ 1.00 | Customizada (`ArgumentosToolMetric`, [`evaluation/metricas/argumentos_tool.py:16-56`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/argumentos_tool.py#L16-L56)) — subset-match dos argumentos esperados (ex.: `cnpj`), normalizando dígitos (`argumentos_tool.py:5-13`) | Não |
 | **Fidelidade** | ≥ 0.60 | `GEval` com `Rubric` de 5 níveis ([`evaluation/metricas/fidelidade.py:7-59`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/fidelidade.py#L7-L59)) — o laudo só afirma o que as saídas das tools sustentam, sem inventar nem extrapolar | Sim (juiz) |
 
 Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:102-116`):
@@ -163,7 +163,7 @@ Uma métrica por `tipo` (`_metricas_por_tipo`, `runner.py:102-116`):
 | `tipo` | Métrica | Limiar | Como é medida | Usa LLM? |
 |---|---|---|---|---|
 | `real` | **Cobertura de Contexto** | ≥ 0.70 | Nativa do deepeval (`ContextualRecallMetric`) — quebra `contexto_edital_esperado` (`expected_output`) em sentenças e verifica quantas têm sustentação em `retrieval_context` (o que `buscar_contexto_edital` de fato devolveu) | Sim (juiz) |
-| `sintetico` | **Recall de Anomalias** | ≥ 0.65 | Customizada (`RecallAnomaliasMetric`, [`evaluation/metricas/recall_anomalias.py:18-53`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L18-L53)) — F1 entre os códigos A–I esperados e os extraídos por regex do Markdown. Caso-controle sem anomalia esperada → binário (qualquer código apontado é falso positivo) | Não |
+| `sintetico` | **Recall de Anomalias** | ≥ 0.65 | Customizada (`RecallAnomaliasMetric`, [`evaluation/metricas/recall_anomalias.py:18-59`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L18-L59)) — F1 entre os códigos A–I esperados e os extraídos por regex do Markdown. Caso-controle sem anomalia esperada → binário (qualquer código apontado é falso positivo) | Não |
 
 !!! note "`ContextualRecallMetric` não é G-Eval"
     É a exceção à régua da seção anterior — usa o algoritmo "veredito por sentença, depois
@@ -226,17 +226,31 @@ só `["G"]`):
 ### O rubric de Fidelidade
 
 ```python
-# evaluation/metricas/fidelidade.py:35-56
+# evaluation/metricas/fidelidade.py:30-52
 rubric=[
     Rubric(score_range=(5, 5), expected_outcome="Todas as afirmações sustentadas."),
-    Rubric(score_range=(4, 4), expected_outcome="1 não sustentada, detalhe menor."),
-    Rubric(score_range=(3, 3), expected_outcome="1 não sustentada que afeta um achado."),
-    Rubric(score_range=(2, 2), expected_outcome="2+ não sustentadas, ou 1 que inventa dado central."),
-    Rubric(score_range=(1, 1), expected_outcome="Achado sem evidência em nenhuma fonte."),
+    Rubric(
+        score_range=(4, 4),
+        expected_outcome="1 não sustentada, detalhe menor que não muda o achado.",
+    ),
+    Rubric(
+        score_range=(3, 3),
+        expected_outcome="1 não sustentada que afeta a evidência de um achado.",
+    ),
+    Rubric(
+        score_range=(2, 2),
+        expected_outcome="2+ não sustentadas, ou 1 que inventa dado central "
+        "(CNPJ, valor, sanção, cláusula) sem base em nenhuma fonte.",
+    ),
+    Rubric(
+        score_range=(1, 1),
+        expected_outcome="Achado (CONFIRMADO/INDÍCIO) cuja evidência central "
+        "não existe em nenhuma fonte consultada.",
+    ),
 ]
 ```
 
-Os `evaluation_steps` (`fidelidade.py:18-33`) mandam o juiz listar cada afirmação factual do laudo,
+Os `evaluation_steps` (`fidelidade.py:13-29`) mandam o juiz listar cada afirmação factual do laudo,
 procurar sustentação em `CONTEXT` (as saídas de tool, `SingleTurnParams.CONTEXT`) e marcar cada uma
 como sustentada ou não — uma afirmação que **extrapola** a fonte (fonte diz "3 sanções", laudo diz
 "sanções recorrentes e graves") conta como não sustentada, mesmo sem inventar um dado novo. Validado
@@ -341,7 +355,7 @@ para decidir o que buscar e como reportar) — não só um número pra decidir a
     e a 3ª: `Tool Correctness` e `Argumentos da Tool` em 1.0 nas 3, `Fidelidade` sempre ≥ 0.92. A
     2ª rodada reprovou `caso_05`/`caso_12` por um problema de **formato**, não de conteúdo: o
     modelo escrevia códigos numerados (`"A1."`) e colchetes fundidos (`[ESTADO: X | NÍVEL: Y]`),
-    fora do padrão que `_PADRAO_ACHADO` (`recall_anomalias.py:115-119`) exige — corrigido apertando
+    fora do padrão que `_PADRAO_ACHADO` (`recall_anomalias.py:7-11`) exige — corrigido apertando
     a instrução de formato em `app/agents/prompt.py:574-586` (exemplo preenchido + exemplo do
     formato errado, explícito). A 3ª rodada confirmou a correção: ambos os casos voltaram a
     parsear limpo.

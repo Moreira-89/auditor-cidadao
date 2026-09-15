@@ -8,30 +8,30 @@ preparado e recuperado. Esta primeira página trata dos modelos e da engenharia 
 
 | Papel | Modelo (default) | Temperatura | Onde |
 |---|---|---|---|
-| Agente principal | `openai:gpt-4o-mini` | `0.1` | Conversa e relatório automático ([`app/config/settings.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py)) |
+| Agente principal | `maritaca:sabia-4` | `0.1` | Conversa e relatório automático ([`app/config/settings.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py)) |
 | Juiz de Fidelidade (G-Eval) | `gpt-4o` | `0.0` | Só no framework de avaliação — ver [Avaliação](avaliacao.md) |
-| Embeddings (RAG) | `text-embedding-3-large` | — | Indexação e busca no MongoDB Atlas (ver [Uso de Dados e RAG](rag_dados.md)) |
+| Embeddings (RAG) | `text-embedding-3-small` | — | Indexação e busca no MongoDB Atlas (ver [Uso de Dados e RAG](rag_dados.md)) |
 
 Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODEL`, `AVALIADOR_MODEL`)
 — ver [Variáveis de ambiente](../operacional/variaveis_ambiente.md). O
 `init_chat_model` do LangChain identifica o provider pelo prefixo do nome (`openai:`, `groq:`,
-`google_genai:`), então trocar de modelo não exige mudar código.
+`google_genai:`); a Maritaca não é provider nativo dele, então `app/llm.py` roteia via `ChatOpenAI`
+trocando `base_url` + chave (API compatível com a da OpenAI) quando o prefixo é `maritaca:`. Trocar
+de modelo não exige mudar código em nenhum dos casos.
 
-!!! note "Por que `gpt-4o-mini` como agente principal?"
+!!! note "Por que Sabiá-4 (Maritaca AI) como agente principal?"
     O trabalho do agente é orquestrar ferramentas e redigir um laudo a partir de dados já
-    recuperados — não exige raciocínio de fronteira, mas é chamado a cada turno de cada usuário. O
-    `gpt-4o-mini` entrega qualidade suficiente para essa tarefa a uma fração do custo de um modelo
-    maior, com janela de contexto (128k) folgada para acomodar múltiplos resultados de tool num
-    único turno. O `gpt-4o` (mais caro) fica reservado ao **juiz da avaliação**, que roda poucas
-    vezes e só quando o time executa o golden dataset — ver [Avaliação](avaliacao.md).
+    recuperados a cada turno de cada usuário. O Sabiá-4 saiu à frente do `gpt-4o` no golden dataset
+    de avaliação (ver [Avaliação](avaliacao.md)) para essa tarefa específica, com custo menor que um
+    modelo de fronteira. O `gpt-4o` (mais caro) fica reservado ao **juiz da avaliação**, que roda
+    poucas vezes e só quando o time executa o golden dataset.
 
-!!! info "Benchmark contra outros modelos fica para a V2"
-    O `gpt-4o-mini` é a escolha da V1 pelo custo-benefício, não porque outros modelos tenham sido
-    testados e descartados. O **Sabiá-4-thinking** (Maritaca AI) já foi benchmarkado contra o
-    `gpt-4o` no golden dataset (Bloco 12) e saiu à frente para a tarefa, mas nenhum passou o veredito
-    geral — a limitação hoje é a recuperação, não o modelo (ver [Avaliação](avaliacao.md)). Rodar
-    contra `o1`/`o3-mini`, `DeepSeek-R1`, Claude e Gemini segue no backlog. `llm.py` já suporta o
-    prefixo `maritaca:`; produção segue em `gpt-4o-mini` por custo.
+!!! info "Benchmark contra outros modelos"
+    O Sabiá-4 (Maritaca AI) foi benchmarkado contra o `gpt-4o` no golden dataset e saiu à frente
+    para a tarefa, mas nenhum dos dois passou o veredito geral — a limitação hoje é a recuperação,
+    não o modelo (ver [Avaliação](avaliacao.md)). `LLM_MODEL` aceita qualquer provider suportado por
+    `init_chat_model` (ou `maritaca:`, via o wrapper de `app/llm.py`) sem mudar código — rodar contra
+    `o1`/`o3-mini`, `DeepSeek-R1`, Claude e Gemini segue no backlog.
 
 !!! note "Por que RAG (Geração Aumentada por Recuperação) e não fine-tuning?"
     Os editais mudam a cada upload e não existem no treinamento de nenhum modelo. Fine-tuning
@@ -49,7 +49,7 @@ Toda a engenharia de prompt vive em
   Define a identidade de auditor, as capacidades, o catálogo de anomalias (`CATALOGO_ANOMALIAS`,
   `prompt.py:1`), a hierarquia de evidências e as regras de segurança.
 - **`PROMPT_DINAMICO`** (`prompt.py:505`) — o "envelope" em tags no estilo XML
-  (`<CNPJS_NO_EDITAL>`, `<METADADOS>`, `<PERGUNTA>`) enviado como `HumanMessage` no primeiro turno
+  (`<CNPJS_NO_EDITAL>`, `<METADADOS>`, `<PROMPT_USUARIO>`) enviado como `HumanMessage` no primeiro turno
   de qualquer thread (`montar_primeiro_turno`, `app/agents/envelope.py`) — seja o primeiro turno de
   uma conversa comum ou o turno do relatório automático pós-upload.
 - **`PROMPT_RELATORIO_INICIAL`** (`prompt.py:521`) — a "pergunta" sintética usada como
@@ -57,7 +57,7 @@ Toda a engenharia de prompt vive em
   turno. Em produção, `app/api/endpoints/chat.py:81` troca a pergunta por essa constante quando
   `request.inicial` é verdadeiro, e o laudo entra por streaming — mesmo caminho de código de
   qualquer outra pergunta (`run_agent()`, ver [Visão Geral](../arquitetura/visao_geral.md)). A
-  avaliação usa a mesma constante como entrada do harness (`evaluation/execucao.py:37`, ver
+  avaliação usa a mesma constante como entrada do harness (`evaluation/execucao.py:40`, ver
   [Avaliação](avaliacao.md)).
 
 O `TOOL_STATUS_MAP` (`app/config/tool_status_map.py:2`) — que traduz o nome técnico de cada
@@ -71,17 +71,20 @@ prompt continua):
 
 ```text
 # IDENTIDADE
-Você é o **Auditor Cidadão**, um agente especializado em auditoria de licitações,
-contratos e editais públicos municipais brasileiros sob a Lei 14.133/2021.
-Trate o usuário de forma cordial, profissional e direta.
+
+Você é o Auditor Cidadão, um agente especializado em triagem de riscos em
+licitações, contratos e editais públicos municipais brasileiros.
+
+Atue de forma cordial, profissional, objetiva e tecnicamente cautelosa.
 
 # MISSÃO
-Identificar indícios de irregularidade em documentos de contratação pública,
-cruzando informações declaradas no edital com dados oficiais de fontes públicas
-acessíveis através das suas capacidades de consulta.
 
-Você NÃO é um validador de CNPJ. Você é um auditor. Sua função é detectar
-PADRÕES SUSPEITOS, não apenas conformidade cadastral.
+Identificar fatos e sinais verificáveis que possam justificar investigação humana
+em documentos de contratação pública.
+
+Você não substitui auditoria formal, controle externo, investigação administrativa
+ou decisão judicial. Não acusa pessoas ou empresas e não emite conclusão jurídica
+definitiva.
 
 [...]
 ```
@@ -99,21 +102,22 @@ Estado: Maranhão (MA)
 Data de hoje: 20260815
 </METADADOS>
 
-<PERGUNTA>
+<PROMPT_USUARIO>
 Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.
-</PERGUNTA>
+</PROMPT_USUARIO>
 ```
 
-Note que a pergunta do usuário nunca chega "pura" ao modelo — sempre dentro da tag `<PERGUNTA>`,
-depois de passar por `escape_xml()` (ver [Guardrails](../governanca/guardrails.md)). No **relatório
-automático** (primeiro turno disparado pelo sistema, `inicial: true`), a mesma tag `<PERGUNTA>`
-carrega o `PROMPT_RELATORIO_INICIAL` no lugar do texto do usuário.
+Note que a pergunta do usuário nunca chega "pura" ao modelo — sempre dentro da tag
+`<PROMPT_USUARIO>`, depois de passar por `escape_xml()` (ver [Guardrails](../governanca/guardrails.md)).
+No **relatório automático** (primeiro turno disparado pelo sistema, `inicial: true`), a mesma tag
+`<PROMPT_USUARIO>` carrega o `PROMPT_RELATORIO_INICIAL` no lugar do texto do usuário.
 
 ## Técnicas de engenharia de prompt aplicadas
 
-**Identidade e missão explícitas.** O `SYSTEM_PROMPT` abre reforçando que o agente é um *auditor*,
-não um validador de CNPJ — a missão é detectar padrões suspeitos, não conferir conformidade
-cadastral. Isso orienta o modelo a varrer o catálogo de anomalias proativamente.
+**Identidade e missão explícitas.** O `SYSTEM_PROMPT` abre definindo o agente como uma **triagem de
+riscos**, não uma auditoria formal — deixa explícito que ele "não substitui auditoria formal,
+controle externo, investigação administrativa ou decisão judicial" e "não acusa pessoas ou empresas".
+Isso mantém o modelo dentro do papel de sinalizar, não de veredito.
 
 **Hierarquia de evidências.** O prompt estabelece uma ordem de confiança nas fontes: (1) APIs
 oficiais, (2) texto do documento, (3) busca web, (4) inferências próprias — sempre sinalizadas como
@@ -130,7 +134,9 @@ chamada naquele turno.
 estruturado, só quando o usuário pede análise/auditoria) de *resposta conversacional* (direta, sem
 score, para perguntas pontuais). Os gatilhos de cada modo estão listados no prompt.
 
-**Score conservador.** Quando uma anomalia depende de uma base que não pôde ser verificada, o score
-mínimo é MÉDIO (0.30) mesmo sem anomalias detectadas — e o prompt proíbe emitir "laudo limpo total",
-exigindo sempre uma ressalva de que verificações não concluídas devem ser checadas manualmente. Isso
+**Score conservador, sem número fixo.** O score representa risco de triagem, nunca probabilidade de
+fraude ou conclusão jurídica. O prompt proíbe risco crítico automático para indício ou dado
+incompleto, proíbe reduzir a incerteza só porque uma fonte voltou "limpa", e só permite não atribuir
+score numérico quando não houver dados suficientes — se a aplicação exigir um valor mesmo assim, o
+prompt manda usar um "score conservador" e explicar a limitação, sem fixar um piso numérico. Isso
 conecta diretamente com a [Governança](../governanca/limitacoes.md): o laudo é indício, não veredito.
