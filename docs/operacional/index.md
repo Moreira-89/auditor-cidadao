@@ -21,17 +21,18 @@ config:
     fontSize: '28px'
 ---
 flowchart TB
- subgraph railway["Railway — um projeto, dois serviços"]
+ subgraph railway["Railway — um projeto, três serviços"]
     direction TB
         front["Serviço frontend<br>Root Directory /frontend"]
         fastapi["Serviço backend<br>FastAPI + Uvicorn (Dockerfile)"]
         mcp["Subprocesso Node.js 20<br>npx @licinexusbr/mcp"]
+        redis[("Redis<br>histórico + rate limit + cache")]
   end
  subgraph external["Serviços externos gerenciados"]
     direction TB
-        openai["OpenAI<br>LLM + embeddings"]
-        mongo[("MongoDB Atlas<br>banco vetorial (chunks_edital)")]
-        redis[("Redis<br>histórico + rate limit + cache")]
+        maritaca["Maritaca AI<br>Sabiá-4 (LLM principal)"]
+        openai["OpenAI<br>embeddings"]
+        mongo[("MongoDB Vector Search")]
         cgu["Portal da Transparência / CGU<br>CEIS · CNEP"]
         receita["BrasilAPI<br>Receita Federal"]
         tavily["Tavily<br>busca web"]
@@ -40,7 +41,7 @@ flowchart TB
     fastapi <-- MCP via stdio --> mcp
     browser["Navegador do usuário"] <-- HTTPS --> front
     browser <-- HTTPS --> fastapi
-    fastapi --> openai & mongo & redis & cgu & receita & tavily
+    fastapi --> maritaca & openai & mongo & redis & cgu & receita & tavily
     mcp --> pncp
 ```
 
@@ -52,13 +53,19 @@ Pontos que valem destaque:
   [Docker & Deploy](docker.md#deploy-em-producao-railway).
 - **Dois processos dentro do serviço de backend** — o FastAPI e o subprocesso Node.js do MCP, que o
   `lifespan` sobe no startup para carregar as 11 ferramentas do PNCP.
-- **Redis é o único estado próprio da aplicação.** Não vem embutido no container: é um add-on
-  gerenciado, provisionado à parte. Guarda três coisas independentes — o histórico de conversa por
-  `thread_id`, a contagem do rate limiter e o cache de ferramentas (TTL 24h). É esse estado
-  externalizado que viabiliza as 2 réplicas em produção, já que o Railway não oferece sticky
-  sessions (ver [Docker & Deploy](docker.md#escalonamento-replicas-e-limites-de-recurso)).
-- **MongoDB Atlas guarda os editais indexados**, consultados sob demanda pela tool de RAG — o
-  conteúdo do edital nunca é pré-carregado no contexto do agente.
+- **LLM principal: Maritaca AI (Sabiá-4).** Não vem embutido no container: é uma API externa,
+  configurada via `LLM_MODEL` (prefixo `maritaca:`, ver [Variáveis de ambiente](variaveis_ambiente.md)).
+  A OpenAI continua no path, mas só para os embeddings do RAG.
+- **Redis é o único estado próprio da aplicação**, mas roda como um serviço à parte dentro do mesmo
+  projeto Railway (add-on **Database → Redis**, não embutido no container do backend). Guarda três
+  coisas independentes — o histórico de conversa por `thread_id`, a contagem do rate limiter e o
+  cache de ferramentas (TTL 24h). É esse estado externalizado que viabiliza as 2 réplicas em
+  produção, já que o Railway não oferece sticky sessions (ver
+  [Docker & Deploy](docker.md#escalonamento-replicas-e-limites-de-recurso)).
+- **MongoDB Vector Search guarda os editais indexados**, consultados sob demanda pela tool de RAG —
+  o conteúdo do edital nunca é pré-carregado no contexto do agente. Banco e coleção ficam
+  configurados via variáveis de ambiente, não fixados na documentação (ver
+  [Variáveis de ambiente](variaveis_ambiente.md)).
 - **Variáveis de ambiente** são cadastradas diretamente no painel do Railway (mesmas chaves de
   [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas.
 
