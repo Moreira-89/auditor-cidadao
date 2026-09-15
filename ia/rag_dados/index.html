@@ -1,0 +1,1689 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../modelos_prompts/">
+      
+      
+        <link rel="next" href="../avaliacao/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Uso de dados e RAG - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#uso-de-dados-e-rag" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Uso de dados e RAG
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operacional/" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../arquitetura/visao_geral/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../modelos_prompts/" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/variaveis_ambiente/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visao_geral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/protocolo_mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modelos_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#por-que-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que RAG
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-pipeline-de-indexacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O pipeline de indexação
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-pipeline-de-busca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O pipeline de busca
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#padrao-pai-filho-descartado-uma-vez-reintroduzido-depois" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Padrão pai-filho: descartado uma vez, reintroduzido depois
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limpeza-de-dados-expirados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limpeza de dados expirados
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-bug-de-producao-que-a-avaliacao-revelou" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O bug de produção que a avaliação revelou
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#as-bases-oficiais-dados-em-tempo-real" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        As bases oficiais (dados em tempo real)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitacoes-conhecidas-do-retrieval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitações conhecidas do retrieval
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../avaliacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (G-Eval)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#por-que-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que RAG
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-pipeline-de-indexacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O pipeline de indexação
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-pipeline-de-busca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O pipeline de busca
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#padrao-pai-filho-descartado-uma-vez-reintroduzido-depois" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Padrão pai-filho: descartado uma vez, reintroduzido depois
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limpeza-de-dados-expirados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limpeza de dados expirados
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-bug-de-producao-que-a-avaliacao-revelou" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O bug de produção que a avaliação revelou
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#as-bases-oficiais-dados-em-tempo-real" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        As bases oficiais (dados em tempo real)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitacoes-conhecidas-do-retrieval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitações conhecidas do retrieval
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="uso-de-dados-e-rag">Uso de Dados e RAG</h1>
+<p>O Auditor Cidadão trabalha com dois tipos de dado: o <strong>edital</strong> que o usuário envia (não
+estruturado, em PDF) e as <strong>bases oficiais</strong> consultadas em tempo real (PNCP, Receita Federal,
+CEIS/CNEP). Esta página cobre como o edital é preparado, armazenado e recuperado — o pipeline de RAG
+(Retrieval-Augmented Generation).</p>
+<h2 id="por-que-rag">Por que RAG</h2>
+<p>Um edital pode ter dezenas de páginas e não existe no treinamento de nenhum modelo. Jogar o
+documento inteiro no contexto a cada pergunta seria caro e diluiria a atenção do modelo. RAG resolve
+isso: o texto é indexado uma vez, e a cada pergunta só os trechos mais relevantes são recuperados e
+enviados ao LLM. Isso reduz alucinação (a resposta se ancora em texto real recuperado) e permite
+responder sobre um documento que o modelo nunca viu.</p>
+<h2 id="o-pipeline-de-indexacao">O pipeline de indexação</h2>
+<p>Quando o usuário faz upload de um edital (<code>POST /upload/</code>):</p>
+<p><strong>Extração — Docling</strong> (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf_hierarquico.py"><code>app/ingestion/pdf_hierarquico.py</code></a>).
+Antes de converter, uma checagem barata com <code>pdfplumber</code> (<code>documento_tem_texto_nativo</code>, em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf.py"><code>app/ingestion/pdf.py</code></a>)
+abre as primeiras páginas e vê se há texto extraível — se não houver, é PDF escaneado e o Docling
+precisa acionar OCR. O <code>lifespan</code> mantém <strong>dois <code>DocumentConverter</code> quentes</strong> (um <code>do_ocr=True</code>,
+outro <code>do_ocr=False</code>, ambos com <code>heading_hierarchy</code> para recuperar o nível dos títulos), então a
+requisição só escolhe qual usar — nunca carrega modelo. A conversão em si é o passo mais lento do
+upload (segundos a ~2 min por edital em CPU) e roda em <code>asyncio.to_thread</code>.</p>
+<p><code>extrair_estrutura_pdf</code> devolve um <code>EditalExtraido</code> com o <strong>texto linear</strong> (em ordem de leitura, sem
+a sintaxe de Markdown, que poluiria o <code>extrair_cnpj</code> e os embeddings) e a <strong>estrutura hierárquica</strong>:
+<code>secoes</code> (um dict por cabeçalho, com <code>ordem</code>/<code>nivel</code>/<code>titulo</code>/<code>caminho</code>/<code>texto_completo</code>) e
+<code>filhos_brutos</code> (um dict por bloco de conteúdo, referenciando a seção pela <code>ordem</code>).</p>
+<p>O timbre e o rodapé institucional que se repetem em toda página ("ESTADO DO …", "COORDENADORIA
+GERAL DE …") são classificados como cabeçalho pelo layout model — chegavam a ser ~⅓ das "seções"
+de um edital. <code>_rodapes_corridos</code> conta os textos-cabeçalho e descarta os que se repetem
+<code>MIN_REPETICAO_RODAPE</code>+ vezes; o conteúdo real dessas páginas segue para a seção aberta no momento.</p>
+<p><strong>Persistência — MongoDB Atlas</strong> (<code>GerenciadorVetorial.indexar_hierarquia</code>,
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L15-L35"><code>app/storage/vetorial.py:15-35</code></a>),
+tudo em <code>asyncio.to_thread</code>. Só o <strong>filho</strong> é vetorizado (é ele que compete na busca por
+similaridade) — mas o texto completo da seção-pai (<code>texto_completo</code>, já montado por
+<code>_extrair_estrutura</code> em <code>app/ingestion/pdf_hierarquico.py</code>) viaja desnormalizado em cada filho,
+sem embedding próprio, só para a devolução expandir do filho pro pai (ver "O pipeline de busca"):</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">indexar_hierarquia</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secoes</span><span class="p">,</span> <span class="n">filhos_brutos</span><span class="p">,</span> <span class="n">metadados_base</span><span class="p">):</span>
+    <span class="n">mapa_caminhos</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">[</span><span class="s2">"ordem"</span><span class="p">]:</span> <span class="n">s</span><span class="p">[</span><span class="s2">"caminho"</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">secoes</span><span class="p">}</span>
+    <span class="n">mapa_textos_secao</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">[</span><span class="s2">"ordem"</span><span class="p">]:</span> <span class="n">s</span><span class="p">[</span><span class="s2">"texto_completo"</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">secoes</span><span class="p">}</span>
+
+    <span class="n">filhos_prontos</span> <span class="o">=</span> <span class="n">_fatiar_filhos</span><span class="p">(</span><span class="n">filhos_brutos</span><span class="p">,</span> <span class="n">mapa_caminhos</span><span class="p">,</span> <span class="n">mapa_textos_secao</span><span class="p">)</span>
+    <span class="n">vetores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelo_embedding</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="s2">"texto"</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filhos_prontos</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">get_database</span><span class="p">()[</span><span class="n">COLECAO_CHUNKS</span><span class="p">]</span><span class="o">.</span><span class="n">insert_many</span><span class="p">(</span>
+        <span class="p">[{</span><span class="o">**</span><span class="n">metadados_base</span><span class="p">,</span> <span class="s2">"embedding"</span><span class="p">:</span> <span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">f</span><span class="p">}</span> <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">filhos_prontos</span><span class="p">,</span> <span class="n">vetores</span><span class="p">)]</span>
+    <span class="p">)</span>
+</code></pre></div>
+<p><code>_fatiar_filhos</code> (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L93-L128"><code>vetorial.py:93-128</code></a>)
+<strong>fatia <code>TextItem</code> com mais de 200 palavras</strong> em pedaços menores (sem overlap — ver
+"Por que a fatia de 200 palavras, sem overlap" abaixo); <code>TableItem</code> nunca é fatiado, para não quebrar
+a relação linha/coluna. Cada filho vira um documento na coleção <code>chunks_edital</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="nx">ObjectId</span><span class="p">(</span><span class="s2">"..."</span><span class="p">),</span>
+<span class="w">  </span><span class="nx">edital_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"thread-abc-123"</span><span class="p">,</span><span class="w">  </span><span class="c1">// == thread_id; filtro principal de toda busca</span>
+<span class="w">  </span><span class="nx">texto</span><span class="o">:</span><span class="w"> </span><span class="s2">"Juiz de vaquejada, com credenciamento junto à ABVAQ..."</span><span class="p">,</span><span class="w">  </span><span class="c1">// só usado pra vetorizar</span>
+<span class="w">  </span><span class="nx">embedding</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.013</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.224</span><span class="p">,</span><span class="w"> </span><span class="p">...],</span><span class="w">       </span><span class="c1">// text-embedding-3-small, gerado na indexação</span>
+<span class="w">  </span><span class="nx">secao_ordem</span><span class="o">:</span><span class="w"> </span><span class="mf">12</span><span class="p">,</span><span class="w">                       </span><span class="c1">// posição da seção na extração — chave do dedup, não o título</span>
+<span class="w">  </span><span class="nx">secao_caminho</span><span class="o">:</span><span class="w"> </span><span class="s2">"Termo de Referência &gt; Qualificação Técnica"</span><span class="p">,</span><span class="w">  </span><span class="c1">// rótulo, só exibição</span>
+<span class="w">  </span><span class="nx">secao_texto_completo</span><span class="o">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w">           </span><span class="c1">// texto inteiro da seção — o que de fato volta pro agente</span>
+<span class="w">  </span><span class="nx">tipo_bloco</span><span class="o">:</span><span class="w"> </span><span class="s2">"TextItem"</span><span class="p">,</span><span class="w">                </span><span class="c1">// TextItem | TableItem</span>
+<span class="w">  </span><span class="nx">estado</span><span class="o">:</span><span class="w"> </span><span class="s2">"Maranhão (MA)"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">municipio</span><span class="o">:</span><span class="w"> </span><span class="s2">"São Francisco do Brejão"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">arquivo</span><span class="o">:</span><span class="w"> </span><span class="s2">"edital.pdf"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">origem</span><span class="o">:</span><span class="w"> </span><span class="s2">"upload_usuario"</span><span class="p">,</span><span class="w">              </span><span class="c1">// "upload_usuario" | "avaliacao"</span>
+<span class="w">  </span><span class="nx">timestamp_indexacao</span><span class="o">:</span><span class="w"> </span><span class="mf">1757000000</span>
+<span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>secao_ordem</code></td>
+<td>Posição da seção na extração (<code>pdf_hierarquico.py</code>) — identidade real da seção, usada pra deduplicar (ver abaixo). Títulos podem se repetir no edital; a posição não</td>
+</tr>
+<tr>
+<td><code>secao_caminho</code></td>
+<td>Breadcrumb da seção onde o trecho está (<code>"## Habilitação &gt; 4.1 Documentação"</code>) — só exibição, <code>[caminho]</code> antes do texto devolvido ao agente</td>
+</tr>
+<tr>
+<td><code>secao_texto_completo</code></td>
+<td>Texto inteiro da seção-pai, montado em <code>pdf_hierarquico.py</code> durante a extração — cada filho carrega uma cópia própria (denormalizado, sem <code>$lookup</code>)</td>
+</tr>
+<tr>
+<td><code>texto</code></td>
+<td>O pedaço do filho — só entra no embedding; não é o que volta pro agente (ver "O pipeline de busca")</td>
+</tr>
+<tr>
+<td><code>tipo_bloco</code></td>
+<td><code>TextItem</code> / <code>TableItem</code> — o tipo do bloco no DoclingDocument</td>
+</tr>
+<tr>
+<td><code>edital_id</code></td>
+<td>Identificador do edital — é o <code>thread_id</code> do upload (a thread é 1:1 com o edital). Filtro principal da busca</td>
+</tr>
+<tr>
+<td><code>estado</code>, <code>municipio</code></td>
+<td>Filtro geográfico redundante da busca</td>
+</tr>
+<tr>
+<td><code>arquivo</code></td>
+<td>Nome do arquivo original, para rastreabilidade</td>
+</tr>
+<tr>
+<td><code>timestamp_indexacao</code></td>
+<td>Epoch (UTC) da indexação — usado pelo job de limpeza</td>
+</tr>
+<tr>
+<td><code>origem</code></td>
+<td><code>"upload_usuario"</code> no <code>/upload/</code>, <code>"avaliacao"</code> no golden dataset. Só <code>"upload_usuario"</code> expira pelo job de limpeza</td>
+</tr>
+</tbody>
+</table>
+<p>Nome da coleção e do índice são constantes em
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/mongo_db.py#L13-L14"><code>app/storage/mongo_db.py:13-14</code></a>
+(<code>COLECAO_CHUNKS</code>, <code>NOME_INDICE_VETORIAL</code>). Um índice <strong>Atlas Search</strong> do tipo <code>vectorSearch</code>
+(<code>idx_chunks_vetor</code>) cobre o campo <code>embedding</code>, com <code>edital_id</code>/<code>estado</code>/<code>municipio</code> declarados
+como campos de filtro — só um campo declarado assim no índice pode ser usado no <code>filter</code> do
+<code>$vectorSearch</code>. Criado uma vez (via <code>mongosh</code> ou <code>pymongo</code>, não faz parte do código da aplicação):</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pymongo.operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchIndexModel</span>
+
+<span class="n">colecao</span><span class="o">.</span><span class="n">create_search_index</span><span class="p">(</span>
+    <span class="n">SearchIndexModel</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"idx_chunks_vetor"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"vectorSearch"</span><span class="p">,</span>
+        <span class="n">definition</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"fields"</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"vector"</span><span class="p">,</span>
+                    <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"embedding"</span><span class="p">,</span>
+                    <span class="s2">"numDimensions"</span><span class="p">:</span> <span class="mi">1536</span><span class="p">,</span>       <span class="c1"># dimensão nativa do text-embedding-3-small</span>
+                    <span class="s2">"similarity"</span><span class="p">:</span> <span class="s2">"cosine"</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"filter"</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"edital_id"</span><span class="p">},</span>
+                <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"filter"</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"estado"</span><span class="p">},</span>
+                <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"filter"</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"municipio"</span><span class="p">},</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><code>numDimensions</code> tem que bater exatamente com a saída de <code>EMBEDDING_MODEL</code> — trocar de modelo (ou de
+dimensão) exige recriar o índice.</p>
+<h2 id="o-pipeline-de-busca">O pipeline de busca</h2>
+<p>A ferramenta <code>buscar_contexto_edital</code>
+(<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py"><code>app/agents/tools/contexto_edital.py</code></a>,
+que o agente chama sozinho) chama <code>GerenciadorVetorial.buscar_contexto</code>
+(<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L37-L90"><code>vetorial.py:37-90</code></a>),
+que roda um <code>$vectorSearch</code> no MongoDB: converte a pergunta em vetor, casa os <code>top_k</code> filhos mais
+próximos (filtrados por <code>edital_id</code> + <code>estado</code> + <code>municipio</code>), e devolve a <strong>seção inteira</strong> de
+cada filho que bateu — não o pedaço vetorizado —, deduplicando por <code>secao_ordem</code> pra não repetir a
+mesma seção se dois filhos dela aparecerem no mesmo <code>top_k</code>. É <code>secao_ordem</code>, não <code>secao_caminho</code>,
+de propósito: um edital real pode ter títulos repetidos ("DO OBJETO" em lotes diferentes, por
+exemplo) que são seções fisicamente distintas — dedup por título trataria conteúdo novo como já
+visto:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">buscar_contexto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pergunta</span><span class="p">,</span> <span class="n">estado</span><span class="p">,</span> <span class="n">municipio</span><span class="p">,</span> <span class="n">edital_id</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+    <span class="n">vetor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelo_embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">pergunta</span><span class="p">)</span>
+
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"$vectorSearch"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"index"</span><span class="p">:</span> <span class="n">NOME_INDICE_VETORIAL</span><span class="p">,</span>
+                <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"embedding"</span><span class="p">,</span>
+                <span class="s2">"queryVector"</span><span class="p">:</span> <span class="n">vetor</span><span class="p">,</span>
+                <span class="s2">"numCandidates"</span><span class="p">:</span> <span class="n">top_k</span><span class="p">,</span>
+                <span class="s2">"limit"</span><span class="p">:</span> <span class="n">top_k</span><span class="p">,</span>
+                <span class="s2">"filter"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"edital_id"</span><span class="p">:</span> <span class="n">edital_id</span><span class="p">,</span> <span class="s2">"estado"</span><span class="p">:</span> <span class="n">estado</span><span class="p">,</span> <span class="s2">"municipio"</span><span class="p">:</span> <span class="n">municipio</span><span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span><span class="s2">"$project"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"embedding"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}},</span>
+    <span class="p">]</span>
+    <span class="n">resultados</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">get_database</span><span class="p">()[</span><span class="n">COLECAO_CHUNKS</span><span class="p">]</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">pipeline</span><span class="p">))</span>
+
+    <span class="n">vistas</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">secoes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">resultados</span><span class="p">:</span>
+        <span class="n">ordem</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">"secao_ordem"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ordem</span> <span class="ow">in</span> <span class="n">vistas</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">vistas</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ordem</span><span class="p">)</span>
+        <span class="n">texto_secao</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"secao_texto_completo"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">d</span><span class="p">[</span><span class="s2">"texto"</span><span class="p">]</span>
+        <span class="n">secoes</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"ordem"</span><span class="p">:</span> <span class="n">ordem</span><span class="p">,</span> <span class="s2">"caminho"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"secao_caminho"</span><span class="p">],</span> <span class="s2">"texto"</span><span class="p">:</span> <span class="n">texto_secao</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">secoes</span>
+</code></pre></div>
+<p>O retorno é uma lista de dicts, não uma string pronta — quem monta o texto final pro agente é a
+tool (<code>app/agents/tools/contexto_edital.py</code>), porque é lá que mora o dedup contra o <strong>histórico da
+thread inteira</strong> (não só desta chamada): a mesma seção já mostrada numa pergunta anterior vira uma
+nota curta em vez do texto repetido, também por <code>ordem</code>.</p>
+<p>O <code>top_k=5</code> na assinatura acima é só o default do parâmetro da função — na prática a tool sempre
+chama <code>buscar_contexto</code> passando <code>top_k=TOP_K_EDITAL</code> explicitamente
+(<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py"><code>app/agents/tools/contexto_edital.py</code></a>),
+e o default real de <code>TOP_K_EDITAL</code> é <strong>3</strong> (configurável sem mudar código, ver
+<a href="../../operacional/variaveis_ambiente/">Variáveis de ambiente</a>). <code>numCandidates</code> é quantos vizinhos o
+índice HNSW examina antes de ranquear os <code>limit</code> finais — hoje igual ao <code>top_k</code>, o mínimo aceito
+(sem margem de exploração).</p>
+<p>Se nada é encontrado, a ferramenta retorna uma mensagem explícita ("Nenhum trecho relevante
+encontrado...") em vez de contexto vazio — para o agente não "adivinhar" o edital.</p>
+<div class="admonition note">
+<p class="admonition-title">Editais indexados antes desta migração</p>
+<p>Vetores gravados pelo pipeline antigo (Pinecone, com seção-pai separada em outra coleção) não
+existem mais no banco atual — a migração recriou a coleção do zero. Não é preciso migração
+manual: a retenção (<code>MONGO_RETENCAO_DIAS</code>) e o próximo upload cobrem qualquer edital.</p>
+</div>
+<h2 id="padrao-pai-filho-descartado-uma-vez-reintroduzido-depois">Padrão pai-filho: descartado uma vez, reintroduzido depois</h2>
+<p>Esse padrão <em>small-to-big</em> (o filho pequeno dá o match preciso, o pai devolve o contexto ao redor)
+já foi testado, removido e agora voltou — vale registrar os dois lados.</p>
+<p><strong>Por que foi tirado, na 1ª vez.</strong> Uma versão anterior vetorizava também a seção-pai e usava
+<code>$lookup</code> pra trazer o texto completo dela a cada busca. Medido nos 4 casos do golden dataset <strong>da
+época</strong> — ainda com RAGAS e um modelo principal mais caro —, o contexto por caso caiu de 27–52 mil
+caracteres pra 10–15 mil ao remover o pai, sem piorar a métrica de detecção de anomalias medida
+então.</p>
+<p><strong>Por que voltou.</strong> Duas coisas mudaram desde essa medição: (1) a avaliação trocou RAGAS por G-Eval
+e o dataset cresceu de 4 pra 13 casos com o catálogo A-I inteiro coberto — o "sem piorar a métrica"
+antigo não necessariamente se sustenta com o instrumento de medição atual; (2) rodando o dataset
+novo, o padrão observado foi o agente chamar <code>buscar_contexto_edital</code> de 10 a 16 vezes no mesmo
+caso — cada chamada só devolvendo um pedaço de ~200 palavras, insuficiente pra montar o quadro
+completo sozinho. Trazer a seção inteira ataca isso direto: menos chamadas de tool por caso (o que
+também ajuda a não estourar rate limit do provider, ver <a href="../avaliacao/">Avaliação</a>) e mais fidelidade
+ao desenho original de RAG hierárquico do projeto.</p>
+<p><strong>O custo agora é aceito conscientemente, não ignorado:</strong> mais caracteres por chamada de
+<code>buscar_contexto_edital</code> significa mais tokens por turno. Gerenciamento de contexto (resumir,
+truncar seções muito grandes, cortar o que já apareceu numa chamada anterior) fica como técnica de
+V2 — por ora, a aposta é que mais contexto correto vale mais que economia de token, e a
+observação empírica é o critério: acompanhar o tamanho médio de contexto por caso nas próximas
+rodadas de avaliação.</p>
+<h2 id="limpeza-de-dados-expirados">Limpeza de dados expirados</h2>
+<p>Um edital vive todo na coleção <code>chunks_edital</code> — não há mais um segundo banco/serviço para manter
+sincronizado. A regra: <code>origem = "upload_usuario"</code> <strong>e</strong> <code>timestamp_indexacao</code> mais antigo que a
+janela de retenção (<code>MONGO_RETENCAO_DIAS</code>, default 2 dias). Registros de outra origem (ex.: futura
+indexação automática via PNCP) não são tocados.</p>
+<p><a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_mongo.py#L14-L48"><code>app/jobs/limpeza_mongo.py:14-48</code></a>
+é um script standalone (pensado para rodar como cron no Railway) e encerra com <code>sys.exit(1)</code> em
+caso de falha (credencial expirada, recurso renomeado) em vez de terminar em silêncio — assim uma
+execução com erro aparece como falha no painel de cron, sem depender de checar o log. Ver
+<a href="../../governanca/lgpd/">Retenção de editais</a> para o racional.</p>
+<div class="admonition note">
+<p class="admonition-title">Por que a fatia de 200 palavras, sem overlap</p>
+<p>A unidade indexada é o <strong>bloco do DoclingDocument</strong> (<code>TextItem</code>/<code>TableItem</code>), não um chunk de
+tamanho fixo — a estrutura do documento é que define a fronteira, o que já evita cortar no meio
+de uma cláusula. A fatia de 200 palavras em <code>_fatiar_filhos</code> só entra quando um <code>TextItem</code> é
+grande demais para um vetor único (parágrafo longo diluiria o embedding).</p>
+<p>Sem overlap: a fatia de 200 palavras só decide <strong>o que é vetorizado e buscado</strong> — o que volta
+pro agente é a seção inteira do filho vencedor, não a fatia em si (ver "O pipeline de busca").
+Overlap existe pra não cortar uma frase ao meio na fronteira entre dois chunks quando o chunk em
+si é o que volta pro modelo; aqui não é o caso — se uma fatia terminar no meio de uma frase, a
+busca ainda encontra a fatia mais próxima da pergunta normalmente, e o texto devolvido já é a
+seção completa, sem o corte. Overlap não mudaria isso, só duplicaria o texto vetorizado.</p>
+</div>
+<h2 id="o-bug-de-producao-que-a-avaliacao-revelou">O bug de produção que a avaliação revelou</h2>
+<div class="admonition danger">
+<p class="admonition-title">O bug de metadados compartilhados</p>
+<p>Durante o desenvolvimento do framework de avaliação (antes desta migração, ainda com Pinecone),
+uma investigação de instabilidade de métrica revelou um bug <strong>real de produção</strong>: o código
+usava <code>[metadados] * len(lista_chunks)</code>, que em Python cria N referências ao <strong>mesmo</strong>
+dicionário, não N cópias. Como a biblioteca de vetores gravava o texto de cada chunk <em>dentro</em>
+do dict de metadados, o resultado era que <strong>todo chunk indexado — em qualquer edital, inclusive
+de usuários reais — era armazenado com o texto do último chunk do documento</strong>. Os embeddings
+continuavam corretos (calculados antes da mutação), então os <em>scores</em> de similaridade pareciam
+plausíveis e mascaravam o defeito.</p>
+<p>A correção foi trocar por uma cópia independente por chunk — <code>indexar_hierarquia</code> monta cada
+documento com um spread <code>{**metadados_base, ...}</code> numa list comprehension, objeto novo por
+item, o mesmo bug evitado desde então. Este é o melhor exemplo de como o framework de avaliação
+encontrou um problema real do sistema, não só mediu números — ver <a href="../avaliacao/">Avaliação</a>.</p>
+</div>
+<h2 id="as-bases-oficiais-dados-em-tempo-real">As bases oficiais (dados em tempo real)</h2>
+<p>Diferente do edital, as bases governamentais não são indexadas — são consultadas ao vivo pelas
+ferramentas do agente, e o resultado é cacheado por 24h (ver <a href="../../arquitetura/protocolo_mcp/">Protocolo MCP</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Fonte</th>
+<th>Ferramenta</th>
+<th>Dado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Receita Federal (via BrasilAPI)</td>
+<td><code>consultar_receita_federal</code></td>
+<td>Situação cadastral, CNAE, data de fundação, endereço</td>
+</tr>
+<tr>
+<td>CEIS/CNEP (Portal da Transparência)</td>
+<td><code>consultar_sancoes_empresa</code></td>
+<td>Sanções ativas (suspensão, inidoneidade, multa)</td>
+</tr>
+<tr>
+<td>PNCP</td>
+<td>11 ferramentas MCP</td>
+<td>Licitações, contratos, itens, resultados, atas</td>
+</tr>
+<tr>
+<td>Web aberta</td>
+<td><code>buscar_informacao_web</code> (Tavily)</td>
+<td>Notícias e contexto complementar</td>
+</tr>
+</tbody>
+</table>
+<h2 id="limitacoes-conhecidas-do-retrieval">Limitações conhecidas do retrieval</h2>
+<ul>
+<li><strong><code>top_k=3</code> (default de produção) não alcança trechos posicionalmente distantes.</strong> Em alguns editais, o trecho-alvo
+  pode não aparecer nem em <code>top_k</code> altos — limitação genuína de recuperação por similaridade,
+  endereçável com reranking ou contextualização do texto embedado (ver próximo ponto) na V2.</li>
+<li><strong>O texto embedado de cada filho é o texto cru do bloco, sem o <code>secao_caminho</code>.</strong> Uma linha de
+  tabela isolada ("Juiz de vaquejada... ABVAQ...") não carrega, no embedding, o sinal de que é sobre
+  qualificação técnica — só o texto literal do bloco compete na busca. Prefixar o texto embedado
+  com o caminho da seção é candidato de melhoria, ainda não feito.</li>
+<li><strong><code>TableItem</code> nunca é fatiado.</strong> Uma tabela grande (dezenas de linhas) vira um único vetor, o que
+  dilui o embedding e prejudica o match de uma linha específica dessa tabela.</li>
+<li><strong>Subir o <code>top_k</code> não é grátis — e agora custa mais que antes.</strong> Cada resultado devolve a seção
+  inteira do filho vencedor (ver "Padrão pai-filho" acima), não só o pedaço de 200 palavras — uma
+  seção grande pode ser dezenas de milhares de caracteres. Mais contexto por chamada aumenta o custo
+  de token e pode piorar a fidelidade (mais texto irrelevante para o modelo se confundir);
+  gerenciamento de contexto (resumir seção grande, cortar repetição entre chamadas) é V2.</li>
+<li><strong>A conversão do Docling roda dentro do request de <code>/upload/</code>.</strong> São segundos a ~2 min por edital
+  em CPU, com o cliente segurando a conexão. Os modelos ficam pré-carregados no <code>lifespan</code>, então o
+  custo é só o processamento — mas ainda é o passo mais lento do upload. Mover para um job
+  assíncrono é candidato de V2.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>
