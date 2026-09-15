@@ -33,7 +33,7 @@ auditor-cidadao/
 | Node.js | 20 LTS | (1) o agente carrega 11 ferramentas do PNCP via MCP (`npx @licinexusbr/mcp`) — **sem Node.js, o boot falha ao conectar no MCP**; (2) o frontend é um app Vite separado (`npm run dev`) |
 | Redis | — | Histórico de conversa, rate limiter e cache de ferramentas — **sem um Redis acessível, o boot falha**. Ver o passo 4.1 |
 | MongoDB Atlas | — | Guarda e busca os chunks do edital (RAG). O `lifespan` faz `ping` no boot — **sem `MONGODB_URI` válida, o boot falha**. **Precisa ser um cluster Atlas** (tier gratuito M0 serve) — Vector Search não existe em Mongo self-hosted/local, então um container Docker de Mongo não funciona aqui. Ver o passo 4.1 |
-| Chaves de API | — | OpenAI é obrigatória; CGU e Tavily são exigidas pelas tools de sanções e busca web. Ver [Variáveis de ambiente](variaveis_ambiente.md) |
+| Chaves de API | — | OpenAI (embeddings) e Maritaca (`LLM_MODEL` padrão, `maritaca:sabia-4`) são obrigatórias; CGU e Tavily são exigidas pelas tools de sanções e busca web. Ver [Variáveis de ambiente](variaveis_ambiente.md) |
 
 ## 1. Clonar o repositório
 
@@ -72,7 +72,8 @@ cp .env.example .env
 
 Preencha o `.env` em `backend/` com suas chaves. Todos os campos estão documentados em
 [Variáveis de ambiente](variaveis_ambiente.md); os obrigatórios para o boot são `OPENAI_API_KEY`,
-`MONGODB_URI` e um `REDIS_URI` apontando para um Redis de verdade.
+`MARITACA_API_KEY` (com o `LLM_MODEL` padrão), `MONGODB_URI` e um `REDIS_URI` apontando para um
+Redis de verdade.
 
 Em desenvolvimento local, confira que **`AMBIENTE_PRODUCAO=False`**:
 

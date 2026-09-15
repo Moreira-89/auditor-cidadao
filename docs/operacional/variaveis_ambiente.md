@@ -8,7 +8,7 @@ Todas são lidas uma única vez em [`app/config/settings.py`](https://github.com
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `LLM_MODEL` | Não | `openai:gpt-4o-mini` (default do código) | Modelo do agente principal, no formato `provider:model-name`. Em **produção**, definido no Railway como `maritaca:sabia-4` — a Maritaca AI não é provider nativo do `init_chat_model`, o wrapper está em [`app/llm.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/llm.py). Também trocável para `groq:gpt-oss-120b` ou `google_genai:gemini-2.0-flash` sem mudar código — o provider precisa ter a chave correspondente preenchida (e, para os providers nativos, o pacote `langchain-<provider>` instalado) |
+| `LLM_MODEL` | Não | `maritaca:sabia-4` | Modelo do agente principal, no formato `provider:model-name`. A Maritaca AI não é provider nativo do `init_chat_model` — o wrapper está em [`app/llm.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/llm.py) e roteia via `ChatOpenAI` trocando `base_url` + chave. Trocável para `openai:gpt-4o-mini`, `groq:gpt-oss-120b` ou `google_genai:gemini-2.0-flash` sem mudar código — o provider precisa ter a chave correspondente preenchida (e, para os providers nativos, o pacote `langchain-<provider>` instalado) |
 | `LLM_TEMPERATURE` | Não | `0.1` | Temperatura do agente principal |
 | `LLM_MAX_TOKENS` | Não | `4096` | Limite de tokens de saída do agente principal |
 | `LLM_TIMEOUT_SEGUNDOS` | Não | `60` | Timeout por chamada ao LLM — sem ele, uma resposta lenta pode segurar o turno (e o streaming SSE) indefinidamente |
@@ -19,7 +19,7 @@ Todas são lidas uma única vez em [`app/config/settings.py`](https://github.com
 | Variável | Obrigatória | Descrição |
 |---|---|---|
 | `OPENAI_API_KEY` | **Sim, sempre** | Mesmo que `LLM_MODEL` use outro provider, os embeddings do RAG (`EMBEDDING_MODEL`) sempre passam pela OpenAI |
-| `MARITACA_API_KEY` | Só se usar Maritaca | Obrigatória apenas se `LLM_MODEL` apontar para `maritaca:...` — é o caso da produção (`maritaca:sabia-4`). Opcionalmente, `MARITACA_BASE_URL` sobrescreve o endpoint padrão (`https://chat.maritaca.ai/api`) |
+| `MARITACA_API_KEY` | **Sim, com o `LLM_MODEL` padrão** | Obrigatória enquanto `LLM_MODEL` apontar para `maritaca:...` (default). Opcionalmente, `MARITACA_BASE_URL` sobrescreve o endpoint padrão (`https://chat.maritaca.ai/api`) |
 | `GROQ_API_KEY` | Só se usar Groq | Obrigatória apenas se `LLM_MODEL` apontar para `groq:...` |
 | `GOOGLE_API_KEY` | Só se usar Gemini | Obrigatória apenas se `LLM_MODEL` apontar para `google_genai:...` |
 
@@ -32,7 +32,7 @@ para o schema completo e o código de indexação/busca).
 |---|---|---|---|
 | `MONGODB_URI` | **Sim** | — | String de conexão. Precisa ser um cluster **Atlas** (Vector Search não existe em Mongo self-hosted/local). Aberta no `lifespan` com um `ping` que derruba o boot se a URI/rede estiver ruim ([`app/storage/mongo_db.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/mongo_db.py)). Também exigida por `python -m evaluation.runner` (a avaliação usa o mesmo pipeline de indexação) |
 | `EMBEDDING_MODEL` | Não | `text-embedding-3-small` | Modelo de embedding da OpenAI usado para indexar e buscar ([`app/storage/vetorial.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py)). **Ao trocar, reindexe tudo** (o espaço vetorial muda) e recrie o índice `vectorSearch` com a nova dimensão |
-| `TOP_K_EDITAL` | Não | `5` | Quantos chunks a busca vetorial casa por pergunta — ver a tool [`buscar_contexto_edital`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py) |
+| `TOP_K_EDITAL` | Não | `3` | Quantos chunks a busca vetorial casa por pergunta — ver a tool [`buscar_contexto_edital`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py) |
 | `MONGO_RETENCAO_DIAS` | Não | `2` | Dias de retenção dos chunks com `origem: "upload_usuario"` antes de o job [`app/jobs/limpeza_mongo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_mongo.py) apagá-los. Não afeta registros com outra origem |
 
 ## Redis (checkpointer do grafo + rate limiting + cache de ferramentas)
@@ -74,8 +74,8 @@ limiting (ver [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidad
     [Guardrails](../governanca/guardrails.md)). As únicas chaves cuja ausência impede o **boot**
     da aplicação são `OPENAI_API_KEY` (embeddings), `MONGODB_URI` e `REDIS_URI` (esta última tem um
     default válido para uso local, `redis://localhost:6379`, mas precisa de um Redis de verdade
-    escutando nesse endereço) — mais a chave do provider apontado por `LLM_MODEL` (em produção,
-    `MARITACA_API_KEY`).
+    escutando nesse endereço) — mais a chave do provider apontado por `LLM_MODEL` (`MARITACA_API_KEY`
+    com o default).
 
 ## Avaliação (golden dataset, deepeval/G-Eval)
 

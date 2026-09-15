@@ -9,14 +9,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LLM_MODEL = os.getenv("LLM_MODEL", "openai:gpt-4o-mini")
+LLM_MODEL = os.getenv("LLM_MODEL", "maritaca:sabia-4")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 LLM_TIMEOUT_SEGUNDOS = int(os.getenv("LLM_TIMEOUT_SEGUNDOS", "60"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "2"))
 
 # Busca vetorial do RAG de editais (ver app/storage/vetorial.py).
-TOP_K_EDITAL = int(os.getenv("TOP_K_EDITAL", "5"))
+TOP_K_EDITAL = int(os.getenv("TOP_K_EDITAL", "3"))
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 
 REDIS_URI = os.getenv("REDIS_URI", "redis://localhost:6379")
