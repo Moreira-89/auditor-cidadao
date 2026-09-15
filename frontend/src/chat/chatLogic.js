@@ -553,6 +553,21 @@ async function consumirStreamUpload(response) {
     }
 }
 
+/** Traduz a falha do upload para algo acionável. O TypeError do fetch não
+ * distingue servidor fora do ar, CORS bloqueado e requisição barrada por
+ * proxy/VPN corporativa — appliances de DLP com inspeção de TLS costumam
+ * liberar GET e rejeitar POST com arquivo, respondendo 403 sem header CORS
+ * antes de a requisição sair da rede. Todos chegam aqui como "Failed to
+ * fetch", e nenhum log do backend registra o caso do proxy. */
+function mensagemDeFalhaUpload(error) {
+    if (error instanceof TypeError) {
+        return 'a requisição não chegou ao servidor. Se você está numa rede '
+            + 'corporativa ou com VPN, o envio de arquivos pode estar sendo '
+            + 'bloqueado — tente por outra rede.';
+    }
+    return error.message;
+}
+
 async function confirmarUpload() {
     if (dom.btnConfirm.disabled) return;
 
@@ -562,13 +577,38 @@ async function confirmarUpload() {
     startUploadProgress();
     dom.modalLoading.classList.remove('hidden');
 
-    const formData = new FormData();
-    formData.append('file', state.selectedFile);
-    formData.append('estado', state.estado.toUpperCase());
-    formData.append('municipio', state.municipio);
-    formData.append('thread_id', state.threadId);
-
     try {
+        // Materializa os bytes ANTES do fetch. Um arquivo escolhido direto do
+        // Google Drive/iCloud/OneDrive pelo seletor do celular chega como
+        // referência remota: tem nome e tamanho, mas o conteúdo só é baixado
+        // na hora da leitura. Se esse download falha, o erro estoura durante a
+        // serialização do corpo do fetch e chega no catch como um TypeError
+        // "Failed to fetch", indistinguível de rede fora do ar. Lendo antes, a
+        // falha fica identificada e a mensagem diz o que fazer.
+        let bytes;
+        try {
+            bytes = await state.selectedFile.arrayBuffer();
+        } catch {
+            throw new Error(
+                'não foi possível ler o arquivo. Se ele está no Google Drive, '
+                + 'iCloud ou OneDrive, baixe para o dispositivo antes de enviar.'
+            );
+        }
+        if (bytes.byteLength === 0) {
+            throw new Error(
+                'o arquivo chegou vazio. Se ele está na nuvem, baixe para o '
+                + 'dispositivo antes de enviar.'
+            );
+        }
+
+        const formData = new FormData();
+        formData.append('file', new File([bytes], state.selectedFile.name, {
+            type: state.selectedFile.type || 'application/pdf',
+        }));
+        formData.append('estado', state.estado.toUpperCase());
+        formData.append('municipio', state.municipio);
+        formData.append('thread_id', state.threadId);
+
         const response = await fetch(`${API_BASE}/upload/`, {
             method: 'POST',
             body: formData,
@@ -607,7 +647,7 @@ async function confirmarUpload() {
         stopUploadProgress();
         setProgress(0);
         dom.modalLoading.classList.add('hidden');
-        showModalError(`Falha ao indexar: ${error.message}`);
+        showModalError(`Falha ao indexar: ${mensagemDeFalhaUpload(error)}`);
         dom.btnConfirm.disabled = false;
     }
 }

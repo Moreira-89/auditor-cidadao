@@ -114,25 +114,28 @@ dinamicamente.
        embute no bundle na hora do build. Mudar essa URL sempre exige um redeploy (rebuild), não só
        restart do serviço.
 
-!!! bug "Diagnosticar `Failed to fetch` depois de trocar um domínio"
-    O sintoma no frontend é sempre o mesmo (`Falha ao indexar: Failed to fetch`), mas as causas são
-    distintas. Abra o Console do navegador e leia a mensagem completa:
+!!! bug "Diagnosticar `Failed to fetch` no upload"
+    O frontend mostra sempre a mesma coisa (`Falha ao indexar: Failed to fetch`), mas as causas são
+    distintas — e **a maioria não está no servidor**. Antes de mexer em configuração, elimine o
+    cliente: repita o upload com o arquivo **baixado no dispositivo** e numa **rede doméstica, sem
+    VPN**. Se funcionar assim, o problema é o ambiente do cliente, não o deploy.
 
-    | O que o Console mostra | Causa | Correção |
+    | O que acontece | Causa | Correção |
     |---|---|---|
-    | `POST` para o domínio **antigo** do backend | o bundle foi buildado antes da troca | redeploy **com rebuild** do frontend (restart não basta) |
-    | `blocked by CORS policy: No 'Access-Control-Allow-Origin' header` + status 2xx/4xx vindo do app | `CORS_ORIGINS` não bate com o `Origin` | acertar `CORS_ORIGINS` no backend — **sem barra final** e sem espaço |
-    | `403` com nenhum header CORS | a requisição não chegou no app: o domínio não aponta para um deploy ativo do serviço de backend | conferir em Settings → Networking **de qual serviço** o domínio foi gerado, e se esse serviço é o que tem as variáveis |
+    | Só falha com arquivo escolhido direto do Google Drive/iCloud/OneDrive no celular | o seletor devolve uma referência remota; os bytes são baixados na hora da leitura e esse download falhou | baixar o arquivo para o dispositivo antes de enviar |
+    | Só falha em rede corporativa/VPN, com `403` sem header CORS e **nada no log do backend** | appliance de DLP com inspeção de TLS: libera `GET`, bloqueia `POST` com arquivo e responde antes de a requisição sair da rede | usar outra rede; não há correção do lado da aplicação |
+    | `POST` sai para o domínio **antigo** do backend | o bundle foi buildado antes da troca de URL | redeploy **com rebuild** do frontend (restart não basta) |
+    | `blocked by CORS policy: No 'Access-Control-Allow-Origin' header` | `CORS_ORIGINS` não bate com o `Origin` | acertar `CORS_ORIGINS` no backend — **sem barra final** e sem espaço |
+    | Erro só depois de a barra de progresso rodar por minutos | o stream SSE foi cortado durante a extração | investigar o heartbeat (`upload.py`), não a configuração |
 
-    Para separar os dois últimos casos, o log de boot do backend imprime a lista efetiva:
+    Para separar servidor de cliente, o log de boot do backend imprime a lista efetiva de origens:
 
     ```
     INFO | CORS liberado para: https://auditor-cidadao-production.up.railway.app
     ```
 
-    Se essa linha não aparecer (ou aparecer um `ERROR | CORS_ORIGINS vazia…`), o problema é a
-    variável. Se ela aparecer com a origem certa e o navegador ainda recebe 403, a requisição está
-    sendo barrada antes do container — é roteamento de domínio, não configuração de CORS.
+    Se essa linha aparecer com a origem certa e o `POST /upload/` **não** aparecer no access log do
+    uvicorn, a requisição não chegou ao container — o bloqueio está entre o navegador e o Railway.
 
 ### Provisionar o Redis
 
