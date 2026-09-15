@@ -8,7 +8,6 @@ assets/external/
 !requirements.txt
 arquivos_locais/
 .claude/*
-apresentacao_data_master
 .vscode/
 
 # deepeval — cache/estado de runtime, não faz parte do resultado da avaliação
