@@ -114,6 +114,26 @@ dinamicamente.
        embute no bundle na hora do build. Mudar essa URL sempre exige um redeploy (rebuild), não só
        restart do serviço.
 
+!!! bug "Diagnosticar `Failed to fetch` depois de trocar um domínio"
+    O sintoma no frontend é sempre o mesmo (`Falha ao indexar: Failed to fetch`), mas as causas são
+    distintas. Abra o Console do navegador e leia a mensagem completa:
+
+    | O que o Console mostra | Causa | Correção |
+    |---|---|---|
+    | `POST` para o domínio **antigo** do backend | o bundle foi buildado antes da troca | redeploy **com rebuild** do frontend (restart não basta) |
+    | `blocked by CORS policy: No 'Access-Control-Allow-Origin' header` + status 2xx/4xx vindo do app | `CORS_ORIGINS` não bate com o `Origin` | acertar `CORS_ORIGINS` no backend — **sem barra final** e sem espaço |
+    | `403` com nenhum header CORS | a requisição não chegou no app: o domínio não aponta para um deploy ativo do serviço de backend | conferir em Settings → Networking **de qual serviço** o domínio foi gerado, e se esse serviço é o que tem as variáveis |
+
+    Para separar os dois últimos casos, o log de boot do backend imprime a lista efetiva:
+
+    ```
+    INFO | CORS liberado para: https://auditor-cidadao-production.up.railway.app
+    ```
+
+    Se essa linha não aparecer (ou aparecer um `ERROR | CORS_ORIGINS vazia…`), o problema é a
+    variável. Se ela aparecer com a origem certa e o navegador ainda recebe 403, a requisição está
+    sendo barrada antes do container — é roteamento de domínio, não configuração de CORS.
+
 ### Provisionar o Redis
 
 Uma peça não vem pronta. Diferente do ambiente local, em produção é preciso criar o serviço:

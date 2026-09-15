@@ -40,8 +40,13 @@ COOKIE_SECRET_KEY = _COOKIE_SECRET_KEY_ENV or secrets.token_hex(32)
 # Origens autorizadas a chamar a API via CORS — a URL pública do serviço de
 # frontend no Railway (ex.: "https://auditorcidadao.up.railway.app"), separadas
 # por vírgula se houver mais de uma (ex.: preview + produção).
+#
+# rstrip("/"): o CORSMiddleware compara a origem por igualdade exata com o header
+# `Origin`, que nunca traz barra final. Uma URL colada do navegador no painel do
+# Railway ("https://…app/") jamais daria match e o sintoma seria apenas
+# "Failed to fetch" no frontend, sem erro nenhum no log do backend.
 CORS_ORIGINS = [
-    origem.strip()
+    origem.strip().rstrip("/")
     for origem in os.getenv("CORS_ORIGINS", "").split(",")
     if origem.strip()
 ]
@@ -54,6 +59,20 @@ if not AMBIENTE_PRODUCAO:
         "http://127.0.0.1:5173",
         "http://localhost:4173",  # vite preview
     ]
+
+# O CORS é a configuração de deploy que mais falha em silêncio: sem o header
+# Access-Control-Allow-Origin o navegador bloqueia a leitura da resposta e o
+# frontend mostra "Failed to fetch", enquanto o backend não registra nada. Este
+# log deixa a lista efetiva visível no boot, para comparar com o Origin que o
+# console do navegador reporta.
+if CORS_ORIGINS:
+    logger.info("CORS liberado para: %s", ", ".join(CORS_ORIGINS))
+elif AMBIENTE_PRODUCAO:
+    logger.error(
+        "CORS_ORIGINS vazia com AMBIENTE_PRODUCAO=True — nenhum frontend "
+        "conseguirá chamar esta API (o navegador verá 'Failed to fetch'). "
+        "Defina CORS_ORIGINS com a URL pública do serviço de frontend."
+    )
 
 # Conexão com MongoDB Atlas — armazena e busca os chunks do edital (RAG hierárquico).
 MONGODB_URI = os.getenv("MONGODB_URI")
