@@ -17,6 +17,17 @@ server {
         try_files /chat.html =404;
     }
 
+    # Rota temporária pra apresentação (frontend/public/apresentacao/) — remover
+    # junto da pasta depois da defesa do case. try_files só resolve arquivo por
+    # arquivo, não faz lookup automático de index.html num diretório.
+    location = /apresentacao {
+        return 301 /apresentacao/;
+    }
+
+    location = /apresentacao/ {
+        try_files /apresentacao/index.html =404;
+    }
+
     location / {
         try_files $uri =404;
     }
