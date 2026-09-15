@@ -294,8 +294,9 @@ relatório automático é só o primeiro turno da thread, disparado pelo fronten
 
 !!! note "Histórico interrompido no meio de uma `tool_call`"
     Se o usuário interromper a execução de uma ferramenta, o checkpointer fica com uma `AIMessage`
-    cujos `tool_calls` nunca foram respondidos — e a OpenAI rejeita qualquer mensagem nova nessa
-    thread com `400` enquanto isso não for corrigido.
+    cujos `tool_calls` nunca foram respondidos — e o provider do LLM (Maritaca em produção, via API
+    compatível com a OpenAI) rejeita qualquer mensagem nova nessa thread com `400` enquanto isso não
+    for corrigido.
 
     `_curar_tool_calls_pendentes()`
     ([`conversa.py:15`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/conversa.py))

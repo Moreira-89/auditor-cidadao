@@ -21,7 +21,7 @@ flowchart TB
     UP --> CHECK["pdfplumber: tem texto nativo?<br>(decide OCR sim/não)"]
     CHECK --> PDF["Docling converte<br>texto linear + estrutura hierárquica"]
     PDF --> FIL["chunks (filhos)<br>rotulados com secao_caminho"]
-    FIL --> EMB["OpenAI text-embedding-3-large"]
+    FIL --> EMB["OpenAI text-embedding-3-small"]
     EMB --> MG[("MongoDB Atlas<br>chunks_edital + índice vectorSearch")]
     PDF --> CNPJ["Regex + validate-docbr<br>extrai CNPJs do texto"]
     CNPJ -->|"SSE: progress / heartbeat / done{cnpjs}"| U

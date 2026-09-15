@@ -14,23 +14,27 @@ O usuário digita "Essa empresa tem sanção?" e aperta Enter.
 
 ### 1. Navegador → HTTP
 
-`frontend/js/chat.js:761` monta o `fetch` para `POST /conversar-com-auditor/` com `pergunta`,
-`estado`, `municipio`, `lista_cnpjs` e `thread_id`. O `API_BASE` é `''` (linha 10): URL relativa,
-mesma origem — é isso que faz o cookie de sessão viajar sozinho.
+`frontend/src/chat/chatLogic.js:866` monta o `fetch` para `POST /conversar-com-auditor/` com
+`pergunta`, `estado`, `municipio`, `lista_cnpjs` e `thread_id`. O `API_BASE` (linha 27) é
+`import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'` — em produção aponta para o domínio
+público do backend, um serviço/domínio separado do frontend no Railway. Por isso o fetch usa
+`credentials: 'include'` explícito: é uma chamada cross-site, e sem esse flag o cookie
+`auditor_client_id` não viajaria (ver [CORS e cookie cross-site](../operacional/docker.md) no pilar
+Operacional).
 
 ### 2. FastAPI resolve as dependencies **antes** de entrar no endpoint
 
-O router está registrado em `main.py:39`. Antes de `executar_pergunta` rodar, o FastAPI resolve, em
+O router está registrado em `main.py:35`. Antes de `executar_pergunta` rodar, o FastAPI resolve, em
 ordem:
 
 | Ordem | O quê | Onde |
 |---|---|---|
 | 1 | `PerguntaRequest` valida o corpo | `app/api/schemas/pergunta.py` |
-| 2 | `get_client_id` lê ou emite o cookie assinado | `app/api/dependencies.py:28` → `app/api/cookies.py` |
-| 3 | `RateLimiter` conta a requisição no Redis | `app/api/rate_limiter.py:167` |
+| 2 | `get_client_id` lê ou emite o cookie assinado | `app/api/dependencies.py:14` → `app/api/cookies.py` |
+| 3 | `RateLimiter` conta a requisição no Redis | `app/api/rate_limiter.py:119` (`__call__`) |
 
 Se qualquer uma falhar, o endpoint **nunca executa** — o `429` do rate limiter e o `422` de
-validação saem daqui, não do agente. Os handlers em `main.py:65-88` garantem que um cookie recém-
+validação saem daqui, não do agente. Os handlers em `main.py:60-85` garantem que um cookie recém-
 emitido não se perca junto com a resposta de erro.
 
 ### 3. O endpoint monta o streaming e sai da frente
@@ -50,10 +54,12 @@ quando o Starlette puxa o primeiro item para enviar ao navegador.
 3. **Lê o estado da thread** (linha 86) com `grafo.aget_state(config)` — é o checkpointer no Redis
    respondendo o que já aconteceu nessa conversa.
 4. **Cura histórico interrompido** (linha 88). Se o turno anterior parou no meio de uma `tool_call`,
-   injeta `ToolMessage`s sintéticas; sem isso a OpenAI rejeita o turno com `400`.
+   injeta `ToolMessage`s sintéticas; sem isso o provider do LLM rejeita o turno com `400`
+   (comportamento da API compatível com a OpenAI que tanto `ChatOpenAI` quanto o wrapper da
+   Maritaca em [`app/llm.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/llm.py) usam).
 5. **Decide o que enviar** (linhas 90-102): thread nova recebe o envelope completo
    (`montar_primeiro_turno`, em `app/agents/envelope.py`); thread existente recebe só
-   `<PERGUNTA>...</PERGUNTA>`, porque o histórico vem do checkpointer.
+   `<PROMPT_USUARIO>...</PROMPT_USUARIO>`, porque o histórico vem do checkpointer.
 
 ### 5. Entra no grafo
 
@@ -84,7 +90,7 @@ roda é:
 ```
 ToolNode → coroutine_com_cache        (cache.py:60)
              ├── HIT  → devolve do Redis, a tool nunca é chamada
-             └── MISS → chama a tool de verdade (sancoes.py:120) e grava o resultado
+             └── MISS → chama a tool de verdade (sancoes.py:127) e grava o resultado
 ```
 
 Se um `print` dentro da tool não aparece, ou se o comportamento não bate com o código que você
@@ -141,11 +147,11 @@ de ferramenta de vazarem como texto na tela.
 
 ### 11. De volta ao navegador
 
-`frontend/js/chat.js:810-826` faz `JSON.parse` de cada linha `data: ` e despacha por `type`:
-`token` acumula e re-renderiza o Markdown, `status` adiciona um passo no accordion de raciocínio,
-`done` encerra o loop, `error` vira a bolha de erro com botão de tentar novamente.
+`frontend/src/chat/chatLogic.js:917-939` faz `JSON.parse` de cada linha `data: ` e despacha por
+`type`: `token` acumula e re-renderiza o Markdown, `status` adiciona um passo no accordion de
+raciocínio, `done` encerra o loop, `error` vira a bolha de erro com botão de tentar novamente.
 
-O `leftover` (linhas 787-805) trata a linha SSE cortada pela fronteira do chunk de rede — sem isso,
+O `leftover` (linha 858 em diante) trata a linha SSE cortada pela fronteira do chunk de rede — sem isso,
 um pedaço de JSON vazaria como texto na resposta.
 
 ---
