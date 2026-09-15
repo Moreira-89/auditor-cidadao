@@ -89,6 +89,9 @@ corpo da resposta não é um JSON único, é uma sequência de eventos `data: {.
 | Corpo | JSON: `pergunta`, `estado`, `municipio`, `lista_cnpjs`, `thread_id` (opcional), `inicial` (opcional, default `false`) |
 | `Content-Type` da resposta | `text/event-stream` |
 
+!!! note "50/dia é um valor de teste"
+    O limite é hardcoded (`limit=50` em [`app/api/endpoints/chat.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/chat.py)), não uma variável de ambiente — ajustável direto no código conforme o custo real de LLM por cliente for validado em produção.
+
 Com `inicial: true`, o backend ignora `pergunta` e roda o **relatório automático** como primeiro
 turno da thread (usa `PROMPT_RELATORIO_INICIAL` internamente). É o que o frontend chama logo após o
 upload; o `thread_id` deve ser o mesmo passado no `/upload/`.
