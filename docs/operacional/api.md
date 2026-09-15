@@ -21,6 +21,9 @@ terminando bem).
 | Corpo | `multipart/form-data`: `file` (PDF), `estado`, `municipio`, `thread_id` |
 | `Content-Type` da resposta | `text/event-stream` (após as validações de tipo/tamanho) |
 
+!!! note "5/dia é um valor de teste"
+    O limite é hardcoded (`limit=5` em [`app/api/endpoints/upload.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/endpoints/upload.py)), não uma variável de ambiente — ajustável direto no código conforme o custo de indexação/embeddings for validado em produção.
+
 `thread_id` é gerado pelo frontend (UUID) antes do upload e identifica a conversa que vai receber o
 relatório automático como primeiro turno — a mesma thread deve ser reenviada em
 `/conversar-com-auditor/` para que as perguntas seguintes continuem essa conversa em vez de começar
