@@ -87,13 +87,19 @@ Em desenvolvimento local, confira que **`AMBIENTE_PRODUCAO=False`**:
 
 ### 4.1. Subir Redis local e criar o cluster MongoDB Atlas
 
-Redis pode rodar em Docker:
+Redis pode rodar em Docker. Use direto a imagem `redis-stack`, que já embute o **RedisInsight** (UI
+web) no mesmo container — não há motivo pra começar com a imagem `redis:latest` sem UI e trocar
+depois:
 
 ```bash
-docker run -d --name redis-auditor -p 6379:6379 redis:latest
+docker run -d --name redis-auditor -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
 ```
 
-Fica em `redis://localhost:6379` (já é o default de `REDIS_URI`).
+Fica em `redis://localhost:6379` (já é o default de `REDIS_URI`); a UI fica em
+`http://localhost:8001` — útil pra ver as chaves (`quota_upload:*`, `mcp_cache:*`, os checkpoints do
+LangGraph) e TTLs sem sair do navegador. Se a `8001` bater com o `mkdocs serve`, remapeie
+(`-p 8002:8001`). CLI direto, se preferir: `docker exec -it redis-auditor redis-cli` (depois
+`KEYS *`, `TTL <chave>`, `MONITOR`).
 
 **MongoDB não roda em Docker local aqui** — o RAG usa `$vectorSearch` (Atlas Search), recurso que
 só existe em cluster **Atlas**, não num `mongo:latest` self-hosted. Crie um cluster gratuito (tier
@@ -101,20 +107,6 @@ M0) em [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas), copie a c
 (`mongodb+srv://…`) para `MONGODB_URI` no `.env`, e crie o índice vetorial na coleção
 `chunks_edital` (banco `auditor_cidadao`) — ver o schema e a definição do índice em
 [Uso de Dados e RAG](../ia/rag_dados.md).
-
-!!! tip "Uma UI para inspecionar o Redis"
-    A imagem `redis:latest` não tem interface. Para ver as chaves (`quota_upload:*`, `mcp_cache:*`,
-    os checkpoints do LangGraph), TTLs e rodar comandos, troque pela `redis-stack`, que embute o
-    **RedisInsight** (UI web) no mesmo container:
-
-    ```bash
-    docker rm -f redis-auditor
-    docker run -d --name redis-auditor -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
-    ```
-
-    Redis continua em `6379` (o `REDIS_URI` não muda); a UI fica em `http://localhost:8001`. Se a
-    `8001` bater com o `mkdocs serve`, remapeie (`-p 8002:8001`). Sem UI, o CLI direto:
-    `docker exec -it redis-auditor redis-cli` (depois `KEYS *`, `TTL <chave>`, `MONITOR`).
 
 ## 5. Subir o backend
 
