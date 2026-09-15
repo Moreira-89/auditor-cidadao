@@ -1,22 +1,27 @@
 import logging
 
-from app.api.endpoints.chat import router as perguntar_router
-from app.api.endpoints.upload import router as upload_router
-from app.api.lifespan import lifespan
-from app.config.logging import logger
-from app.config.settings import CORS_ORIGINS
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.exception_handlers import (
-    http_exception_handler,
-    request_validation_exception_handler,
-)
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
-
+# Configurado ANTES de importar qualquer coisa de app/: app/config/settings.py
+# emite avisos já no import (COOKIE_SECRET_KEY ausente, CORS_ORIGINS vazia em
+# produção). Sem handler instalado nesse momento, o NullHandler de
+# app/config/logging.py absorve essas mensagens em silêncio e elas nunca
+# aparecem no log de boot do Railway — justamente quando são mais úteis.
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
 )
+
+from app.api.endpoints.chat import router as perguntar_router  # noqa: E402
+from app.api.endpoints.upload import router as upload_router  # noqa: E402
+from app.api.lifespan import lifespan  # noqa: E402
+from app.config.logging import logger  # noqa: E402
+from app.config.settings import CORS_ORIGINS  # noqa: E402
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
+from fastapi.exception_handlers import (  # noqa: E402
+    http_exception_handler,
+    request_validation_exception_handler,
+)
+from fastapi.exceptions import RequestValidationError  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import JSONResponse, Response  # noqa: E402
 
 app = FastAPI(
     title="Auditor Cidadão",
