@@ -22,13 +22,6 @@ depende de um catálogo de preços ainda não integrado, e a D (cartel) depende 
 sistema é transparente sobre isso: anomalias não verificáveis vão para "Verificações Não Concluídas"
 e recebem score conservador.
 
-### Recuperação (RAG) ainda em ajuste
-O `context_recall` da avaliação vinha reprovado com o parser de PDF plano (`pdfplumber`): a cláusula
-relevante às vezes vinha como texto corrido sem estrutura e não era recuperável. O Bloco 14 trocou
-o parser pelo **Docling** (extração estrutura-aware) para atacar isso; a validação das métricas
-sobre a extração nova está pendente (ver [Avaliação](../ia/avaliacao.md#estado-atual-do-veredito)).
-Reranking e `top_k` maior seguem no radar da V2.
-
 ### Rate limiting por cookie, não por identidade real
 `/upload/` (5 requisições/dia) e `/conversar-com-auditor/` (50 requisições/dia) são limitados por
 cliente via um cookie httpOnly assinado ([`app/api/rate_limiter.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/rate_limiter.py), [`app/api/cookies.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/cookies.py)),
