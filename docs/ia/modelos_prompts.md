@@ -49,12 +49,8 @@ aceita qualquer provider suportado por `init_chat_model` (ou `maritaca:`, via o 
 **Backlog V2:** o benchmark até hoje comparou só Sabiá-4 e `gpt-4o` — falta testar o sistema contra
 mais modelos, pagos e gratuitos (`o1`/`o3-mini`, `DeepSeek-R1`, Claude, Gemini).
 
-!!! note "Por que RAG (Geração Aumentada por Recuperação) e não fine-tuning?"
-    Os editais mudam a cada upload e não existem no treinamento de nenhum modelo. Fine-tuning
-    ensinaria um estilo, não um documento específico — e teria que ser refeito a cada novo edital.
-    RAG (busca semântica no MongoDB Atlas) permite responder sobre um documento que o modelo nunca viu,
-    citando trechos reais, e reduz alucinação ao ancorar a resposta no texto recuperado. Ver
-    [Uso de Dados (RAG)](rag_dados.md) para o pipeline completo.
+Por que o conhecimento do edital entra via RAG e não fine-tuning: ver
+[Por que RAG](rag_dados.md#por-que-rag).
 
 ## Os prompts do sistema
 

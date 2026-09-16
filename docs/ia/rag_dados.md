@@ -13,6 +13,11 @@ isso: o texto é indexado uma vez, e a cada pergunta só os trechos mais relevan
 enviados ao LLM. Isso reduz alucinação (a resposta se ancora em texto real recuperado) e permite
 responder sobre um documento que o modelo nunca viu.
 
+**Por que RAG e não fine-tuning.** Os editais mudam a cada upload — fine-tuning ensinaria um
+estilo, não um documento específico, e teria que ser refeito a cada novo edital indexado. RAG
+resolve o problema certo: busca semântica sobre um documento que muda o tempo todo, citando trechos
+reais em vez de aprender o conteúdo de antemão.
+
 ## O pipeline de indexação
 
 Quando o usuário faz upload de um edital (`POST /upload/`):
