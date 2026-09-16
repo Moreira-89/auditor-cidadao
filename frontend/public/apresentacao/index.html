@@ -132,11 +132,43 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 4 — A SOLUÇÃO
+         SLIDE 4 — POR QUE NÃO CHATGPT / CLAUDE DIRETO
          ============================================================ -->
-    <section class="slide" id="slide-4" aria-label="A solução">
+    <section class="slide" id="slide-4" aria-label="Por que não usar ChatGPT ou Claude direto">
         <div class="slide-inner">
-            <div class="eyebrow" data-reveal>A solução</div>
+            <div class="eyebrow" data-reveal>Por que não usar ChatGPT ou Claude direto?</div>
+            <h2 class="slide-title" data-reveal>Em teoria, dá. Na prática, não sem uma pessoa técnica.</h2>
+            <div class="guardrail-grid">
+                <div class="guardrail-card" data-reveal>
+                    <div class="guardrail-head"><span class="material-symbols-outlined">chat</span><h3>ChatGPT / Claude, direto</h3></div>
+                    <ul class="bullets bullets-tight">
+                        <li><span class="st-no">✕</span> Sem acesso direto ao <strong>PNCP</strong>, à <strong>Receita Federal</strong> ou ao <strong>CEIS/CNEP</strong> — são consultas via API, não algo que o chat acessa sozinho.</li>
+                        <li><span class="st-no">✕</span> No máximo <strong>direciona</strong> onde procurar — não confirma nem justifica um achado com dado oficial.</li>
+                        <li><span class="st-no">✕</span> Replicar isso manualmente exige conhecimento técnico que um cidadão ou jornalista comum não tem.</li>
+                    </ul>
+                </div>
+                <div class="guardrail-card" data-reveal>
+                    <div class="guardrail-head"><span class="material-symbols-outlined">gavel</span><h3>Auditor Cidadão</h3></div>
+                    <ul class="bullets bullets-tight">
+                        <li><span class="st-yes">✓</span> Consulta as bases oficiais <strong>de verdade</strong>, em tempo real, dentro da própria conversa.</li>
+                        <li><span class="st-yes">✓</span> Cruza os resultados e devolve um laudo com <strong>evidência e fonte</strong>, não uma sugestão de busca.</li>
+                        <li><span class="st-yes">✓</span> Upload de um PDF é toda a habilidade técnica exigida do usuário.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="callout callout-strong" data-reveal>
+                <span class="material-symbols-outlined">bolt</span>
+                <p>Não é sobre o modelo de IA ser "melhor" — é sobre <strong>ter acesso automatizado às ferramentas certas</strong>.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 5 — A SOLUÇÃO
+         ============================================================ -->
+    <section class="slide" id="slide-5" aria-label="Como funciona, na teoria">
+        <div class="slide-inner">
+            <div class="eyebrow" data-reveal>Como funciona, na teoria</div>
             <h2 class="slide-title" data-reveal>Do PDF ao laudo, em três passos automáticos.</h2>
             <div class="feature-grid">
                 <div class="feature-card" data-reveal>
@@ -163,9 +195,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 5 — REQUISITOS DO CASE
+         SLIDE 6 — REQUISITOS DO CASE
          ============================================================ -->
-    <section class="slide" id="slide-5" aria-label="Requisitos do case">
+    <section class="slide" id="slide-6" aria-label="Requisitos do case">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>O que a banca espera ver</div>
             <h2 class="slide-title" data-reveal>Cada requisito do case, endereçado.</h2>
@@ -188,36 +220,36 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 6 — STACK E ARQUITETURA MACRO
+         SLIDE 7 — STACK E ARQUITETURA MACRO
          ============================================================ -->
-    <section class="slide" id="slide-6" aria-label="Stack e arquitetura macro">
+    <section class="slide" id="slide-7" aria-label="Stack e arquitetura macro">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Stack &amp; arquitetura macro</div>
                 <h2 class="slide-title" data-reveal>Uma stack enxuta, num único container.</h2>
                 <ul class="bullets">
                     <li data-reveal><strong>Backend:</strong> FastAPI + LangGraph (orquestração do agente).</li>
-                    <li data-reveal><strong>LLM:</strong> OpenAI <code>gpt-4o-mini</code> · Embeddings <code>text-embedding-3-small</code>.</li>
-                    <li data-reveal><strong>Dados:</strong> Pinecone (vetorial) · ferramentas externas via <strong>MCP</strong> (PNCP).</li>
-                    <li data-reveal><strong>Deploy:</strong> um único container Docker no Railway.</li>
+                    <li data-reveal><strong>LLM:</strong> Maritaca <code>Sabiá-4</code> · Embeddings <code>text-embedding-3-small</code>.</li>
+                    <li data-reveal><strong>Dados:</strong> MongoDB Atlas (busca vetorial) + Redis (memória e cache) · ferramentas externas via <strong>MCP</strong> (PNCP).</li>
+                    <li data-reveal><strong>Deploy:</strong> containers Docker no Railway.</li>
                 </ul>
             </div>
             <div class="split-visual" data-reveal>
                 <div class="stack-panel">
-                    <div class="stack-layer"><span class="material-symbols-outlined">devices</span><div><span class="stack-name">Frontend estático</span><span class="stack-meta">servido pelo próprio FastAPI</span></div></div>
+                    <div class="stack-layer"><span class="material-symbols-outlined">devices</span><div><span class="stack-name">Frontend (Vite)</span><span class="stack-meta">servido separado do backend</span></div></div>
                     <div class="stack-layer stack-layer-accent"><span class="material-symbols-outlined">hub</span><div><span class="stack-name">FastAPI + LangGraph</span><span class="stack-meta">API + ciclo do agente</span></div></div>
-                    <div class="stack-layer"><span class="material-symbols-outlined">smart_toy</span><div><span class="stack-name">OpenAI gpt-4o-mini</span><span class="stack-meta">agente · extrator · embeddings</span></div></div>
-                    <div class="stack-layer"><span class="material-symbols-outlined">database</span><div><span class="stack-name">Pinecone + MCP PNCP</span><span class="stack-meta">RAG · 11 tools de licitação</span></div></div>
-                    <div class="stack-layer"><span class="material-symbols-outlined">deployed_code</span><div><span class="stack-name">Docker · Railway</span><span class="stack-meta">um container, dev = produção</span></div></div>
+                    <div class="stack-layer"><span class="material-symbols-outlined">smart_toy</span><div><span class="stack-name">Maritaca Sabiá-4</span><span class="stack-meta">agente · embeddings via OpenAI</span></div></div>
+                    <div class="stack-layer"><span class="material-symbols-outlined">database</span><div><span class="stack-name">MongoDB Atlas + Redis</span><span class="stack-meta">RAG vetorial · memória · cache</span></div></div>
+                    <div class="stack-layer"><span class="material-symbols-outlined">deployed_code</span><div><span class="stack-name">Docker · Railway</span><span class="stack-meta">dev = produção</span></div></div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- ============================================================
-         SLIDE 7 — T1: POR QUE gpt-4o-mini
+         SLIDE 8 — T1: POR QUE gpt-4o-mini
          ============================================================ -->
-    <section class="slide" id="slide-7" aria-label="T1: Por que gpt-4o-mini">
+    <section class="slide" id="slide-8" aria-label="T1: Por que gpt-4o-mini">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>T1 · Modelo de IA</div>
@@ -246,9 +278,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 8 — T2: ENGENHARIA DE PROMPT
+         SLIDE 9 — T2: ENGENHARIA DE PROMPT
          ============================================================ -->
-    <section class="slide" id="slide-8" aria-label="T2: Engenharia de prompt">
+    <section class="slide" id="slide-9" aria-label="T2: Engenharia de prompt">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>T2 · Engenharia de prompt</div>
@@ -284,9 +316,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 9 — T5: O GRAFO DO AGENTE
+         SLIDE 10 — T5: O GRAFO DO AGENTE
          ============================================================ -->
-    <section class="slide" id="slide-9" aria-label="T5: Arquitetura do agente — o grafo">
+    <section class="slide" id="slide-10" aria-label="T5: Arquitetura do agente — o grafo">
         <div class="slide-inner slide-inner-center">
             <div class="eyebrow center" data-reveal>T5 · Arquitetura do agente</div>
             <h2 class="slide-title center" data-reveal>O ciclo ReAct: decidir, agir, repetir.</h2>
@@ -330,9 +362,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 10 — FERRAMENTAS E MCP
+         SLIDE 11 — FERRAMENTAS E MCP
          ============================================================ -->
-    <section class="slide" id="slide-10" aria-label="Ferramentas do agente e o protocolo MCP">
+    <section class="slide" id="slide-11" aria-label="Ferramentas do agente e o protocolo MCP">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Ferramentas &amp; protocolo MCP</div>
@@ -360,9 +392,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 11 — T3: PIPELINE RAG
+         SLIDE 12 — T3: PIPELINE RAG
          ============================================================ -->
-    <section class="slide" id="slide-11" aria-label="T3: Pipeline de dados — RAG do edital">
+    <section class="slide" id="slide-12" aria-label="T3: Pipeline de dados — RAG do edital">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T3 · Uso de dados</div>
             <h2 class="slide-title" data-reveal>RAG do edital: do PDF ao vetor.</h2>
@@ -403,9 +435,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 12 — O BUG DE PRODUÇÃO
+         SLIDE 13 — O BUG DE PRODUÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-12" aria-label="O bug de produção que a avaliação encontrou">
+    <section class="slide" id="slide-13" aria-label="O bug de produção que a avaliação encontrou">
         <div class="slide-inner">
             <div class="eyebrow danger-eyebrow" data-reveal>O bug que a avaliação encontrou</div>
             <h2 class="slide-title" data-reveal>Um <code>*</code> que corrompia todo edital indexado.</h2>
@@ -430,9 +462,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 13 — CATÁLOGO DE ANOMALIAS
+         SLIDE 14 — CATÁLOGO DE ANOMALIAS
          ============================================================ -->
-    <section class="slide" id="slide-13" aria-label="Catálogo de anomalias A a I">
+    <section class="slide" id="slide-14" aria-label="Catálogo de anomalias A a I">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Catálogo de anomalias</div>
             <h2 class="slide-title" data-reveal>Nove categorias, verificadas uma a uma.</h2>
@@ -451,9 +483,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 14 — COBERTURA REAL HOJE
+         SLIDE 15 — COBERTURA REAL HOJE
          ============================================================ -->
-    <section class="slide" id="slide-14" aria-label="Cobertura real hoje">
+    <section class="slide" id="slide-15" aria-label="Cobertura real hoje">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Cobertura real hoje</div>
             <h2 class="slide-title" data-reveal>6 das 9 anomalias, verificáveis hoje.</h2>
@@ -486,9 +518,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 15 — GUARDRAILS DE SEGURANÇA
+         SLIDE 16 — GUARDRAILS DE SEGURANÇA
          ============================================================ -->
-    <section class="slide" id="slide-15" aria-label="Guardrails de segurança">
+    <section class="slide" id="slide-16" aria-label="Guardrails de segurança">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Guardrails de segurança</div>
             <h2 class="slide-title" data-reveal>Dois escudos: injeção e alucinação.</h2>
@@ -514,9 +546,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 16 — T4: METODOLOGIA DE AVALIAÇÃO
+         SLIDE 17 — T4: METODOLOGIA DE AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-16" aria-label="T4: Metodologia de avaliação">
+    <section class="slide" id="slide-17" aria-label="T4: Metodologia de avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T4 · Avaliação</div>
             <h2 class="slide-title" data-reveal>Três famílias de métrica independentes.</h2>
@@ -545,9 +577,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 17 — T4: RESULTADOS DA AVALIAÇÃO
+         SLIDE 18 — T4: RESULTADOS DA AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-17" aria-label="T4: Resultados da avaliação">
+    <section class="slide" id="slide-18" aria-label="T4: Resultados da avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T4 · Resultados</div>
             <h2 class="slide-title" data-reveal>Resultados honestos — inclusive onde reprovou.</h2>
@@ -583,9 +615,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 18 — STREAMING E EXTRAÇÃO
+         SLIDE 19 — STREAMING E EXTRAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-18" aria-label="Streaming e extração estruturada">
+    <section class="slide" id="slide-19" aria-label="Streaming e extração estruturada">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Streaming &amp; extração</div>
@@ -613,9 +645,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 19 — T5: INFRAESTRUTURA E DEPLOY
+         SLIDE 20 — T5: INFRAESTRUTURA E DEPLOY
          ============================================================ -->
-    <section class="slide" id="slide-19" aria-label="T5: Infraestrutura e deploy">
+    <section class="slide" id="slide-20" aria-label="T5: Infraestrutura e deploy">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T5 · Infraestrutura &amp; deploy</div>
             <h2 class="slide-title" data-reveal>Um container, dois processos, seis serviços.</h2>
@@ -671,9 +703,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 20 — T6: ÉTICA, LGPD E RESPONSABILIDADE
+         SLIDE 21 — T6: ÉTICA, LGPD E RESPONSABILIDADE
          ============================================================ -->
-    <section class="slide" id="slide-20" aria-label="T6: Ética, LGPD e responsabilidade">
+    <section class="slide" id="slide-21" aria-label="T6: Ética, LGPD e responsabilidade">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T6 · Ética, LGPD &amp; responsabilidade</div>
             <h2 class="slide-title" data-reveal>Dado público, laudo humano, decisão humana.</h2>
@@ -687,9 +719,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 21 — DECISÕES E TRADE-OFFS
+         SLIDE 22 — DECISÕES E TRADE-OFFS
          ============================================================ -->
-    <section class="slide" id="slide-21" aria-label="Decisões e trade-offs">
+    <section class="slide" id="slide-22" aria-label="Decisões e trade-offs">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Decisões &amp; trade-offs</div>
             <h2 class="slide-title" data-reveal>Toda escolha teve um custo assumido.</h2>
@@ -708,9 +740,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 22 — LIMITAÇÕES E PRÓXIMOS PASSOS
+         SLIDE 23 — LIMITAÇÕES E PRÓXIMOS PASSOS
          ============================================================ -->
-    <section class="slide" id="slide-22" aria-label="Limitações conhecidas e próximos passos">
+    <section class="slide" id="slide-23" aria-label="Limitações conhecidas e próximos passos">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Limitações &amp; próximos passos</div>
@@ -736,9 +768,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 23 — VISÃO DE LONGO PRAZO: O ECOSSISTEMA
+         SLIDE 24 — VISÃO DE LONGO PRAZO: O ECOSSISTEMA
          ============================================================ -->
-    <section class="slide" id="slide-23" aria-label="Visão de longo prazo: um ecossistema de fiscalização pública">
+    <section class="slide" id="slide-24" aria-label="Visão de longo prazo: um ecossistema de fiscalização pública">
         <div class="slide-inner slide-inner-center">
             <div class="eyebrow center" data-reveal>Visão de longo prazo</div>
             <h2 class="slide-title center" data-reveal>Auditor Cidadão é a ponta do iceberg.</h2>
@@ -781,9 +813,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 24 — CONCLUSÃO
+         SLIDE 25 — CONCLUSÃO
          ============================================================ -->
-    <section class="slide slide-conclusion" id="slide-24" aria-label="Conclusão">
+    <section class="slide slide-conclusion" id="slide-25" aria-label="Conclusão">
         <div class="slide-inner slide-inner-center">
             <div class="eyebrow center" data-reveal>Conclusão</div>
             <h2 class="conclusion-title" data-reveal>Ponta a ponta, e honesto sobre onde ainda falha.</h2>
@@ -797,9 +829,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 25 — PERGUNTAS
+         SLIDE 26 — PERGUNTAS
          ============================================================ -->
-    <section class="slide slide-thanks" id="slide-25" aria-label="Perguntas">
+    <section class="slide slide-thanks" id="slide-26" aria-label="Perguntas">
         <div class="slide-inner slide-inner-center">
             <div class="brand center" data-reveal>
                 <svg class="brand-logo" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d992" stroke-width="2" stroke-linecap="round" aria-hidden="true">
