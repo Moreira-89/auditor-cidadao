@@ -14,6 +14,14 @@ Os caminhos são relativos a `backend/`, salvo quando começam por `frontend/`.
 O usuário digita "Essa empresa tem sanção?" e aperta Enter. O caminho completo tem 6 paradas:
 
 ```mermaid
+---
+config:
+  themeVariables:
+    fontSize: '20px'
+    actorFontSize: '20px'
+    messageFontSize: '18px'
+    noteFontSize: '16px'
+---
 sequenceDiagram
     participant Nav as Navegador
     participant API as FastAPI (chat.py)
