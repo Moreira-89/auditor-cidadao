@@ -18,6 +18,13 @@ estilo, não um documento específico, e teria que ser refeito a cada novo edita
 resolve o problema certo: busca semântica sobre um documento que muda o tempo todo, citando trechos
 reais em vez de aprender o conteúdo de antemão.
 
+**Por que RAG hierárquico e não RAG tradicional.** No RAG tradicional, o documento é fatiado em
+pedaços de tamanho fixo, e é esse pedaço fatiado — pequeno, sem o parágrafo ao redor — que volta
+pro modelo: bom pra achar o trecho certo, ruim porque o contexto em volta dele se perde. Este
+projeto usa o padrão *small-to-big* (pai-filho, ver abaixo): o pedaço pequeno (filho) é o que
+compete na busca vetorial, mas quem volta pro agente é a **seção inteira** (pai) a que ele pertence
+— o melhor dos dois mundos, match preciso na busca e contexto completo na resposta.
+
 ## O pipeline de indexação
 
 Quando o usuário faz upload de um edital (`POST /upload/`):
