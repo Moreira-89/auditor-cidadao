@@ -64,15 +64,6 @@ suspensão, declaração de inidoneidade, publicação extraordinária...), use 
 (já calculado contra a data de hoje pela fonte, não recalculado pelo modelo) e avalie se o alcance
 da sanção se aplica ao órgão/ente da contratação antes de confirmar.
 
-!!! warning "H só vira RISCO CRÍTICO com sanção vigente e impacto confirmados"
-    O prompt diz explicitamente: "registro de sanção não significa automaticamente impedimento
-    para qualquer contratação ou em qualquer ente federativo" e "registro de multa ou publicação
-    extraordinária, isoladamente, não deve ser convertido automaticamente em proibição de
-    contratar". H só é marcada como RISCO CRÍTICO quando os dados confirmam sanção vigente **com
-    impacto na participação ou contratação daquele caso específico** — registro presente mas com
-    vigência, alcance ou tipo insuficiente vira INDÍCIO ou NÃO CONCLUÍDO, nunca impedimento legal
-    afirmado direto.
-
 ### I — Compatibilidade Cadastral da Atividade
 Verifica se o CNAE principal da empresa tem relação objetiva com o objeto licitado (ex.: "comércio
 de material de limpeza" não cobre "prestação de serviço de limpeza com mão de obra"). Ausência de
