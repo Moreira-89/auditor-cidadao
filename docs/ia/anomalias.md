@@ -1,19 +1,12 @@
 # Catálogo de Anomalias
 
-O núcleo do conhecimento de auditoria do Auditor Cidadão é um catálogo de 9 categorias de anomalia
-(A–I), definido em
-[`app/agents/prompt.py:1`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py#L1)
-na constante `CATALOGO_ANOMALIAS`, injetada no `SYSTEM_PROMPT` (`prompt.py:292`, via f-string) — é
-o critério por letra que o agente usa pra saber o que procurar e como classificar cada achado. O
-código de cada categoria vem tipado como `Literal` em
-[`evaluation/dataset/schema.py:10`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/dataset/schema.py#L10)
-(`CodigoAnomalia`), para o golden dataset (ver [Avaliação](avaliacao.md)) não aceitar um código
-inválido em silêncio.
-
-A avaliação não tem um extrator de LLM próprio: os códigos que o agente aponta no Markdown são
-lidos direto por regex
-([`evaluation/metricas/recall_anomalias.py:7-11`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/evaluation/metricas/recall_anomalias.py#L7-L11)),
-sem duplicar o catálogo em outro prompt.
+O núcleo do conhecimento de auditoria do Auditor Cidadão é um catálogo de 9 categorias de anomalia,
+de A a I. Ele vive numa única constante de texto (`CATALOGO_ANOMALIAS`, em `app/agents/prompt.py`)
+que é injetada dentro do `SYSTEM_PROMPT` — é o critério, letra por letra, que o agente usa pra saber
+o que procurar em cada edital e como classificar o que encontra. Não existe um catálogo duplicado em
+outro lugar do código: o mesmo texto que o agente lê é o mesmo que a avaliação usa como referência
+pra validar o gabarito dos casos de teste (ver [Avaliação](avaliacao.md)), e os códigos que o agente
+aponta no Markdown final são lidos direto por regex, sem passar por um segundo LLM extrator.
 
 ## As 9 categorias
 
@@ -80,10 +73,10 @@ ser confundido com habilitação técnica, registro profissional ou experiência
 
 Nem todas as 9 anomalias são verificáveis com as fontes atualmente integradas — e o sistema é
 transparente sobre isso. Anomalias que dependem de uma base não integrada (ex.: **A**, que exige um
-catálogo de preços de referência) vão para a seção "Verificações Não Concluídas" do laudo, e o
-`SYSTEM_PROMPT` aplica um **score conservador** (mínimo MÉDIO) quando uma anomalia não pôde ser
-verificada. Reforços e novas integrações para ampliar essa cobertura estão mapeados no roadmap (ver
-[Próximos Passos](../governanca/limitacoes.md)).
+catálogo de preços de referência) vão para a seção "Verificações Não Concluídas" do laudo, sem
+score numérico atribuído (o `SYSTEM_PROMPT` proíbe atribuir score quando não há dados suficientes
+para justificá-lo). Reforços e novas integrações para ampliar essa cobertura estão mapeados no
+roadmap (ver [Próximos Passos](../governanca/limitacoes.md)).
 
 | Anomalia | Fonte principal | Verificável hoje? |
 |---|---|---|
