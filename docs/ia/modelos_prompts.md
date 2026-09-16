@@ -19,33 +19,35 @@ Todos os modelos de LLM são configuráveis por variável de ambiente (`LLM_MODE
 trocando `base_url` + chave (API compatível com a da OpenAI) quando o prefixo é `maritaca:`. Trocar
 de modelo não exige mudar código em nenhum dos casos.
 
-!!! note "Por que Sabiá-4 (Maritaca AI) como agente principal?"
-    A escolha combina três fatores, não só custo:
+## Por que Sabiá-4 (Maritaca AI) como agente principal?
 
-    1. **Especialização no domínio jurídico-administrativo brasileiro.** O Sabiá-4 foi treinado com
-       foco na realidade documental do Brasil — siglas do setor de licitação (SRP, ETP, TR),
-       jargão da Lei 14.133/21 e entendimento consolidado do TCU. Modelos generalistas globais
-       tendem a tropeçar mais nesse jargão burocrático específico.
-    2. **Custo sustentável num pipeline de agente.** O ciclo ReAct reavalia contexto e aciona
-       ferramentas a cada turno — isso multiplica o consumo de tokens em relação a uma chamada
-       única de LLM. Rodar esse loop inteiro com um modelo de fronteira como o `gpt-4o` seria caro
-       demais para operar em produção com uso real.
-    3. **Validação empírica.** No golden dataset de avaliação (ver [Avaliação](avaliacao.md)), o
-       Sabiá-4 superou o `gpt-4o` em qualidade de laudo e aderência de ferramentas para essa tarefa
-       específica.
+A escolha combina três fatores, não só custo:
 
-    O `gpt-4o` (mais caro) fica reservado ao **juiz da avaliação**, que roda poucas vezes e só
-    quando o time executa o golden dataset.
+1. **Especialização no domínio jurídico-administrativo brasileiro.** O Sabiá-4 foi treinado com
+   foco na realidade documental do Brasil — siglas do setor de licitação (SRP, ETP, TR), jargão da
+   Lei 14.133/21 e entendimento consolidado do TCU. Modelos generalistas globais tendem a tropeçar
+   mais nesse jargão burocrático específico.
+2. **Custo sustentável num pipeline de agente.** O ciclo ReAct reavalia contexto e aciona
+   ferramentas a cada turno — isso multiplica o consumo de tokens em relação a uma chamada única de
+   LLM. Rodar esse loop inteiro com um modelo de fronteira como o `gpt-4o` seria caro demais para
+   operar em produção com uso real.
+3. **Validação empírica.** No golden dataset de avaliação (ver [Avaliação](avaliacao.md)), o
+   Sabiá-4 superou o `gpt-4o` em qualidade de laudo e aderência de ferramentas para essa tarefa
+   específica.
 
-!!! info "Benchmark contra outros modelos"
-    O Sabiá-4 (Maritaca AI) foi comparado ao `gpt-4o` no golden dataset e saiu à frente para a
-    tarefa — hoje é o modelo em produção, e a suíte de avaliação completa passa com ele (`real` 4/4,
-    `sintetico` 9/9 estável em 3 rodadas — ver [Avaliação](avaliacao.md#estado-atual-do-veredito)).
-    `LLM_MODEL` aceita qualquer provider suportado por `init_chat_model` (ou `maritaca:`, via o
-    wrapper de `app/llm.py`) sem mudar código.
+O `gpt-4o` (mais caro) fica reservado ao **juiz da avaliação**, que roda poucas vezes e só quando o
+time executa o golden dataset.
 
-    **Backlog V2:** o benchmark até hoje comparou só Sabiá-4 e `gpt-4o` — falta testar o sistema
-    contra mais modelos, pagos e gratuitos (`o1`/`o3-mini`, `DeepSeek-R1`, Claude, Gemini).
+### Benchmark contra outros modelos
+
+O Sabiá-4 (Maritaca AI) foi comparado ao `gpt-4o` no golden dataset e saiu à frente para a tarefa —
+hoje é o modelo em produção, e a suíte de avaliação completa passa com ele (`real` 4/4, `sintetico`
+9/9 estável em 3 rodadas — ver [Avaliação](avaliacao.md#estado-atual-do-veredito)). `LLM_MODEL`
+aceita qualquer provider suportado por `init_chat_model` (ou `maritaca:`, via o wrapper de
+`app/llm.py`) sem mudar código.
+
+**Backlog V2:** o benchmark até hoje comparou só Sabiá-4 e `gpt-4o` — falta testar o sistema contra
+mais modelos, pagos e gratuitos (`o1`/`o3-mini`, `DeepSeek-R1`, Claude, Gemini).
 
 !!! note "Por que RAG (Geração Aumentada por Recuperação) e não fine-tuning?"
     Os editais mudam a cada upload e não existem no treinamento de nenhum modelo. Fine-tuning
