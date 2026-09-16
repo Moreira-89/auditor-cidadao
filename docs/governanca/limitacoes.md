@@ -8,8 +8,10 @@ página reúne as limitações conhecidas da entrega atual (V1) e o backlog plan
 Antes de qualquer limitação técnica, a limitação de escopo mais importante é conceitual: **o Auditor
 Cidadão sinaliza padrões para investigação humana — não acusa nem emite sentenças.** O laudo é um
 indício que sempre recomenda checagem manual, nunca uma decisão final. Esse framing é explícito no
-`SYSTEM_PROMPT` (que proíbe "laudo limpo total" e exige score conservador), na documentação e deve
-ser reforçado em qualquer apresentação do produto.
+`SYSTEM_PROMPT` — que proíbe declarar o edital "em conformidade com a lei" e exige score
+conservador sem piso fixo quando uma verificação não pôde ser concluída (ver
+[Guardrails](guardrails.md#distincao-entre-nao-verificado-e-sem-irregularidade)) —, na documentação
+e deve ser reforçado em qualquer apresentação do produto.
 
 ## Limitações conhecidas da V1
 

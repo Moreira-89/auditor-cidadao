@@ -51,9 +51,9 @@ Vale registrar por transparência, mesmo sendo um identificador de baixo risco:
 Uma decisão explícita de minimização de dados: a coleta do nome do usuário foi **removida de ponta a
 ponta** — do schema de requisição (`PerguntaRequest`), dos endpoints, do `SYSTEM_PROMPT` e do
 formulário do frontend. O `PerguntaRequest` hoje ([`app/api/schemas/pergunta.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/pergunta.py)) carrega apenas
-`pergunta`, `estado`, `municipio`, `lista_cnpjs` e `thread_id` — nenhum campo identifica a pessoa que
-está usando o sistema. Isso reduz a superfície de dado pessoal coletado ao mínimo necessário para a
-função.
+`pergunta`, `estado`, `municipio`, `lista_cnpjs`, `thread_id` e `inicial` (flag booleana que dispara
+o relatório automático) — nenhum campo identifica a pessoa que está usando o sistema. Isso reduz a
+superfície de dado pessoal coletado ao mínimo necessário para a função.
 
 ## Retenção de editais (MongoDB): decisão deliberada, com prazo configurável
 
