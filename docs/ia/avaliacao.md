@@ -320,20 +320,6 @@ que conecta ao MCP LiciNexus e monta o cache Redis das tools (ver "O pipeline" a
 `DEEPEVAL_TELEMETRY_OPT_OUT=1` mantém a rodada 100% local, sem enviar nada pra Confident AI (ver
 [Variáveis de ambiente](../operacional/variaveis_ambiente.md)).
 
-## Pontos cegos — onde a avaliação diverge da produção
-
-!!! warning "Checkpointer em memória, não o Redis persistente da produção"
-    `preparar_ambiente` (`execucao.py:27-33`) usa `InMemorySaver()` em vez do
-    `abrir_checkpointer()` (Redis) que a produção usa (`app/api/lifespan.py:37`) — cada rodada de
-    avaliação começa com histórico de conversa zerado, e nada testa a camada de persistência entre
-    turnos. Um bug que só existisse ali passaria pelo golden dataset inteiro sem ser pego.
-
-Até a rodada anterior, a avaliação também não exercitava as tools do MCP nem passava pelo
-`aplicar_cache` — corrigido junto com a inclusão do Redis (ver "O pipeline"), depois que o
-golden dataset expôs isso: casos sintéticos que esperavam `search_licitacoes`/
-`list_licitacao_resultados` (só existem via MCP) reprovavam de forma estrutural, não por erro do
-agente.
-
 ## O que o G-Eval revela, além do número
 
 Ler o `reason` de cada métrica no relatório do `deepeval` é diagnóstico por si só — não só "quanto",
