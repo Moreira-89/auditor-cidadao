@@ -54,27 +54,31 @@ Por que o conhecimento do edital entra via RAG e não fine-tuning: ver
 
 ## Os prompts do sistema
 
-Toda a engenharia de prompt vive em
-[`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py) — sem lógica, só texto:
+Toda a engenharia de prompt vive num único arquivo,
+[`app/agents/prompt.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py)
+— só texto, nenhuma lógica de código. São três prompts diferentes, cada um com um papel distinto:
 
-- **`SYSTEM_PROMPT`** (`prompt.py:292`) — injetado uma vez no primeiro turno de cada conversa.
-  Define a identidade de auditor, as capacidades, o catálogo de anomalias (`CATALOGO_ANOMALIAS`,
-  `prompt.py:1`), a hierarquia de evidências e as regras de segurança.
-- **`PROMPT_DINAMICO`** (`prompt.py:505`) — o "envelope" em tags no estilo XML
-  (`<CNPJS_NO_EDITAL>`, `<METADADOS>`, `<PROMPT_USUARIO>`) enviado como `HumanMessage` no primeiro turno
-  de qualquer thread (`montar_primeiro_turno`, `app/agents/envelope.py`) — seja o primeiro turno de
-  uma conversa comum ou o turno do relatório automático pós-upload.
-- **`PROMPT_RELATORIO_INICIAL`** (`prompt.py:521`) — a "pergunta" sintética usada como
-  `pergunta_usuario` no envelope acima quando é o sistema (não o usuário) que dispara o primeiro
-  turno. Em produção, `app/api/endpoints/chat.py:81` troca a pergunta por essa constante quando
-  `request.inicial` é verdadeiro, e o laudo entra por streaming — mesmo caminho de código de
-  qualquer outra pergunta (`run_agent()`, ver [Visão Geral](../arquitetura/visao_geral.md)). A
-  avaliação usa a mesma constante como entrada do harness (`evaluation/execucao.py:40`, ver
-  [Avaliação](avaliacao.md)).
+O **`SYSTEM_PROMPT`** é o maior dos três, e o único que existe uma vez só por conversa: é injetado
+no primeiro turno e continua valendo (implicitamente) pro resto da thread. Ele define quem o agente
+é (identidade de auditor), o que ele pode fazer (capacidades), o catálogo completo de anomalias que
+ele precisa procurar e as regras de segurança contra manipulação.
 
-O `TOOL_STATUS_MAP` (`app/config/tool_status_map.py:2`) — que traduz o nome técnico de cada
-ferramenta na mensagem exibida ao usuário durante a execução — não é prompt e vive à parte (ex.:
-`"buscar_contexto_edital": "🖹 Analisando trechos do edital indexado..."`, `tool_status_map.py:5`).
+O **`PROMPT_DINAMICO`** é o "envelope" que carrega os dados variáveis de cada conversa — os CNPJs
+encontrados no edital, o município e estado, e a pergunta em si — dentro de tags no estilo XML
+(`<CNPJS_NO_EDITAL>`, `<METADADOS>`, `<PROMPT_USUARIO>`). Ele é montado e enviado como a primeira
+mensagem de qualquer thread nova, seja a primeira pergunta de uma conversa normal, seja o turno do
+relatório automático que dispara sozinho depois do upload.
+
+O **`PROMPT_RELATORIO_INICIAL`** é um caso especial: é uma "pergunta" pré-escrita, usada no lugar
+do texto do usuário quando é o próprio sistema, não uma pessoa, quem dispara o primeiro turno — o
+relatório automático pós-upload. Ele entra no mesmo envelope acima, pelo mesmo caminho de código de
+qualquer outra pergunta (ver [Visão Geral](../arquitetura/visao_geral.md)), e a avaliação usa essa
+mesma constante como entrada dos seus testes (ver [Avaliação](avaliacao.md)) — não existe um prompt
+separado só para avaliação.
+
+Um quarto elemento, o `TOOL_STATUS_MAP`, não é bem um prompt: é um dicionário simples que traduz o
+nome técnico de cada ferramenta (`buscar_contexto_edital`) numa mensagem de status que o usuário
+lê durante a execução ("Analisando trechos do edital indexado...").
 
 ## Exemplo real: o que o modelo recebe no primeiro turno
 
