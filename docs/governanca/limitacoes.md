@@ -59,6 +59,13 @@ de 24h — ver [Protocolo MCP](../arquitetura/protocolo_mcp.md).
 | Histórico de conversas | `AsyncRedisSaver` (Redis) — já persistente e compartilhado entre as 2 réplicas em produção | — (resolvido) |
 | Controle de custo | Rate limiting por cookie ([`app/api/rate_limiter.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/rate_limiter.py)), sem resistência a reset de cookie | Autenticação mínima, para que a quota resista a limpeza de cookie/aba anônima |
 | Cache de ferramentas | Redis compartilhado (TTL 24h) — resolvido, ver [Protocolo MCP](../arquitetura/protocolo_mcp.md#cache-das-ferramentas-aplicar_cache) | — (resolvido) |
+| Infraestrutura de hospedagem | Railway (serviços gerenciados, sem GPU dedicada) | Avaliar migração para uma nuvem maior (AWS, Azure ou GCP) — ferramental de engenharia de IA mais maduro e a opção de hospedar GPU dedicada no mesmo provedor, se o projeto precisar rodar modelo próprio no futuro |
+
+O Railway resolveu bem a V1 (deploy simples, sem gerenciar infraestrutura), mas escala menos que um
+provedor de nuvem completo. A ideia para V2 é migrar para AWS, Azure ou GCP — com preferência por
+GCP, tanto por familiaridade prévia quanto pela oferta de hospedagem rápida de aplicação e, no
+mesmo provedor, GPU dedicada — útil caso o projeto passe a rodar algum modelo próprio em vez de
+depender só de APIs de terceiros.
 
 ### Indexação automática via PNCP (Fase 7)
 Eliminar o upload manual: o agente busca, baixa e indexa o PDF a partir de uma conversa

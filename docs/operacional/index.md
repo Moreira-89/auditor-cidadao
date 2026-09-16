@@ -66,6 +66,22 @@ Pontos que valem destaque:
   o conteúdo do edital nunca é pré-carregado no contexto do agente. Banco e coleção ficam
   configurados via variáveis de ambiente, não fixados na documentação (ver
   [Variáveis de ambiente](variaveis_ambiente.md)).
+
+!!! info "Por que MongoDB e não um banco vetorial dedicado (Pinecone)"
+    O projeto usou Pinecone antes e migrou pra MongoDB. Dois motivos técnicos:
+
+    - **O RAG hierárquico precisa guardar duas coisas por chunk, não só o vetor.** Além do
+      embedding do filho (parágrafo/tabela), a busca precisa devolver o texto completo da
+      seção-pai — dado bruto, não vetorizado (ver [Uso de Dados e RAG](../ia/rag_dados.md)).
+      Pinecone é feito pra guardar vetor + metadado pequeno associado a ele, não documento bruto
+      de tamanho livre; o MongoDB guarda os dois juntos, no mesmo documento, sem essa fricção.
+    - **Limite de tamanho de metadado do Pinecone.** Um edital real pode ter dezenas de páginas
+      com tabelas — o texto completo de uma seção-pai pode passar do limite de metadado por vetor
+      que o Pinecone impõe, o que travaria em produção com editais grandes.
+
+    Familiaridade prévia com MongoDB (já usado em outros projetos) também pesou na escolha — não
+    foi só análise técnica fria. Ver [Escalabilidade e persistência](../governanca/limitacoes.md#escalabilidade-e-persistencia)
+    para os planos de médio prazo de infraestrutura.
 - **Variáveis de ambiente** são cadastradas diretamente no painel do Railway (mesmas chaves de
   [Variáveis de ambiente](variaveis_ambiente.md)), nunca commitadas.
 
