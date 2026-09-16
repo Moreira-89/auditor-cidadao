@@ -22,7 +22,7 @@ flowchart TB
     CHECK --> PDF["Docling converte<br>texto linear + estrutura hierárquica"]
     PDF --> FIL["chunks (filhos)<br>rotulados com secao_caminho"]
     FIL --> EMB["OpenAI text-embedding-3-small"]
-    EMB --> MG[("MongoDB Atlas<br>chunks_edital + índice vectorSearch")]
+    EMB --> MG[("MongoDB Vector Search")]
     PDF --> CNPJ["Regex + validate-docbr<br>extrai CNPJs do texto"]
     CNPJ -->|"SSE: progress / heartbeat / done{cnpjs}"| U
     U -->|"POST /conversar-com-auditor/ (inicial:true)"| REL["Relatório automático<br>1º turno da thread, via streaming SSE"]
@@ -128,7 +128,7 @@ flowchart TB
     FERR --> SANC["consultar_sancoes_empresa"]
     FERR --> WEB["buscar_informacao_web"]
     FERR --> MCP["11 tools PNCP via MCP"]
-    RAG -.->|"$vectorSearch<br>filtro edital_id+estado+município"| MG[("MongoDB Atlas")]
+    RAG -.->|"$vectorSearch<br>filtro edital_id+estado+município"| MG[("MongoDB Vector Search")]
 ```
 
 O nó `agente` decide sozinho quais ferramentas chamar, em qualquer ordem e quantas vezes forem
