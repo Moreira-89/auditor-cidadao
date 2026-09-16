@@ -431,9 +431,11 @@ IDH, PIB per capita, população — contextualiza o valor de uma contratação 
 >
 > **Resíduo 1 (singleton do grafo) — fechado por decisão:** `graph.py` mantém `_grafo` módulo-level de propósito, com comentário explicando (recompilar por request recriaria a conexão do checkpointer). Não migra para `app.state`.
 
-Um ponto da pré-validação original continua como backlog:
+Pontos que continuam como backlog:
 
 - **Integração MCP (`langchain-mcp-adapters`) vs. o padrão oficial mais atual de registro de tools externas no LangGraph.** Não auditado ainda contra a documentação oficial mais recente. A montagem hoje vive em `backend/app/agents/tools/registry.py` (`_obter_tools_mcp`).
+- **🆕 Substituir a coerção manual de tipos (`patch_mcp_tools`, `app/agents/tools/mcp.py`) por `TypeAdapter`/`model_validate(strict=False)` do próprio Pydantic.** A lógica de hoje (afrouxar `int`→`int | str`/`float`→`float | str`/`array`→`list | str` no schema, depois coagir os valores de volta ao tipo original antes de chamar o MCP) foi escrita campo a campo na primeira vez que o projeto integrou um MCP — já é genérica por schema (funciona pra qualquer tool MCP nova, não só PNCP), mas duplica na mão uma coerção que o próprio Pydantic já resolve nativamente. Estudo/implementação para V2, não bloqueia a V1 nem muda comportamento — só reduz código escrito à mão.
+- **🆕 Estudo (não implementação): substituir a dependência do MCP (`@licinexusbr/mcp`) por integração direta com a API do PNCP.** Hoje as 11 ferramentas de PNCP vêm de um pacote npm de terceiros consumido via subprocesso Node.js (ver `docs/arquitetura/protocolo_mcp.md`) — se esse pacote parar de ser mantido ou sair do ar, o Auditor Cidadão perde as 11 ferramentas de uma vez, sem alternativa. Levantamento para V2: mapear os endpoints reais do PNCP que cada uma das 11 tools consome hoje, avaliar o esforço de reimplementação nativa em Python (parte disso já foi feita uma vez no Bloco 3 para `buscar_contratos_fornecedor_pncp`, removida no Bloco 10 por decisão consciente) e desenhar uma forma rápida e escalável de manter esse conjunto de consultas sem depender de disponibilidade de um pacote externo. Puramente um estudo de viabilidade — não é trabalho planejado para esta entrega.
 
 ---
 

@@ -78,6 +78,20 @@ O mesmo wrapper **trunca o retorno de cada tool em 4000 caracteres**: com vária
 turno, retornos volumosos acumulam tokens rapidamente, elevando custo e degradando a atenção do
 modelo.
 
+!!! info "V2 (estudo, não implementado): coerção via Pydantic e independência do MCP"
+    Dois itens ficaram registrados como backlog de pesquisa para a V2, sem compromisso de
+    implementação — ver a Seção B do Backlog V2 no
+    [Roadmap](https://github.com/Moreira-89/auditor-cidadao/blob/main/AuditorCidadaoRoadmap.md):
+
+    - **Trocar a coerção manual campo a campo acima por `TypeAdapter`/`model_validate(strict=False)`
+      do próprio Pydantic**, que já resolve boa parte dessa conversão nativamente — reduz código
+      escrito à mão sem mudar o comportamento.
+    - **Estudar substituir a dependência do MCP (`@licinexusbr/mcp`) por integração direta com a API
+      do PNCP.** As 11 ferramentas hoje vêm de um pacote npm de terceiros: se ele parar de ser
+      mantido ou sair do ar, essas 11 ferramentas somem do agente de uma vez. A ideia é levantar
+      quanto esforço seria reimplementar esse conjunto de consultas nativamente em Python, de forma
+      rápida e escalável de manter — sem essa dependência externa.
+
 ## Cache das ferramentas (`aplicar_cache`)
 
 Cada chamada MCP dispara uma requisição ao PNCP, e esses dados mudam pouco ao longo do dia.
