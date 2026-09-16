@@ -323,7 +323,7 @@
             <div class="eyebrow center" data-reveal>T5 · Arquitetura do agente</div>
             <h2 class="slide-title center" data-reveal>O ciclo ReAct: decidir, agir, repetir.</h2>
             <div class="graph-wrap" data-reveal>
-                <svg class="dg dg-graph" viewBox="0 0 940 320" role="img" aria-label="Ciclo do agente: entrada, call_llm, router, tool_node e fim">
+                <svg class="dg dg-graph" viewBox="0 0 940 320" role="img" aria-label="Ciclo do agente: entrada, agente, router, ferramentas e fim">
                     <defs>
                         <marker id="arrow2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
                             <path d="M0,0 L7,3 L0,6 Z" class="dg-arrow-head"></path>
@@ -337,26 +337,26 @@
                     <text class="dg-edge-label ok" x="560" y="70">sim</text>
                     <path class="dg-edge" d="M520,182 C560,224 600,244 640,244" marker-end="url(#arrow2)"></path>
                     <text class="dg-edge-label" x="558" y="240">não</text>
-                    <!-- loop back tool_node -> call_llm -->
+                    <!-- loop back ferramentas -> agente -->
                     <path class="dg-edge dg-edge-loop" d="M715,50 C715,14 300,10 300,110" marker-end="url(#arrow2)"></path>
                     <text class="dg-edge-label loop" x="470" y="24">resultado da ferramenta</text>
                     <!-- nodes -->
                     <rect class="dg-node dg-node-pill" x="24" y="122" width="156" height="56" rx="28"></rect>
                     <text class="dg-node-label" x="102" y="155">Pergunta</text>
                     <rect class="dg-node dg-node-primary" x="232" y="116" width="140" height="68" rx="10"></rect>
-                    <text class="dg-node-title" x="302" y="155">call_llm</text>
+                    <text class="dg-node-title" x="302" y="155">agente</text>
                     <polygon class="dg-node dg-node-diamond" points="476,110 540,150 476,190 412,150"></polygon>
                     <text class="dg-node-label" x="476" y="155">router</text>
                     <rect class="dg-node dg-node-primary" x="640" y="32" width="160" height="68" rx="10"></rect>
-                    <text class="dg-node-title" x="720" y="71">tool_node</text>
+                    <text class="dg-node-title" x="720" y="71">ferramentas</text>
                     <rect class="dg-node dg-node-pill" x="640" y="210" width="200" height="64" rx="32"></rect>
                     <text class="dg-node-label" x="740" y="247">__end__ → SSE</text>
                 </svg>
             </div>
             <div class="graph-legend" data-reveal>
-                <span><b class="mono primary">StateGraph</b> — dois nós: <code>call_llm</code> e <code>tool_node</code></span>
-                <span><b class="mono primary">router</b> — checa se há <code>tool_calls</code> pendentes</span>
-                <span><b class="mono primary">InMemorySaver</b> — histórico por <code>thread_id</code></span>
+                <span><b class="mono primary">StateGraph</b> — dois nós: <code>agente</code> e <code>ferramentas</code></span>
+                <span><b class="mono primary">router</b> — <code>tools_condition</code> checa se há <code>tool_calls</code> pendentes</span>
+                <span><b class="mono primary">AsyncRedisSaver</b> — histórico por <code>thread_id</code>, expira após 24h de inatividade</span>
             </div>
         </div>
     </section>
@@ -373,7 +373,7 @@
                     <li data-reveal><strong>4 nativas:</strong> Receita Federal, RAG do edital, sanções (CEIS/CNEP), busca web.</li>
                     <li data-reveal><strong>11 de PNCP via MCP</strong> (<code>@licinexusbr/mcp</code>) — zero linha de integração própria.</li>
                     <li data-reveal>Trade-off: reuso de 11 tools validadas × dependência de subprocesso Node.js.</li>
-                    <li data-reveal>Cache TTL de 24h (<code>cachetools.TTLCache</code>) sobre todas as tools.</li>
+                    <li data-reveal>Cache no <strong>Redis</strong> (TTL 24h) sobre quase todas as tools — sobrevive a restart e é compartilhado entre as réplicas.</li>
                 </ul>
             </div>
             <div class="split-visual" data-reveal>
@@ -392,14 +392,14 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 12 — T3: PIPELINE RAG
+         SLIDE 12 — RAG: INDEXAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-12" aria-label="T3: Pipeline de dados — RAG do edital">
+    <section class="slide" id="slide-12" aria-label="RAG — indexação do edital">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T3 · Uso de dados</div>
-            <h2 class="slide-title" data-reveal>RAG do edital: do PDF ao vetor.</h2>
+            <h2 class="slide-title" data-reveal>RAG hierárquico: do PDF à seção inteira.</h2>
             <div class="rag-diagram" data-reveal>
-                <svg class="dg" viewBox="0 0 960 250" role="img" aria-label="Pipeline de ingestão: upload, pdfplumber, chunking, embeddings, Pinecone e extração de CNPJs">
+                <svg class="dg" viewBox="0 0 960 250" role="img" aria-label="Pipeline de ingestão: upload, Docling, chunks pai-filho, embeddings, MongoDB e extração de CNPJs">
                     <defs>
                         <marker id="arrow3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
                             <path d="M0,0 L7,3 L0,6 Z" class="dg-arrow-head"></path>
@@ -413,31 +413,112 @@
                     <rect class="dg-node dg-node-primary" x="24" y="38" width="148" height="56" rx="10"></rect>
                     <text class="dg-node-label" x="98" y="71">Upload PDF</text>
                     <rect class="dg-node" x="196" y="38" width="164" height="56" rx="10"></rect>
-                    <text class="dg-node-label" x="278" y="71">pdfplumber</text>
+                    <text class="dg-node-label" x="278" y="71">Docling</text>
                     <rect class="dg-node" x="384" y="38" width="182" height="56" rx="10"></rect>
-                    <text class="dg-node-label sm" x="475" y="63">chunking</text>
-                    <text class="dg-node-sub" x="475" y="82">2000 chars · overlap 200</text>
+                    <text class="dg-node-label sm" x="475" y="63">chunks (filhos)</text>
+                    <text class="dg-node-sub" x="475" y="82">parágrafo · rotulado por seção</text>
                     <rect class="dg-node" x="590" y="38" width="156" height="56" rx="10"></rect>
                     <text class="dg-node-label sm" x="668" y="71">embeddings</text>
                     <rect class="dg-node dg-node-primary" x="770" y="38" width="166" height="56" rx="10"></rect>
-                    <text class="dg-node-label" x="853" y="71">Pinecone</text>
+                    <text class="dg-node-label" x="853" y="71">MongoDB Atlas</text>
                     <rect class="dg-node" x="180" y="168" width="196" height="56" rx="10"></rect>
                     <text class="dg-node-label sm" x="278" y="192">Regex + validate-docbr</text>
                     <text class="dg-node-sub" x="278" y="211">extrai CNPJs → frontend</text>
                 </svg>
             </div>
             <ul class="bullets bullets-row">
-                <li data-reveal>Chunks de <strong>2000 caracteres</strong>, overlap 200, separadores hierárquicos.</li>
-                <li data-reveal>Busca semântica filtrada por <strong>estado + município</strong>, <code>top_k=3</code>.</li>
-                <li data-reveal>RAG em vez de fine-tuning: editais mudam a cada upload, não existem no treino.</li>
+                <li data-reveal>Docling reconhece <strong>tabela e estrutura de seção</strong> — o que um extrator de texto plano perde.</li>
+                <li data-reveal>Padrão <strong>pai-filho</strong>: só o parágrafo (filho) vira vetor; a seção inteira (pai) viaja junto, sem embedding próprio.</li>
+                <li data-reveal>RAG em vez de fine-tuning: cada edital é um documento novo, que muda a cada upload.</li>
             </ul>
         </div>
     </section>
 
     <!-- ============================================================
-         SLIDE 13 — O BUG DE PRODUÇÃO
+         SLIDE 13 — RAG: RECUPERAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-13" aria-label="O bug de produção que a avaliação encontrou">
+    <section class="slide" id="slide-13" aria-label="RAG — recuperação de contexto">
+        <div class="slide-inner">
+            <div class="eyebrow" data-reveal>T3 · Uso de dados</div>
+            <h2 class="slide-title" data-reveal>O filho compete na busca; o pai volta pro agente.</h2>
+            <div class="table-wrap" data-reveal>
+                <table class="tbl">
+                    <thead><tr><th>Etapa</th><th>O que acontece</th></tr></thead>
+                    <tbody>
+                        <tr><td class="mono primary">1</td><td>Pergunta vira vetor e busca os <code>top_k=3</code> parágrafos mais próximos no MongoDB (<code>$vectorSearch</code>).</td></tr>
+                        <tr><td class="mono primary">2</td><td>Filtro obrigatório por <code>edital_id</code> + <code>estado</code> + <code>município</code> — nunca mistura dois editais.</td></tr>
+                        <tr><td class="mono primary">3</td><td>Cada parágrafo vencedor devolve a <strong>seção inteira</strong> a que pertence, não só o trecho isolado.</td></tr>
+                        <tr><td class="mono primary">4</td><td>Dedup por <code>secao_ordem</code>: duas seções batendo na mesma busca só voltam uma vez.</td></tr>
+                        <tr><td class="mono primary">5</td><td>Dedup por thread: seção já mostrada numa pergunta anterior não é reenviada — só um aviso curto.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="callout" data-reveal>
+                <span class="material-symbols-outlined">history</span>
+                <p>Esse padrão já foi <strong>removido e reintroduzido</strong>: sem a seção-pai, o agente chegou a chamar a busca de 10 a 16 vezes no mesmo caso pra montar o quadro completo sozinho.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 14 — FLUXO DE DADOS PONTA A PONTA
+         ============================================================ -->
+    <section class="slide" id="slide-14" aria-label="Fluxo de dados ponta a ponta">
+        <div class="slide-inner">
+            <div class="eyebrow" data-reveal>Fluxo de dados</div>
+            <h2 class="slide-title" data-reveal>Dois pipelines, sempre em streaming.</h2>
+            <div class="split-visual" data-reveal>
+                <div class="pipeline">
+                    <div class="pipeline-title">1 · Upload do edital <span class="mono mute">POST /upload/</span></div>
+                    <div class="pipe-step"><span class="pipe-i">1</span><span>Valida tipo/tamanho (PDF, até 20 MB)</span></div>
+                    <div class="pipe-step"><span class="pipe-i">2</span><span>Docling extrai texto + estrutura hierárquica</span></div>
+                    <div class="pipe-step"><span class="pipe-i">3</span><span>Indexa chunks no MongoDB + extrai CNPJs</span></div>
+                    <div class="pipe-step pipe-step-end"><span class="pipe-i">→</span><span>SSE: <code>progress</code> / <code>heartbeat</code> / <code>done</code></span></div>
+                </div>
+            </div>
+            <div class="split-visual" data-reveal style="margin-top: 20px;">
+                <div class="pipeline">
+                    <div class="pipeline-title">2 · Conversa com o agente <span class="mono mute">POST /conversar-com-auditor/</span></div>
+                    <div class="pipe-step"><span class="pipe-i">1</span><span>Cookie + rate limit checados antes do agente ser chamado</span></div>
+                    <div class="pipe-step"><span class="pipe-i">2</span><span>Grafo do agente decide quais ferramentas acionar</span></div>
+                    <div class="pipe-step pipe-step-end"><span class="pipe-i">→</span><span>SSE: <code>status</code> / <code>token</code> / <code>done</code></span></div>
+                </div>
+            </div>
+            <div class="callout" data-reveal>
+                <span class="material-symbols-outlined">smart_toy</span>
+                <p>O <strong>relatório automático</strong> não é um caminho separado — é só o primeiro turno da thread, disparado pelo frontend com <code>inicial: true</code> assim que o upload termina.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 15 — ANATOMIA DE UM TURNO
+         ============================================================ -->
+    <section class="slide" id="slide-15" aria-label="Anatomia de um turno">
+        <div class="slide-inner">
+            <div class="eyebrow" data-reveal>Anatomia de um turno</div>
+            <h2 class="slide-title" data-reveal>De "Enter" à resposta, em 6 paradas.</h2>
+            <div class="split-visual" data-reveal>
+                <div class="pipeline">
+                    <div class="pipe-step"><span class="pipe-i">1</span><span>Navegador envia a pergunta + <code>thread_id</code></span></div>
+                    <div class="pipe-step"><span class="pipe-i">2</span><span>FastAPI identifica o cliente (cookie) e checa a cota</span></div>
+                    <div class="pipe-step"><span class="pipe-i">3</span><span>Endpoint devolve o stream e sai da frente — <code>run_agent()</code> ainda não rodou</span></div>
+                    <div class="pipe-step"><span class="pipe-i">4</span><span><code>run_agent</code> escapa os campos do usuário e monta o turno</span></div>
+                    <div class="pipe-step"><span class="pipe-i">5</span><span>Ciclo ReAct: agente decide, ferramenta executa, agente decide de novo</span></div>
+                    <div class="pipe-step pipe-step-end"><span class="pipe-i">6</span><span>Eventos de domínio viram linhas SSE — o navegador remonta o Markdown</span></div>
+                </div>
+            </div>
+            <ul class="bullets bullets-row">
+                <li data-reveal>O <code>SYSTEM_PROMPT</code> é preposto a cada chamada — nunca fica salvo no histórico do Redis.</li>
+                <li data-reveal>O grafo é montado <strong>uma vez</strong>, no startup — nunca recompilado por requisição.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 16 — O BUG DE PRODUÇÃO
+         ============================================================ -->
+    <section class="slide" id="slide-16" aria-label="O bug de produção que a avaliação encontrou">
         <div class="slide-inner">
             <div class="eyebrow danger-eyebrow" data-reveal>O bug que a avaliação encontrou</div>
             <h2 class="slide-title" data-reveal>Um <code>*</code> que corrompia todo edital indexado.</h2>
@@ -462,9 +543,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 14 — CATÁLOGO DE ANOMALIAS
+         SLIDE 17 — CATÁLOGO DE ANOMALIAS
          ============================================================ -->
-    <section class="slide" id="slide-14" aria-label="Catálogo de anomalias A a I">
+    <section class="slide" id="slide-17" aria-label="Catálogo de anomalias A a I">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Catálogo de anomalias</div>
             <h2 class="slide-title" data-reveal>Nove categorias, verificadas uma a uma.</h2>
@@ -483,9 +564,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 15 — PAUSA: DEMONSTRAÇÃO AO VIVO
+         SLIDE 18 — PAUSA: DEMONSTRAÇÃO AO VIVO
          ============================================================ -->
-    <section class="slide slide-pause" id="slide-15" aria-label="Pausa para demonstração ao vivo">
+    <section class="slide slide-pause" id="slide-18" aria-label="Pausa para demonstração ao vivo">
         <div class="slide-inner slide-inner-center">
             <div class="eyebrow center" data-reveal>Pausa para demonstração</div>
             <h2 class="slide-title center" data-reveal>Vamos testar ao vivo.</h2>
@@ -512,17 +593,17 @@
     <!-- ============================================================
          SLIDE 16 — COBERTURA REAL HOJE
          ============================================================ -->
-    <section class="slide" id="slide-16" aria-label="Cobertura real hoje">
+    <section class="slide" id="slide-19" aria-label="Cobertura real hoje">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Cobertura real hoje</div>
-            <h2 class="slide-title" data-reveal>6 das 9 anomalias, verificáveis hoje.</h2>
+            <h2 class="slide-title" data-reveal>7 das 9 anomalias, verificáveis hoje.</h2>
             <div class="split split-14">
                 <div class="table-wrap" data-reveal>
                     <table class="tbl tbl-cover">
                         <thead><tr><th>Anomalia</th><th>Fonte principal</th><th class="center">Hoje</th></tr></thead>
                         <tbody>
                             <tr><td>A — Sobrepreço</td><td class="mute">Catálogo de preços</td><td class="center st-no">✕</td></tr>
-                            <tr><td>B — Direcionamento</td><td class="mute">Texto do edital (RAG)</td><td class="center st-partial">◐</td></tr>
+                            <tr><td>B — Direcionamento</td><td class="mute">Texto do edital (RAG)</td><td class="center st-yes">✓</td></tr>
                             <tr><td>C — Fracionamento</td><td class="mute">Histórico PNCP</td><td class="center st-yes">✓</td></tr>
                             <tr><td>D — Cartel / Conluio</td><td class="mute">Quadro societário</td><td class="center st-no">✕</td></tr>
                             <tr><td>E — Recém-criada</td><td class="mute">Receita Federal</td><td class="center st-yes">✓</td></tr>
@@ -536,18 +617,18 @@
                 <div class="cover-side" data-reveal>
                     <div class="callout">
                         <span class="material-symbols-outlined">shield_with_heart</span>
-                        <p>Quando uma anomalia <strong>não pode ser verificada</strong>, o score mínimo aplicado é <strong>MÉDIO</strong> — nunca “limpo”.</p>
+                        <p>Quando uma anomalia <strong>não pode ser verificada</strong>, ela vai para "Verificações Não Concluídas" — sem score numérico, nunca tratada como "limpa".</p>
                     </div>
-                    <div class="cover-note"><span class="st-no">✕</span> base não integrada &nbsp;·&nbsp; <span class="st-partial">◐</span> parcial &nbsp;·&nbsp; <span class="st-yes">✓</span> verificável</div>
+                    <div class="cover-note"><span class="st-no">✕</span> base não integrada &nbsp;·&nbsp; <span class="st-yes">✓</span> verificável</div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- ============================================================
-         SLIDE 17 — GUARDRAILS DE SEGURANÇA
+         SLIDE 20 — GUARDRAILS DE SEGURANÇA
          ============================================================ -->
-    <section class="slide" id="slide-17" aria-label="Guardrails de segurança">
+    <section class="slide" id="slide-20" aria-label="Guardrails de segurança">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Guardrails de segurança</div>
             <h2 class="slide-title" data-reveal>Dois escudos: injeção e alucinação.</h2>
@@ -573,78 +654,87 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 18 — T4: METODOLOGIA DE AVALIAÇÃO
+         SLIDE 21 — T4: METODOLOGIA DE AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-18" aria-label="T4: Metodologia de avaliação">
+    <section class="slide" id="slide-21" aria-label="T4: Metodologia de avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T4 · Avaliação</div>
-            <h2 class="slide-title" data-reveal>Três famílias de métrica independentes.</h2>
-            <div class="metric-cards">
+            <h2 class="slide-title" data-reveal>G-Eval em vez de nota livre — critério fixo, não "opinião" do juiz.</h2>
+            <div class="metric-cards" style="grid-template-columns: repeat(4, 1fr);">
                 <div class="metric-card" data-reveal>
-                    <div class="metric-name mono">aderencia_tools</div>
-                    <p>Comparação determinística entre tools esperadas e chamadas.</p>
+                    <div class="metric-name mono">Tool Correctness</div>
+                    <p>Chamou as ferramentas certas (só o nome).</p>
                     <span class="chip-llm chip-off">sem LLM</span>
                 </div>
                 <div class="metric-card" data-reveal>
-                    <div class="metric-name mono">recall_anomalias</div>
-                    <p>Reusa o extrator de produção sobre o laudo e compara os códigos A–I.</p>
-                    <span class="chip-llm">extrator de produção</span>
+                    <div class="metric-name mono">Argumentos</div>
+                    <p>Os argumentos que importam (ex.: CNPJ) chegaram certos.</p>
+                    <span class="chip-llm chip-off">sem LLM</span>
                 </div>
                 <div class="metric-card" data-reveal>
-                    <div class="metric-name mono">RAGAS</div>
-                    <p><code>faithfulness</code> + <code>context_recall</code>: mede alucinação e cobertura de contexto.</p>
-                    <span class="chip-llm">juiz gpt-4o</span>
+                    <div class="metric-name mono">Fidelidade</div>
+                    <p>O laudo só afirma o que as ferramentas realmente sustentam.</p>
+                    <span class="chip-llm">G-Eval</span>
+                </div>
+                <div class="metric-card" data-reveal>
+                    <div class="metric-name mono">Cobertura / Recall</div>
+                    <p>Achou o trecho certo do edital (real) ou a anomalia certa (sintético).</p>
+                    <span class="chip-llm">G-Eval</span>
                 </div>
             </div>
             <div class="callout" data-reveal>
                 <span class="material-symbols-outlined">dataset</span>
-                <p><strong>Golden dataset:</strong> 11 casos reais + sintéticos — sanção ativa, prazo irregular, caso controle e caso conversacional.</p>
+                <p><strong>Golden dataset:</strong> 13 casos — 4 editais reais + 9 sintéticos (um por letra do catálogo A–I) — rodando <code>run_agent()</code>, o mesmo caminho de código da produção.</p>
             </div>
         </div>
     </section>
 
     <!-- ============================================================
-         SLIDE 19 — T4: RESULTADOS DA AVALIAÇÃO
+         SLIDE 22 — T4: RESULTADOS DA AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-19" aria-label="T4: Resultados da avaliação">
+    <section class="slide" id="slide-22" aria-label="T4: Resultados da avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T4 · Resultados</div>
-            <h2 class="slide-title" data-reveal>Resultados honestos — inclusive onde reprovou.</h2>
+            <h2 class="slide-title" data-reveal>4/4 real, 9/9 sintético — estável em 3 rodadas.</h2>
             <div class="chart" data-reveal>
                 <div class="chart-row">
-                    <div class="chart-label mono">aderencia_tools</div>
+                    <div class="chart-label mono">Tool Correctness</div>
+                    <div class="chart-track"><div class="chart-thresh" style="left:50%"></div><div class="chart-bar bar-ok" style="width:100%"></div></div>
+                    <div class="chart-val"><span data-count="1.00">0.00</span> <span class="v-ok">✓</span></div>
+                </div>
+                <div class="chart-row">
+                    <div class="chart-label mono">Argumentos da Tool</div>
+                    <div class="chart-track"><div class="chart-thresh" style="left:100%"></div><div class="chart-bar bar-ok" style="width:100%"></div></div>
+                    <div class="chart-val"><span data-count="1.00">0.00</span> <span class="v-ok">✓</span></div>
+                </div>
+                <div class="chart-row">
+                    <div class="chart-label mono">Fidelidade (real)</div>
+                    <div class="chart-track"><div class="chart-thresh" style="left:60%"></div><div class="chart-bar bar-ok" style="width:89%"></div></div>
+                    <div class="chart-val"><span data-count="0.89">0.00</span>–<span data-count="0.99">0.00</span> <span class="v-ok">✓</span></div>
+                </div>
+                <div class="chart-row">
+                    <div class="chart-label mono">Cobertura de Contexto</div>
                     <div class="chart-track"><div class="chart-thresh" style="left:70%"></div><div class="chart-bar bar-ok" style="width:100%"></div></div>
                     <div class="chart-val"><span data-count="1.00">0.00</span> <span class="v-ok">✓</span></div>
-                </div>
-                <div class="chart-row">
-                    <div class="chart-label mono">recall_anomalias</div>
-                    <div class="chart-track"><div class="chart-thresh" style="left:80%"></div><div class="chart-bar bar-ok" style="width:100%"></div></div>
-                    <div class="chart-val"><span data-count="1.00">0.00</span> <span class="v-ok">✓</span></div>
-                </div>
-                <div class="chart-row">
-                    <div class="chart-label mono">faithfulness</div>
-                    <div class="chart-track"><div class="chart-thresh" style="left:85%"></div><div class="chart-bar bar-ok" style="width:85.8%"></div></div>
-                    <div class="chart-val"><span data-count="0.858">0.000</span> <span class="v-ok">✓</span></div>
-                </div>
-                <div class="chart-row">
-                    <div class="chart-label mono">context_recall</div>
-                    <div class="chart-track"><div class="chart-thresh" style="left:75%"></div><div class="chart-bar bar-bad" style="width:60%"></div></div>
-                    <div class="chart-val"><span data-count="0.60">0.00</span> <span class="v-bad">✕</span></div>
                 </div>
                 <div class="chart-axis"><span>0.0</span><span class="chart-axis-note">▏ marca = limiar de aprovação</span><span>1.0</span></div>
             </div>
             <div class="verdict" data-reveal>
                 <span class="verdict-tag">Veredito geral</span>
-                <span class="verdict-val">REPROVADO</span>
-                <span class="verdict-cause">causa isolada: <code>context_recall</code> abaixo do limiar</span>
+                <span class="verdict-val" style="color: var(--primary);">APROVADO</span>
+                <span class="verdict-cause">real 4/4 · sintético 9/9, 3 rodadas seguidas sem mudança de código</span>
+            </div>
+            <div class="callout" data-reveal>
+                <span class="material-symbols-outlined">visibility</span>
+                <p>Honesto sobre os limites: 2 confusões conhecidas entre categorias vizinhas do catálogo (ex.: <strong>E</strong> × <strong>I</strong>) — não reprovam, mas ficam documentadas.</p>
             </div>
         </div>
     </section>
 
     <!-- ============================================================
-         SLIDE 20 — STREAMING E EXTRAÇÃO
+         SLIDE 23 — STREAMING E EXTRAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-20" aria-label="Streaming e extração estruturada">
+    <section class="slide" id="slide-23" aria-label="Streaming e extração estruturada">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Streaming &amp; extração</div>
@@ -672,9 +762,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 21 — T5: INFRAESTRUTURA E DEPLOY
+         SLIDE 24 — T5: INFRAESTRUTURA E DEPLOY
          ============================================================ -->
-    <section class="slide" id="slide-21" aria-label="T5: Infraestrutura e deploy">
+    <section class="slide" id="slide-24" aria-label="T5: Infraestrutura e deploy">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T5 · Infraestrutura &amp; deploy</div>
             <h2 class="slide-title" data-reveal>Um container, dois processos, seis serviços.</h2>
@@ -730,9 +820,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 22 — T6: ÉTICA, LGPD E RESPONSABILIDADE
+         SLIDE 25 — T6: ÉTICA, LGPD E RESPONSABILIDADE
          ============================================================ -->
-    <section class="slide" id="slide-22" aria-label="T6: Ética, LGPD e responsabilidade">
+    <section class="slide" id="slide-25" aria-label="T6: Ética, LGPD e responsabilidade">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>T6 · Ética, LGPD &amp; responsabilidade</div>
             <h2 class="slide-title" data-reveal>Dado público, laudo humano, decisão humana.</h2>
@@ -746,9 +836,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 23 — DECISÕES E TRADE-OFFS
+         SLIDE 26 — DECISÕES E TRADE-OFFS
          ============================================================ -->
-    <section class="slide" id="slide-23" aria-label="Decisões e trade-offs">
+    <section class="slide" id="slide-26" aria-label="Decisões e trade-offs">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Decisões &amp; trade-offs</div>
             <h2 class="slide-title" data-reveal>Toda escolha teve um custo assumido.</h2>
@@ -767,9 +857,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 24 — LIMITAÇÕES E PRÓXIMOS PASSOS
+         SLIDE 27 — LIMITAÇÕES E PRÓXIMOS PASSOS
          ============================================================ -->
-    <section class="slide" id="slide-24" aria-label="Limitações conhecidas e próximos passos">
+    <section class="slide" id="slide-27" aria-label="Limitações conhecidas e próximos passos">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Limitações &amp; próximos passos</div>
@@ -795,9 +885,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 25 — VISÃO DE LONGO PRAZO: O ECOSSISTEMA
+         SLIDE 28 — VISÃO DE LONGO PRAZO: O ECOSSISTEMA
          ============================================================ -->
-    <section class="slide" id="slide-25" aria-label="Visão de longo prazo: um ecossistema de fiscalização pública">
+    <section class="slide" id="slide-28" aria-label="Visão de longo prazo: um ecossistema de fiscalização pública">
         <div class="slide-inner slide-inner-center">
             <div class="eyebrow center" data-reveal>Visão de longo prazo</div>
             <h2 class="slide-title center" data-reveal>Auditor Cidadão é a ponta do iceberg.</h2>
@@ -840,9 +930,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 26 — CONCLUSÃO
+         SLIDE 29 — CONCLUSÃO
          ============================================================ -->
-    <section class="slide slide-conclusion" id="slide-26" aria-label="Conclusão">
+    <section class="slide slide-conclusion" id="slide-29" aria-label="Conclusão">
         <div class="slide-inner slide-inner-center">
             <div class="eyebrow center" data-reveal>Conclusão</div>
             <h2 class="conclusion-title" data-reveal>Ponta a ponta, e honesto sobre onde ainda falha.</h2>
@@ -856,9 +946,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 27 — PERGUNTAS
+         SLIDE 30 — PERGUNTAS
          ============================================================ -->
-    <section class="slide slide-thanks" id="slide-27" aria-label="Perguntas">
+    <section class="slide slide-thanks" id="slide-30" aria-label="Perguntas">
         <div class="slide-inner slide-inner-center">
             <div class="brand center" data-reveal>
                 <svg class="brand-logo" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d992" stroke-width="2" stroke-linecap="round" aria-hidden="true">
