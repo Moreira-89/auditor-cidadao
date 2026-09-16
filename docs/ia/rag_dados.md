@@ -20,10 +20,22 @@ reais em vez de aprender o conteúdo de antemão.
 
 **Por que RAG hierárquico e não RAG tradicional.** No RAG tradicional, o documento é fatiado em
 pedaços de tamanho fixo, e é esse pedaço fatiado — pequeno, sem o parágrafo ao redor — que volta
-pro modelo: bom pra achar o trecho certo, ruim porque o contexto em volta dele se perde. Este
-projeto usa o padrão *small-to-big* (pai-filho, ver abaixo): o pedaço pequeno (filho) é o que
-compete na busca vetorial, mas quem volta pro agente é a **seção inteira** (pai) a que ele pertence
-— o melhor dos dois mundos, match preciso na busca e contexto completo na resposta.
+pro modelo: bom pra achar o trecho certo, ruim porque o contexto em volta dele se perde. É a
+abordagem certa quando não se sabe de antemão que tipo de dado vai entrar no mesmo banco vetorial
+(CSV, imagem, PDF, documento de texto, todos misturados na mesma coleção) — mas paga o preço de
+perder o entorno de cada trecho.
+
+Este projeto lida só com um tipo de dado (o edital em PDF), então o RAG hierárquico encaixa melhor:
+como a estrutura do documento é conhecida de antemão (seções e parágrafos), dá pra indexar por essa
+estrutura em vez de por tamanho fixo. O pedaço pequeno (filho) é o que compete na busca vetorial —
+é ele que casa com a pergunta do usuário, parágrafo a parágrafo —, mas quem volta pro agente é a
+**seção inteira** (pai) a que esse parágrafo pertence: o modelo recebe o contexto completo em volta
+do match, não só o trecho isolado.
+
+Isso custa mais tokens por chamada — mitigado pelo dedup por seção-pai contra o histórico da thread
+inteira (ver "O pipeline de busca" abaixo): se a mesma seção já foi devolvida numa pergunta
+anterior da mesma conversa, a tool não repete o texto de novo, só avisa que ela já está no
+contexto.
 
 ## O pipeline de indexação
 
