@@ -12,13 +12,6 @@ vez de reimplementar a integração com a API do PNCP (paginação, schemas, fil
 erro), o Auditor Cidadão consome o pacote npm `@licinexusbr/mcp`, que já entrega essas ferramentas
 prontas.
 
-!!! note "Trade-off: 11 ferramentas prontas × dependência de subprocesso Node.js"
-    Adotar o MCP significa reaproveitar 11 ferramentas de PNCP validadas em vez de escrever e
-    manter essa integração internamente. O custo é uma dependência de runtime não-Python: o
-    servidor MCP roda como subprocesso `npx @licinexusbr/mcp`, e por isso **o Node.js 20 é
-    obrigatório** tanto no [Setup local](../operacional/setup_local.md) quanto na imagem Docker.
-    Sem ele, o boot é abortado com erro explícito — fail-fast, de propósito.
-
 ## Como as ferramentas MCP entram no agente
 
 Todo o carregamento acontece uma vez no startup, em
@@ -186,4 +179,4 @@ requisições simultâneas. O cache de 24h mitiga o caso comum — consultas rep
     | Requisito | O que esta página resolve |
     |---|---|
     | **T3** — Uso de dados (preparação, armazenamento) | Cache TTL no Redis e truncamento de retorno |
-    | **T5** — Arquitetura com agentes (trade-offs) | Reuso via MCP × dependência de Node.js; cache local × distribuído |
+    | **T5** — Arquitetura com agentes | Integração via protocolo MCP (stdio) e cache distribuído (Redis) das ferramentas — trade-offs de projeto documentados no [Roadmap](https://github.com/Moreira-89/auditor-cidadao/blob/main/AuditorCidadaoRoadmap.md) |
