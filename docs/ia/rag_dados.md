@@ -49,6 +49,15 @@ O resultado dessa extração é um objeto com duas coisas: o **texto linear** do
 de leitura) e a **estrutura hierárquica** — uma árvore de seções (cada uma com título, nível e
 caminho) e os blocos de conteúdo (parágrafos, tabelas) que pertencem a cada seção.
 
+!!! info "Por que Docling e não `pdfplumber` (ou LlamaParse)"
+    O projeto usava `pdfplumber` antes, um extrator de texto plano: ele lê o PDF mas não reconhece
+    tabela nem estrutura de seção — tudo vira texto corrido. Isso foi identificado como a causa raiz
+    de uma baixa taxa de recuperação na avaliação (o trecho relevante virava texto sem estrutura e
+    ficava difícil de recuperar). Docling resolve os dois problemas de uma vez — reconhece tabela e
+    extrai a hierarquia de seções, o que o RAG hierárquico desta página depende diretamente — e foi
+    preferido a alternativas como o LlamaParse por não ter custo por página nem depender de um
+    serviço externo: roda localmente, junto com o resto da aplicação.
+
 **2. Persistência no MongoDB.** Só o **filho** (o parágrafo ou tabela) é vetorizado — é ele que
 compete na busca por similaridade. O texto completo da seção-pai viaja junto em cada filho, sem
 embedding próprio, só para a busca poder devolver a seção inteira quando esse filho vencer (ver

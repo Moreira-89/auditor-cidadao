@@ -14,6 +14,14 @@ O núcleo é um `StateGraph` do LangGraph montado explicitamente em
 [`app/agents/graph.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/graph.py):
 dois nós e uma aresta condicional entre eles, compilados uma vez no startup.
 
+!!! info "Por que `StateGraph` explícito e não `create_agent`"
+    O projeto já usou `create_agent` (o helper de alto nível do `langchain.agents`), que monta esse
+    mesmo grafo por baixo dos panos — menos código pra escrever, mas o fluxo de decisão do agente
+    fica enterrado dentro da lib, não no projeto. Na prática isso dificultou depurar e customizar o
+    ciclo (por exemplo, adaptar a lógica de roteamento entre `agente`/`ferramentas`), então o
+    projeto voltou pro `StateGraph` montado à mão: mais linhas de código, mas o fluxo de controle
+    inteiro cabe num arquivo do próprio repositório, legível e depurável sem entrar na lib.
+
 ```python title="app/agents/graph.py:41-53"
 grafo.add_node("agente", criar_no_agente(modelo))
 # ToolNode executa a tool pedida e é quem injeta o ToolRuntime nas que o declaram.
@@ -242,6 +250,16 @@ primeiro `HumanMessage` de toda thread nova, seja ela aberta por uma pergunta ou
 automático.
 
 ### Streaming: eventos de domínio e o formato de fio
+
+!!! info "Por que streaming e não uma chamada simples (`invoke`)"
+    Tecnicamente, o agente poderia responder com um `invoke()` só — uma chamada, uma resposta
+    completa, sem transmitir nada até o fim. A decisão de streamar veio de referência de produto,
+    não de necessidade técnica ou de escala: assistentes como ChatGPT, Gemini e Grok mostram o
+    texto sendo formado token a token e o passo a passo do que a ferramenta está fazendo, e essa
+    experiência foi deliberadamente replicada aqui. O SSE (não WebSocket) é a implementação mais
+    simples desse objetivo — o fluxo é sempre servidor → cliente, nunca precisa de mensagem na
+    direção contrária, então HTTP com `StreamingResponse` já resolve sem abrir uma conexão
+    bidirecional que o projeto não usaria.
 
 `run_agent()` consome `grafo.astream_events(version="v2")` e traduz o que acontece no grafo
 em **eventos de domínio** — objetos que dizem o que aconteceu, sem saber como serão transmitidos.

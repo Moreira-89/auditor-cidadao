@@ -49,8 +49,10 @@ Pontos que valem destaque:
 
 - **Monorepo, dois serviços.** `backend/` e `frontend/` são publicados separadamente, distinguidos
   pelo **Root Directory** de cada serviço no Railway, ambos acompanhando a mesma branch — a
-  separação é por diretório, não por branch, o que mantém um histórico único no Git. Ver
-  [Docker & Deploy](docker.md#deploy-em-producao-railway).
+  separação é por diretório, não por branch, o que mantém um histórico único no Git. É o padrão que
+  o próprio [guia oficial do Railway para monorepo](https://docs.railway.com/guides/deploying-a-monorepo)
+  recomenda: um serviço por app, cada um com seu Root Directory e Watch Paths, em vez de um único
+  container servindo os dois. Ver [Docker & Deploy](docker.md#deploy-em-producao-railway).
 - **Dois processos dentro do serviço de backend** — o FastAPI e o subprocesso Node.js do MCP, que o
   `lifespan` sobe no startup para carregar as 11 ferramentas do PNCP.
 - **LLM principal: Maritaca AI (Sabiá-4).** Não vem embutido no container: é uma API externa,
