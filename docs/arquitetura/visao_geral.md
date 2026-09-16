@@ -14,14 +14,6 @@ O núcleo é um `StateGraph` do LangGraph montado explicitamente em
 [`app/agents/graph.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/graph.py):
 dois nós e uma aresta condicional entre eles, compilados uma vez no startup.
 
-!!! info "Por que `StateGraph` explícito e não `create_agent`"
-    O projeto já usou `create_agent` (o helper de alto nível do `langchain.agents`), que monta esse
-    mesmo grafo por baixo dos panos — menos código pra escrever, mas o fluxo de decisão do agente
-    fica enterrado dentro da lib, não no projeto. Na prática isso dificultou depurar e customizar o
-    ciclo (por exemplo, adaptar a lógica de roteamento entre `agente`/`ferramentas`), então o
-    projeto voltou pro `StateGraph` montado à mão: mais linhas de código, mas o fluxo de controle
-    inteiro cabe num arquivo do próprio repositório, legível e depurável sem entrar na lib.
-
 ```python title="app/agents/graph.py:41-53"
 grafo.add_node("agente", criar_no_agente(modelo))
 # ToolNode executa a tool pedida e é quem injeta o ToolRuntime nas que o declaram.
