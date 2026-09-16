@@ -388,22 +388,3 @@ para decidir o que buscar e como reportar) — não só um número pra decidir a
   isso, reconhecendo que qual anomalia secundária o agente nota numa passada varia entre rodadas
   (não-determinismo do LLM mesmo em temperatura baixa). É exatamente o caso do `caso_11` acima.
 
-## Trabalhos futuros
-
-Escopo deliberadamente deixado de fora deste MVP — as capacidades centrais (tool use, retrieval,
-detecção de anomalia) já estão validadas; o que resta é refinamento de classificação fina, não
-correção de pipeline:
-
-- **Reforçar a distinção E/I no prompt.** O `caso_09` confunde as duas categorias em 3/3 rodadas —
-  candidato a um exemplo negativo explícito perto da regra já existente em `prompt.py:271` ("não
-  confunda CNAE com capacidade técnica"), no mesmo estilo do exemplo negativo já adicionado pro
-  formato de achado.
-- **Reescrever `RecallAnomaliasMetric` como G-Eval.** Hoje é regex determinístico sobre o Markdown
-  — rápido e sem custo de LLM, mas frágil a variação de formato (foi a causa do `caso_05`/`caso_12`
-  na 2ª rodada, contornada apertando o prompt em vez de tornar a métrica mais tolerante). Uma
-  versão G-Eval extrairia os achados por julgamento semântico em vez de padrão fixo — mais robusta
-  a parafraseio, ao custo de uma chamada de LLM a mais por caso e da mesma variância entre rodadas
-  que motivou usar G-Eval em vez de RAGAS na Fidelidade (ver "Por que G-Eval..." acima).
-- **Investigar o over-detection intermitente do `caso_08`.** Só 1 ocorrência em 3 rodadas — não dá
-  pra descartar ruído do LLM, mas também não dá pra afirmar que é um padrão real ainda; precisa de
-  mais rodadas antes de decidir se é prompt, PDF do caso, ou threshold de precisão.

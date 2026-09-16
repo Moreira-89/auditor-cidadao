@@ -66,6 +66,14 @@ Eliminar o upload manual: o agente busca, baixa e indexa o PDF a partir de uma c
 `municipio`/`estado` para `cnpjs` extraídos automaticamente — habilitando o cruzamento
 cross-município.
 
+### Reescrever `RecallAnomaliasMetric` como G-Eval
+Hoje a métrica é regex determinístico sobre o Markdown do laudo — rápido e sem custo de LLM, mas
+frágil a variação de formato (foi a causa de uma reprovação intermitente contornada apertando o
+prompt em vez de tornar a métrica mais tolerante, ver [Avaliação](../ia/avaliacao.md)). Uma versão
+G-Eval extrairia os achados por julgamento semântico em vez de padrão fixo — mais robusta a
+parafraseio, ao custo de uma chamada de LLM a mais por caso e da mesma variância entre rodadas que
+já motivou trocar RAGAS por G-Eval na métrica de Fidelidade.
+
 ### Ampliação da cobertura de anomalias
 Boa parte reaproveita dado que a BrasilAPI já devolve mas hoje é descartado (`capital_social`,
 `cnaes_secundarios`, `qsa`, endereço completo): reforço da Anomalia E com data de fundação, da I com
