@@ -799,6 +799,23 @@ code {
 .qr-mark span:nth-child(3) { grid-column: span 2; height: 8px; opacity: 0.5; }
 .thanks-author { font-size: clamp(13px, 1.2vw, 15px); color: var(--ink); }
 
+/* Slide de pausa — QR code real, gerado a partir da URL da plataforma */
+.qr-pause-card {
+    display: inline-flex; align-items: center; gap: clamp(20px, 2.4vw, 32px);
+    background: var(--canvas-soft-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: clamp(22px, 2.4vw, 32px) clamp(28px, 3vw, 40px);
+    margin: clamp(24px, 3vw, 40px) 0;
+}
+.qr-code-real { width: clamp(140px, 14vw, 190px); height: clamp(140px, 14vw, 190px); flex: none; background: #ffffff; border-radius: 10px; padding: 12px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35); }
+.qr-code-real svg { width: 100%; height: 100%; display: block; }
+.qr-pause-meta { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.qr-pause-label { font-size: clamp(15px, 1.5vw, 19px); color: var(--ink-strong); font-weight: 600; }
+.qr-pause-url { font-family: var(--font-mono); font-size: clamp(13px, 1.2vw, 16px); color: var(--primary-soft); }
+.qr-pause-steps { justify-content: center; }
+.qr-pause-steps li { max-width: 260px; }
+
 
 /* ==========================================================================
    26. INDICADORES PASSIVOS — PROGRESSO E CONTADOR
