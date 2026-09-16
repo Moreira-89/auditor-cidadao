@@ -364,13 +364,3 @@ para decidir o que buscar e como reportar) — não só um número pra decidir a
     achado D sem uma cláusula de direcionamento real no edital — não é 3/3 consistente como os dois
     acima, por ora só anotado.
 
-**Duas mudanças de infraestrutura, já medidas nas rodadas acima:**
-
-- **RAG small-to-big reintroduzido** (ver "Padrão pai-filho" em [Uso de Dados e RAG](rag_dados.md)):
-  `buscar_contexto_edital` agora devolve a seção inteira do filho vencedor, não só o pedaço de 200
-  palavras.
-- **`RecallAnomaliasMetric.threshold`** ajustado de `0.8` pra `0.65` (`recall_anomalias.py:21`) —
-  tolera o agente detectar N-1 de N anomalias esperadas num caso multi-anomalia sem reprovar por
-  isso, reconhecendo que qual anomalia secundária o agente nota numa passada varia entre rodadas
-  (não-determinismo do LLM mesmo em temperatura baixa). É exatamente o caso do `caso_11` acima.
-
