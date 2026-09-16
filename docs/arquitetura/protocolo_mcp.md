@@ -188,9 +188,3 @@ escrita (SET). A tool sempre responde — apenas sem o benefício do cache naque
 A API do PNCP aplica um rate limit agressivo a nível de WAF: bloqueio de vários minutos após poucas
 requisições simultâneas. O cache de 24h mitiga o caso comum — consultas repetidas sobre o mesmo
 órgão ou contrato dentro de um dia não geram tráfego novo.
-
-!!! info "Requisitos do case cobertos por este pilar"
-    | Requisito | O que esta página resolve |
-    |---|---|
-    | **T3** — Uso de dados (preparação, armazenamento) | Cache TTL no Redis e truncamento de retorno |
-    | **T5** — Arquitetura com agentes | Integração via protocolo MCP (stdio) e cache distribuído (Redis) das ferramentas — trade-offs de projeto documentados no [Roadmap](https://github.com/Moreira-89/auditor-cidadao/blob/main/AuditorCidadaoRoadmap.md) |
