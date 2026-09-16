@@ -36,11 +36,6 @@ a sintaxe de Markdown, que poluiria o `extrair_cnpj` e os embeddings) e a **estr
 `secoes` (um dict por cabeçalho, com `ordem`/`nivel`/`titulo`/`caminho`/`texto_completo`) e
 `filhos_brutos` (um dict por bloco de conteúdo, referenciando a seção pela `ordem`).
 
-O timbre e o rodapé institucional que se repetem em toda página ("ESTADO DO …", "COORDENADORIA
-GERAL DE …") são classificados como cabeçalho pelo layout model — chegavam a ser ~⅓ das "seções"
-de um edital. `_rodapes_corridos` conta os textos-cabeçalho e descarta os que se repetem
-`MIN_REPETICAO_RODAPE`+ vezes; o conteúdo real dessas páginas segue para a seção aberta no momento.
-
 **Persistência — MongoDB Atlas** (`GerenciadorVetorial.indexar_hierarquia`,
 [`app/storage/vetorial.py:15-35`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L15-L35)),
 tudo em `asyncio.to_thread`. Só o **filho** é vetorizado (é ele que compete na busca por
