@@ -8,6 +8,17 @@ outro lugar do código: o mesmo texto que o agente lê é o mesmo que a avaliaç
 pra validar o gabarito dos casos de teste (ver [Avaliação](avaliacao.md)), e os códigos que o agente
 aponta no Markdown final são lidos direto por regex, sem passar por um segundo LLM extrator.
 
+## De onde veio esse catálogo
+
+As 9 categorias não vieram de uma lista oficial pronta — foram construídas a partir de pesquisa de
+campo: reportagens jornalísticas sobre irregularidades em licitações municipais, casos reais
+documentados por órgãos de controle e auditorias já publicadas, cruzados com os padrões mais
+citados na literatura sobre fraude em compras públicas no Brasil. A ideia foi identificar os sinais
+de irregularidade que mais aparecem na prática — não uma lista exaustiva de tudo que a Lei
+14.133/2021 poderia, em tese, caracterizar como irregular. Por isso o catálogo é tratado como algo
+vivo: a seção [Próximos Passos](../governanca/limitacoes.md) já lista a revisão periódica dele,
+verificando se novos padrões observados merecem entrar como uma 10ª categoria ou mais.
+
 ## As 9 categorias
 
 ### A — Sobrepreço
@@ -81,7 +92,7 @@ roadmap (ver [Próximos Passos](../governanca/limitacoes.md)).
 | Anomalia | Fonte principal | Verificável hoje? |
 |---|---|---|
 | A — Sobrepreço | Catálogo de preços de referência | ❌ base não integrada |
-| B — Direcionamento | Texto do edital (RAG) | ⚠️ parcial (análise textual) |
+| B — Direcionamento | Texto do edital (RAG) | ✅ |
 | C — Fracionamento | Histórico PNCP | ✅ |
 | D — Cartel/Conluio | Quadro societário | ❌ QSA ainda não capturado |
 | E — Empresa recém-criada | Receita Federal (data de fundação) | ✅ |
@@ -89,3 +100,16 @@ roadmap (ver [Próximos Passos](../governanca/limitacoes.md)).
 | G — Reincidência | Histórico PNCP | ✅ |
 | H — Sanção com impacto | CEIS/CNEP | ✅ |
 | I — Compatibilidade cadastral | Receita Federal (CNAE) | ✅ |
+
+**B foi promovida de "parcial" pra verificável** depois que a suíte de avaliação (G-Eval, ver
+[Avaliação](avaliacao.md)) passou a validar de forma estável que o agente recupera e interpreta
+corretamente o texto do edital via RAG — o caso sintético dedicado a essa categoria passa de forma
+consistente nas rodadas mais recentes.
+
+**D continua sem integração estruturada.** A verificação de cartel depende de cruzar quadro
+societário (QSA) e endereço entre as empresas participantes, e isso ainda não é um dado que
+nenhuma ferramenta do agente traz — a Receita Federal via BrasilAPI devolve esse campo, mas ele
+hoje é descartado antes de chegar ao agente (ver [Ampliação da cobertura de
+anomalias](../governanca/limitacoes.md#ampliacao-da-cobertura-de-anomalias)). Sem essa integração, o agente só consegue apontar D
+quando o próprio texto do edital já menciona esses dados explicitamente — não é uma investigação
+ativa, é análise do que já está escrito.

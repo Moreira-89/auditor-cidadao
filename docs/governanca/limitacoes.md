@@ -81,6 +81,14 @@ CNAEs secundários, da D com quadro societário, e busca web direcionada por end
 "fachada"). Integração nova prevista: catálogo de preços (Anomalia A) e dados do IBGE (contexto
 fiscal do município).
 
+### Revisão periódica do catálogo de anomalias
+O catálogo atual (9 categorias, A–I) foi construído a partir de pesquisa de campo — reportagens,
+casos documentados por órgãos de controle e padrões da literatura sobre fraude em compras públicas
+— não de uma lista oficial fechada (ver [de onde veio esse catálogo](../ia/anomalias.md#de-onde-veio-esse-catalogo)).
+Fica como item recorrente de V2 revisitar essa pesquisa periodicamente, verificando se surgiram
+novos padrões de irregularidade que mereçam virar uma 10ª categoria (ou mais), em vez de tratar o
+catálogo como definitivo.
+
 ### Frontend dedicado
 Migração do frontend estático servido pelo FastAPI para uma stack dedicada (React), separando
 frontend e backend em dois serviços — ver [Operacional](../operacional/index.md).
