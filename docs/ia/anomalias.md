@@ -100,16 +100,3 @@ roadmap (ver [Próximos Passos](../governanca/limitacoes.md)).
 | G — Reincidência | Histórico PNCP | ✅ |
 | H — Sanção com impacto | CEIS/CNEP | ✅ |
 | I — Compatibilidade cadastral | Receita Federal (CNAE) | ✅ |
-
-**B foi promovida de "parcial" pra verificável** depois que a suíte de avaliação (G-Eval, ver
-[Avaliação](avaliacao.md)) passou a validar de forma estável que o agente recupera e interpreta
-corretamente o texto do edital via RAG — o caso sintético dedicado a essa categoria passa de forma
-consistente nas rodadas mais recentes.
-
-**D continua sem integração estruturada.** A verificação de cartel depende de cruzar quadro
-societário (QSA) e endereço entre as empresas participantes, e isso ainda não é um dado que
-nenhuma ferramenta do agente traz — a Receita Federal via BrasilAPI devolve esse campo, mas ele
-hoje é descartado antes de chegar ao agente (ver [Ampliação da cobertura de
-anomalias](../governanca/limitacoes.md#ampliacao-da-cobertura-de-anomalias)). Sem essa integração, o agente só consegue apontar D
-quando o próprio texto do edital já menciona esses dados explicitamente — não é uma investigação
-ativa, é análise do que já está escrito.
