@@ -46,15 +46,6 @@ Vale registrar por transparência, mesmo sendo um identificador de baixo risco:
 - **O usuário controla a retenção** — limpar cookies do navegador invalida o identificador
   imediatamente (efeito colateral: reseta a quota também, ver limitação correspondente).
 
-## O nome do usuário deixou de ser coletado
-
-Uma decisão explícita de minimização de dados: a coleta do nome do usuário foi **removida de ponta a
-ponta** — do schema de requisição (`PerguntaRequest`), dos endpoints, do `SYSTEM_PROMPT` e do
-formulário do frontend. O `PerguntaRequest` hoje ([`app/api/schemas/pergunta.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/api/schemas/pergunta.py)) carrega apenas
-`pergunta`, `estado`, `municipio`, `lista_cnpjs`, `thread_id` e `inicial` (flag booleana que dispara
-o relatório automático) — nenhum campo identifica a pessoa que está usando o sistema. Isso reduz a
-superfície de dado pessoal coletado ao mínimo necessário para a função.
-
 ## Retenção de editais (MongoDB): decisão deliberada, com prazo configurável
 
 Os editais indexados via upload (`origem: "upload_usuario"`) têm retenção configurável, não
