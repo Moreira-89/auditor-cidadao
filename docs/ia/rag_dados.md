@@ -2,65 +2,57 @@
 
 O Auditor Cidadão trabalha com dois tipos de dado: o **edital** que o usuário envia (não
 estruturado, em PDF) e as **bases oficiais** consultadas em tempo real (PNCP, Receita Federal,
-CEIS/CNEP). Esta página cobre como o edital é preparado, armazenado e recuperado — o pipeline de RAG
-(Retrieval-Augmented Generation).
+CEIS/CNEP). Esta página cobre o primeiro — como o edital é preparado, armazenado e recuperado, o
+pipeline de RAG (Retrieval-Augmented Generation) — e fecha com uma tabela das bases oficiais.
 
 ## Por que RAG
 
-Um edital pode ter dezenas de páginas e não existe no treinamento de nenhum modelo. Jogar o
-documento inteiro no contexto a cada pergunta seria caro e diluiria a atenção do modelo. RAG resolve
-isso: o texto é indexado uma vez, e a cada pergunta só os trechos mais relevantes são recuperados e
-enviados ao LLM. Isso reduz alucinação (a resposta se ancora em texto real recuperado) e permite
-responder sobre um documento que o modelo nunca viu.
+Um edital pode ter dezenas de páginas, e não existe no treinamento de nenhum modelo — é um
+documento que o usuário acabou de subir. Colar o documento inteiro no contexto a cada pergunta
+seria caro e diluiria a atenção do modelo num monte de texto irrelevante pra pergunta atual. RAG
+resolve isso: o texto é indexado uma vez, e a cada pergunta só os trechos mais relevantes são
+recuperados e enviados ao LLM. Isso também reduz alucinação, porque a resposta fica ancorada em
+texto real recuperado, em vez do modelo "lembrar" (errado) do que estava no documento.
 
-**Por que RAG e não fine-tuning.** Os editais mudam a cada upload — fine-tuning ensinaria um
-estilo, não um documento específico, e teria que ser refeito a cada novo edital indexado. RAG
-resolve o problema certo: busca semântica sobre um documento que muda o tempo todo, citando trechos
-reais em vez de aprender o conteúdo de antemão.
+**Por que RAG e não fine-tuning.** Fine-tuning ensinaria um estilo de escrita, não o conteúdo de um
+documento específico — e teria que ser refeito a cada novo edital, o que não escala. RAG resolve o
+problema certo aqui: busca semântica sobre um documento que muda a cada upload.
 
-**Por que RAG hierárquico e não RAG tradicional.** No RAG tradicional, o documento é fatiado em
-pedaços de tamanho fixo, e é esse pedaço fatiado — pequeno, sem o parágrafo ao redor — que volta
-pro modelo: bom pra achar o trecho certo, ruim porque o contexto em volta dele se perde. É a
-abordagem certa quando não se sabe de antemão que tipo de dado vai entrar no mesmo banco vetorial
-(CSV, imagem, PDF, documento de texto, todos misturados na mesma coleção) — mas paga o preço de
-perder o entorno de cada trecho.
+**Por que RAG *hierárquico* e não RAG tradicional.** No RAG tradicional, o documento é fatiado em
+pedaços de tamanho fixo, e é esse pedaço pequeno — sem o parágrafo ao redor — que volta pro modelo.
+Isso é bom pra achar o trecho certo, mas ruim porque o contexto em volta dele se perde. É a
+abordagem certa quando não se sabe de antemão que tipo de dado vai entrar no banco vetorial (CSV,
+imagem, PDF, texto solto, tudo misturado na mesma coleção) — mas ela paga esse preço de perder o
+entorno de cada trecho.
 
-Este projeto lida só com um tipo de dado (o edital em PDF), então o RAG hierárquico encaixa melhor:
-como a estrutura do documento é conhecida de antemão (seções e parágrafos), dá pra indexar por essa
-estrutura em vez de por tamanho fixo. O pedaço pequeno (filho) é o que compete na busca vetorial —
-é ele que casa com a pergunta do usuário, parágrafo a parágrafo —, mas quem volta pro agente é a
-**seção inteira** (pai) a que esse parágrafo pertence: o modelo recebe o contexto completo em volta
-do match, não só o trecho isolado.
-
-Isso custa mais tokens por chamada — mitigado pelo dedup por seção-pai contra o histórico da thread
-inteira (ver "O pipeline de busca" abaixo): se a mesma seção já foi devolvida numa pergunta
-anterior da mesma conversa, a tool não repete o texto de novo, só avisa que ela já está no
-contexto.
+Este projeto lida só com um tipo de dado (o edital em PDF), então dá pra fazer melhor: como a
+estrutura do documento é conhecida (o PDF tem seções e parágrafos), a indexação segue essa
+estrutura, não um tamanho de fatia arbitrário. É o padrão **pai-filho** (*small-to-big*): o pedaço
+pequeno (filho, um parágrafo) é o que compete na busca vetorial — é ele que casa com a pergunta,
+parágrafo a parágrafo —, mas quem volta pro agente é a **seção inteira** (pai) a que esse parágrafo
+pertence. O modelo recebe o contexto completo em volta do match, não só o trecho isolado. Isso
+custa mais tokens por chamada, mitigado por um mecanismo de dedup explicado mais abaixo.
 
 ## O pipeline de indexação
 
-Quando o usuário faz upload de um edital (`POST /upload/`):
+Isto acontece quando o usuário faz upload de um edital (`POST /upload/`):
 
-**Extração — Docling** ([`app/ingestion/pdf_hierarquico.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf_hierarquico.py)).
-Antes de converter, uma checagem barata com `pdfplumber` (`documento_tem_texto_nativo`, em
-[`app/ingestion/pdf.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/ingestion/pdf.py))
-abre as primeiras páginas e vê se há texto extraível — se não houver, é PDF escaneado e o Docling
-precisa acionar OCR. O `lifespan` mantém **dois `DocumentConverter` quentes** (um `do_ocr=True`,
-outro `do_ocr=False`, ambos com `heading_hierarchy` para recuperar o nível dos títulos), então a
-requisição só escolhe qual usar — nunca carrega modelo. A conversão em si é o passo mais lento do
-upload (segundos a ~2 min por edital em CPU) e roda em `asyncio.to_thread`.
+**1. Extração, com o Docling.** Antes de converter o PDF inteiro, uma checagem barata
+(`documento_tem_texto_nativo`) abre as primeiras páginas e vê se há texto extraível. Se não houver,
+é um PDF escaneado e a conversão precisa acionar OCR. Para não pagar o custo de carregar um modelo
+de OCR a cada requisição, o `lifespan` da aplicação já sobe **dois conversores prontos** no
+startup — um com OCR ligado, outro desligado — e a requisição só escolhe qual dos dois usar. A
+conversão em si (rodando numa thread separada, pra não travar o resto da aplicação) é o passo mais
+lento do upload: de alguns segundos a ~2 minutos por edital, dependendo do tamanho.
 
-`extrair_estrutura_pdf` devolve um `EditalExtraido` com o **texto linear** (em ordem de leitura, sem
-a sintaxe de Markdown, que poluiria o `extrair_cnpj` e os embeddings) e a **estrutura hierárquica**:
-`secoes` (um dict por cabeçalho, com `ordem`/`nivel`/`titulo`/`caminho`/`texto_completo`) e
-`filhos_brutos` (um dict por bloco de conteúdo, referenciando a seção pela `ordem`).
+O resultado dessa extração é um objeto com duas coisas: o **texto linear** do documento (em ordem
+de leitura) e a **estrutura hierárquica** — uma árvore de seções (cada uma com título, nível e
+caminho) e os blocos de conteúdo (parágrafos, tabelas) que pertencem a cada seção.
 
-**Persistência — MongoDB Atlas** (`GerenciadorVetorial.indexar_hierarquia`,
-[`app/storage/vetorial.py:15-35`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L15-L35)),
-tudo em `asyncio.to_thread`. Só o **filho** é vetorizado (é ele que compete na busca por
-similaridade) — mas o texto completo da seção-pai (`texto_completo`, já montado por
-`_extrair_estrutura` em `app/ingestion/pdf_hierarquico.py`) viaja desnormalizado em cada filho,
-sem embedding próprio, só para a devolução expandir do filho pro pai (ver "O pipeline de busca"):
+**2. Persistência no MongoDB.** Só o **filho** (o parágrafo ou tabela) é vetorizado — é ele que
+compete na busca por similaridade. O texto completo da seção-pai viaja junto em cada filho, sem
+embedding próprio, só para a busca poder devolver a seção inteira quando esse filho vencer (ver
+"O pipeline de busca" abaixo):
 
 ```python
 def indexar_hierarquia(self, secoes, filhos_brutos, metadados_base):
@@ -76,18 +68,17 @@ def indexar_hierarquia(self, secoes, filhos_brutos, metadados_base):
     )
 ```
 
-`_fatiar_filhos` ([`vetorial.py:93-128`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L93-L128))
-**fatia `TextItem` com mais de 200 palavras** em pedaços menores (sem overlap — ver
-"Por que a fatia de 200 palavras, sem overlap" abaixo); `TableItem` nunca é fatiado, para não quebrar
-a relação linha/coluna. Cada filho vira um documento na coleção `chunks_edital`:
+Um parágrafo muito longo (mais de 200 palavras) é fatiado em pedaços menores antes de virar
+embedding — um parágrafo inteiro diluiria demais o vetor. Tabelas nunca são fatiadas, pra não
+quebrar a relação entre linha e coluna. Cada filho vira um documento assim na coleção de chunks:
 
 ```javascript
 {
   _id: ObjectId("..."),
-  edital_id: "thread-abc-123",  // == thread_id; filtro principal de toda busca
+  edital_id: "thread-abc-123",  // identifica o edital; filtro principal de toda busca
   texto: "Juiz de vaquejada, com credenciamento junto à ABVAQ...",  // só usado pra vetorizar
-  embedding: [0.013, -0.224, ...],       // text-embedding-3-small, gerado na indexação
-  secao_ordem: 12,                       // posição da seção na extração — chave do dedup, não o título
+  embedding: [0.013, -0.224, ...],       // gerado na indexação
+  secao_ordem: 12,                       // posição da seção — chave do dedup, não o título
   secao_caminho: "Termo de Referência > Qualificação Técnica",  // rótulo, só exibição
   secao_texto_completo: "...",           // texto inteiro da seção — o que de fato volta pro agente
   tipo_bloco: "TextItem",                // TextItem | TableItem
@@ -99,28 +90,18 @@ a relação linha/coluna. Cada filho vira um documento na coleção `chunks_edit
 }
 ```
 
-| Campo | Descrição |
-|---|---|
-| `secao_ordem` | Posição da seção na extração (`pdf_hierarquico.py`) — identidade real da seção, usada pra deduplicar (ver abaixo). Títulos podem se repetir no edital; a posição não |
-| `secao_caminho` | Breadcrumb da seção onde o trecho está (`"## Habilitação > 4.1 Documentação"`) — só exibição, `[caminho]` antes do texto devolvido ao agente |
-| `secao_texto_completo` | Texto inteiro da seção-pai, montado em `pdf_hierarquico.py` durante a extração — cada filho carrega uma cópia própria (denormalizado, sem `$lookup`) |
-| `texto` | O pedaço do filho — só entra no embedding; não é o que volta pro agente (ver "O pipeline de busca") |
-| `tipo_bloco` | `TextItem` / `TableItem` — o tipo do bloco no DoclingDocument |
-| `edital_id` | Identificador do edital — é o `thread_id` do upload (a thread é 1:1 com o edital). Filtro principal da busca |
-| `estado`, `municipio` | Filtro geográfico redundante da busca |
-| `arquivo` | Nome do arquivo original, para rastreabilidade |
-| `timestamp_indexacao` | Epoch (UTC) da indexação — usado pelo job de limpeza |
-| `origem` | `"upload_usuario"` no `/upload/`, `"avaliacao"` no golden dataset. Só `"upload_usuario"` expira pelo job de limpeza |
+O campo que mais chama atenção é `secao_ordem`: é a posição da seção na extração, não o título
+dela, e é isso que identifica a seção de forma confiável para deduplicar buscas (mais abaixo). Um
+edital real pode ter dois lotes com o título "DO OBJETO" — são seções fisicamente diferentes, e
+usar o título pra identificar cada uma trataria a segunda como "já vista".
 
 Nome do banco, da coleção e do índice são configuráveis por variável de ambiente
 (`MONGODB_DATABASE`, `MONGODB_COLECAO_CHUNKS`, `MONGODB_INDICE_VETORIAL` — ver
-[Variáveis de ambiente](../operacional/variaveis_ambiente.md)), lidos em
-[`app/storage/mongo_db.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/mongo_db.py).
-Um índice **Atlas Search** do tipo `vectorSearch` (`idx_chunks_vetor` por default, via
-`MONGODB_INDICE_VETORIAL`) cobre o campo `embedding`, com `edital_id`/`estado`/`municipio`
-declarados como campos de filtro — só um campo declarado assim no índice pode ser usado no
-`filter` do `$vectorSearch`. Criado uma vez (via `mongosh` ou `pymongo`, não faz parte do código
-da aplicação — o `name` abaixo precisa bater com `MONGODB_INDICE_VETORIAL`):
+[Variáveis de ambiente](../operacional/variaveis_ambiente.md)). O índice de busca (tipo
+`vectorSearch` no Atlas) cobre o campo `embedding` e declara `edital_id`/`estado`/`municipio` como
+campos de filtro — só um campo declarado assim no índice pode ser usado num filtro de busca. Ele
+precisa ser criado manualmente uma vez (não é código da aplicação), com o `name` batendo com
+`MONGODB_INDICE_VETORIAL`:
 
 ```python
 from pymongo.operations import SearchIndexModel
@@ -146,25 +127,19 @@ colecao.create_search_index(
 )
 ```
 
-`numDimensions` tem que bater exatamente com a saída de `EMBEDDING_MODEL` — trocar de modelo (ou de
-dimensão) exige recriar o índice.
+`numDimensions` precisa bater exatamente com a saída do modelo de embedding — trocar de modelo (ou
+de dimensão) exige recriar esse índice do zero.
 
 ## O pipeline de busca
 
-A ferramenta `buscar_contexto_edital`
-([`app/agents/tools/contexto_edital.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py),
-que o agente chama sozinho) chama `GerenciadorVetorial.buscar_contexto`
-([`vetorial.py:37-90`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py#L37-L90)),
-que roda um `$vectorSearch` no MongoDB: converte a pergunta em vetor, casa os `top_k` filhos mais
-próximos (filtrados por `edital_id` + `estado` + `municipio`), e devolve a **seção inteira** de
-cada filho que bateu — não o pedaço vetorizado —, deduplicando por `secao_ordem` pra não repetir a
-mesma seção se dois filhos dela aparecerem no mesmo `top_k`. É `secao_ordem`, não `secao_caminho`,
-de propósito: um edital real pode ter títulos repetidos ("DO OBJETO" em lotes diferentes, por
-exemplo) que são seções fisicamente distintas — dedup por título trataria conteúdo novo como já
-visto:
+Quando o agente decide consultar o edital, ele chama a ferramenta `buscar_contexto_edital`, que por
+baixo faz o seguinte: converte a pergunta em vetor, busca os `top_k` parágrafos (filhos) mais
+próximos no índice — já filtrando por `edital_id`, `estado` e `municipio`, pra nunca misturar
+trechos de dois editais diferentes — e devolve a **seção inteira** de cada filho que bateu, não só
+o parágrafo vetorizado:
 
 ```python
-def buscar_contexto(self, pergunta, estado, municipio, edital_id, top_k=5) -> list[dict]:
+def buscar_contexto(self, pergunta, estado, municipio, edital_id, top_k=3) -> list[dict]:
     vetor = self.modelo_embedding.embed_query(pergunta)
 
     pipeline = [
@@ -194,101 +169,83 @@ def buscar_contexto(self, pergunta, estado, municipio, edital_id, top_k=5) -> li
     return secoes
 ```
 
-O retorno é uma lista de dicts, não uma string pronta — quem monta o texto final pro agente é a
-tool (`app/agents/tools/contexto_edital.py`), porque é lá que mora o dedup contra o **histórico da
-thread inteira** (não só desta chamada): a mesma seção já mostrada numa pergunta anterior vira uma
-nota curta em vez do texto repetido, também por `ordem`.
+Repare no `if ordem in vistas: continue` — é o dedup por seção que mencionamos acima: se dois
+parágrafos da mesma seção bateram na busca, a seção só é devolvida uma vez.
 
-O `top_k=5` na assinatura acima é só o default do parâmetro da função — na prática a tool sempre
-chama `buscar_contexto` passando `top_k=TOP_K_EDITAL` explicitamente
-([`app/agents/tools/contexto_edital.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py)),
-e o default real de `TOP_K_EDITAL` é **3** (configurável sem mudar código, ver
-[Variáveis de ambiente](../operacional/variaveis_ambiente.md)). `numCandidates` é quantos vizinhos o
-índice HNSW examina antes de ranquear os `limit` finais — hoje igual ao `top_k`, o mínimo aceito
-(sem margem de exploração).
+Isso é só a primeira camada de dedup. A segunda mora na ferramenta que chama essa função, e olha
+pro histórico da conversa inteira, não só desta busca: se a mesma seção já apareceu numa pergunta
+anterior da thread, ela não é repetida de novo — o agente recebe uma nota curta avisando que aquele
+conteúdo já está no contexto dele, em vez do texto inteiro de novo. É essa segunda camada que
+controla o custo de token do padrão pai-filho: sem ela, cada pergunta nova sobre o mesmo edital
+pagaria de novo pelo texto de seções que o modelo já tinha lido antes na mesma conversa.
 
-Se nada é encontrado, a ferramenta retorna uma mensagem explícita ("Nenhum trecho relevante
-encontrado...") em vez de contexto vazio — para o agente não "adivinhar" o edital.
+O `top_k` real usado em produção é **3** (variável `TOP_K_EDITAL`, configurável sem mudar código —
+o `top_k=3` na assinatura acima já é esse valor). Se a busca não encontra nada, a ferramenta devolve
+uma mensagem explícita dizendo isso, em vez de contexto vazio — assim o agente sabe que precisa
+tratar como "não verificado", e não fica tentando "adivinhar" o conteúdo do edital.
 
 !!! note "Editais indexados antes desta migração"
     Vetores gravados pelo pipeline antigo (Pinecone, com seção-pai separada em outra coleção) não
     existem mais no banco atual — a migração recriou a coleção do zero. Não é preciso migração
-    manual: a retenção (`MONGO_RETENCAO_DIAS`) e o próximo upload cobrem qualquer edital.
+    manual: a retenção automática e o próximo upload cobrem qualquer edital.
 
 ## Padrão pai-filho: descartado uma vez, reintroduzido depois
 
-Esse padrão *small-to-big* (o filho pequeno dá o match preciso, o pai devolve o contexto ao redor)
-já foi testado, removido e agora voltou — vale registrar os dois lados.
+Vale registrar a história completa deste padrão, porque ele já foi testado, removido e voltou —
+raramente uma decisão de design é tão direta assim.
 
-**Por que foi tirado, na 1ª vez.** Uma versão anterior vetorizava também a seção-pai e usava
-`$lookup` pra trazer o texto completo dela a cada busca. Medido nos 4 casos do golden dataset **da
-época** — ainda com RAGAS e um modelo principal mais caro —, o contexto por caso caiu de 27–52 mil
-caracteres pra 10–15 mil ao remover o pai, sem piorar a métrica de detecção de anomalias medida
-então.
+**Por que foi tirado, na primeira vez.** Numa versão anterior do projeto, a seção-pai também era
+vetorizada e buscada no banco a cada consulta. Medido contra o dataset de teste da época (bem menor
+que o atual), remover o pai e devolver só o pedaço pequeno cortou o tamanho médio do contexto por
+caso à metade, sem piorar a métrica de detecção de anomalia medida então.
 
-**Por que voltou.** Duas coisas mudaram desde essa medição: (1) a avaliação trocou RAGAS por G-Eval
-e o dataset cresceu de 4 pra 13 casos com o catálogo A-I inteiro coberto — o "sem piorar a métrica"
-antigo não necessariamente se sustenta com o instrumento de medição atual; (2) rodando o dataset
-novo, o padrão observado foi o agente chamar `buscar_contexto_edital` de 10 a 16 vezes no mesmo
-caso — cada chamada só devolvendo um pedaço de ~200 palavras, insuficiente pra montar o quadro
-completo sozinho. Trazer a seção inteira ataca isso direto: menos chamadas de tool por caso (o que
-também ajuda a não estourar rate limit do provider, ver [Avaliação](avaliacao.md)) e mais fidelidade
-ao desenho original de RAG hierárquico do projeto.
+**Por que voltou.** Duas coisas mudaram desde essa primeira medição. Primeiro, o instrumento de
+medição mudou (métricas mais rigorosas, dataset maior cobrindo todo o catálogo de anomalias) — o
+"sem piorar a métrica" antigo não necessariamente se sustentava com a régua nova. Segundo, e mais
+concreto: rodando o dataset novo, o padrão observado foi o agente chamar a ferramenta de busca de
+10 a 16 vezes no mesmo caso, porque cada chamada só devolvia um pedaço pequeno demais pra montar o
+quadro completo sozinho. Trazer a seção inteira ataca isso direto — menos chamadas de ferramenta por
+caso, o que também ajuda a não estourar o rate limit de alguns providers.
 
-**O custo agora é aceito conscientemente, não ignorado:** mais caracteres por chamada de
-`buscar_contexto_edital` significa mais tokens por turno. Gerenciamento de contexto (resumir,
-truncar seções muito grandes, cortar o que já apareceu numa chamada anterior) fica como técnica de
-V2 — por ora, a aposta é que mais contexto correto vale mais que economia de token, e a
-observação empírica é o critério: acompanhar o tamanho médio de contexto por caso nas próximas
-rodadas de avaliação.
+O custo — mais tokens por chamada — é aceito conscientemente, não ignorado: a aposta é que mais
+contexto correto vale mais que a economia de token, com o dedup contra o histórico da thread como
+principal mitigação hoje. Um gerenciamento de contexto mais sofisticado (resumir seções muito
+grandes, por exemplo) fica pra V2.
 
 ## Limpeza de dados expirados
 
-Um edital vive todo na coleção `chunks_edital` — não há mais um segundo banco/serviço para manter
-sincronizado. A regra: `origem = "upload_usuario"` **e** `timestamp_indexacao` mais antigo que a
-janela de retenção (`MONGO_RETENCAO_DIAS`, default 2 dias). Registros de outra origem (ex.: futura
-indexação automática via PNCP) não são tocados.
+Um edital vive todo na mesma coleção — não há um segundo banco pra manter sincronizado. A regra de
+limpeza: um chunk é apagado quando `origem` é `"upload_usuario"` **e** sua data de indexação é mais
+antiga que a janela de retenção configurada (`MONGO_RETENCAO_DIAS`, 2 dias por default). Registros
+de outra origem, como uma futura indexação automática via PNCP, não são tocados por essa regra.
 
-[`app/jobs/limpeza_mongo.py:14-48`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_mongo.py#L14-L48)
-é um script standalone (pensado para rodar como cron no Railway) e encerra com `sys.exit(1)` em
-caso de falha (credencial expirada, recurso renomeado) em vez de terminar em silêncio — assim uma
-execução com erro aparece como falha no painel de cron, sem depender de checar o log. Ver
-[Retenção de editais](../governanca/lgpd.md) para o racional.
-
-!!! note "Por que a fatia de 200 palavras, sem overlap"
-    A unidade indexada é o **bloco do DoclingDocument** (`TextItem`/`TableItem`), não um chunk de
-    tamanho fixo — a estrutura do documento é que define a fronteira, o que já evita cortar no meio
-    de uma cláusula. A fatia de 200 palavras em `_fatiar_filhos` só entra quando um `TextItem` é
-    grande demais para um vetor único (parágrafo longo diluiria o embedding).
-
-    Sem overlap: a fatia de 200 palavras só decide **o que é vetorizado e buscado** — o que volta
-    pro agente é a seção inteira do filho vencedor, não a fatia em si (ver "O pipeline de busca").
-    Overlap existe pra não cortar uma frase ao meio na fronteira entre dois chunks quando o chunk em
-    si é o que volta pro modelo; aqui não é o caso — se uma fatia terminar no meio de uma frase, a
-    busca ainda encontra a fatia mais próxima da pergunta normalmente, e o texto devolvido já é a
-    seção completa, sem o corte. Overlap não mudaria isso, só duplicaria o texto vetorizado.
+O job de limpeza roda como um script standalone, pensado pra ser disparado por um cron — e termina
+com erro explícito em caso de falha (credencial expirada, por exemplo), em vez de falhar em
+silêncio, pra aparecer como falha visível no painel de cron. Ver
+[Retenção de editais](../governanca/lgpd.md) para o racional de privacidade por trás do prazo curto.
 
 ## O bug de produção que a avaliação revelou
 
 !!! danger "O bug de metadados compartilhados"
-    Durante o desenvolvimento do framework de avaliação (antes desta migração, ainda com Pinecone),
-    uma investigação de instabilidade de métrica revelou um bug **real de produção**: o código
-    usava `[metadados] * len(lista_chunks)`, que em Python cria N referências ao **mesmo**
-    dicionário, não N cópias. Como a biblioteca de vetores gravava o texto de cada chunk *dentro*
-    do dict de metadados, o resultado era que **todo chunk indexado — em qualquer edital, inclusive
-    de usuários reais — era armazenado com o texto do último chunk do documento**. Os embeddings
-    continuavam corretos (calculados antes da mutação), então os *scores* de similaridade pareciam
-    plausíveis e mascaravam o defeito.
+    Durante o desenvolvimento do framework de avaliação (numa versão antiga do projeto, ainda com
+    outro banco vetorial), uma investigação de instabilidade de métrica revelou um bug **real de
+    produção**: o código multiplicava um dicionário de metadados por `N` para gerar `N` cópias —
+    mas em Python isso cria `N` referências ao **mesmo** dicionário, não `N` cópias independentes.
+    Como o texto de cada chunk era gravado *dentro* desse dicionário compartilhado, o resultado era
+    que todo chunk indexado — em qualquer edital, inclusive de usuários reais — acabava armazenado
+    com o texto do **último** chunk do documento. Os embeddings continuavam corretos (calculados
+    antes da mutação), então os scores de similaridade pareciam plausíveis e mascaravam o defeito.
 
-    A correção foi trocar por uma cópia independente por chunk — `indexar_hierarquia` monta cada
-    documento com um spread `{**metadados_base, ...}` numa list comprehension, objeto novo por
-    item, o mesmo bug evitado desde então. Este é o melhor exemplo de como o framework de avaliação
-    encontrou um problema real do sistema, não só mediu números — ver [Avaliação](avaliacao.md).
+    A correção foi trocar por uma cópia independente por chunk, um dicionário novo a cada item, em
+    vez de reaproveitar a mesma referência. Este é o melhor exemplo de como o framework de
+    avaliação encontrou um problema real do sistema, não só mediu números — ver
+    [Avaliação](avaliacao.md).
 
 ## As bases oficiais (dados em tempo real)
 
 Diferente do edital, as bases governamentais não são indexadas — são consultadas ao vivo pelas
-ferramentas do agente, e o resultado é cacheado por 24h (ver [Protocolo MCP](../arquitetura/protocolo_mcp.md)):
+ferramentas do agente, e o resultado fica em cache por 24h (ver
+[Protocolo MCP](../arquitetura/protocolo_mcp.md)):
 
 | Fonte | Ferramenta | Dado |
 |---|---|---|
@@ -299,21 +256,20 @@ ferramentas do agente, e o resultado é cacheado por 24h (ver [Protocolo MCP](..
 
 ## Limitações conhecidas do retrieval
 
-- **`top_k=3` (default de produção) não alcança trechos posicionalmente distantes.** Em alguns editais, o trecho-alvo
-  pode não aparecer nem em `top_k` altos — limitação genuína de recuperação por similaridade,
-  endereçável com reranking ou contextualização do texto embedado (ver próximo ponto) na V2.
-- **O texto embedado de cada filho é o texto cru do bloco, sem o `secao_caminho`.** Uma linha de
-  tabela isolada ("Juiz de vaquejada... ABVAQ...") não carrega, no embedding, o sinal de que é sobre
-  qualificação técnica — só o texto literal do bloco compete na busca. Prefixar o texto embedado
-  com o caminho da seção é candidato de melhoria, ainda não feito.
-- **`TableItem` nunca é fatiado.** Uma tabela grande (dezenas de linhas) vira um único vetor, o que
+- **`top_k=3` não alcança trechos posicionalmente distantes.** Em alguns editais, o trecho-alvo
+  pode não aparecer mesmo com `top_k` mais alto — limitação genuína de busca por similaridade,
+  endereçável com reranking ou com um texto de embedding mais rico (ver próximo ponto) na V2.
+- **O texto usado no embedding é cru, sem o caminho da seção.** Uma linha de tabela isolada como
+  "Juiz de vaquejada... ABVAQ..." não carrega, no vetor, o sinal de que é sobre qualificação
+  técnica — só o texto literal do bloco compete na busca. Prefixar o texto vetorizado com o caminho
+  da seção é candidato de melhoria, ainda não feito.
+- **Tabelas nunca são fatiadas.** Uma tabela grande (dezenas de linhas) vira um único vetor, o que
   dilui o embedding e prejudica o match de uma linha específica dessa tabela.
-- **Subir o `top_k` não é grátis — e agora custa mais que antes.** Cada resultado devolve a seção
-  inteira do filho vencedor (ver "Padrão pai-filho" acima), não só o pedaço de 200 palavras — uma
-  seção grande pode ser dezenas de milhares de caracteres. Mais contexto por chamada aumenta o custo
-  de token e pode piorar a fidelidade (mais texto irrelevante para o modelo se confundir);
-  gerenciamento de contexto (resumir seção grande, cortar repetição entre chamadas) é V2.
-- **A conversão do Docling roda dentro do request de `/upload/`.** São segundos a ~2 min por edital
-  em CPU, com o cliente segurando a conexão. Os modelos ficam pré-carregados no `lifespan`, então o
-  custo é só o processamento — mas ainda é o passo mais lento do upload. Mover para um job
-  assíncrono é candidato de V2.
+- **Subir o `top_k` não é de graça, e hoje custa mais que antes.** Como cada resultado devolve a
+  seção inteira (não só o parágrafo), uma seção grande pode ser dezenas de milhares de caracteres.
+  Mais contexto por chamada aumenta o custo de token e pode piorar a fidelidade da resposta (mais
+  texto irrelevante pro modelo se confundir); gerenciamento de contexto mais sofisticado é V2.
+- **A conversão do Docling roda dentro do próprio request de `/upload/`.** São segundos a ~2 min
+  por edital, com o cliente segurando a conexão aberta o tempo todo. Os modelos já ficam
+  pré-carregados, então o custo é só o processamento em si — mas ainda é o passo mais lento do
+  upload. Mover isso para um job assíncrono é candidato de V2.
