@@ -31,6 +31,9 @@ para o schema completo e o código de indexação/busca).
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
 | `MONGODB_URI` | **Sim** | — | String de conexão. Precisa ser um cluster **Atlas** (Vector Search não existe em Mongo self-hosted/local). Aberta no `lifespan` com um `ping` que derruba o boot se a URI/rede estiver ruim ([`app/storage/mongo_db.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/mongo_db.py)). Também exigida por `python -m evaluation.runner` (a avaliação usa o mesmo pipeline de indexação) |
+| `MONGODB_DATABASE` | Não | `auditor_cidadao` | Nome do banco dentro do cluster Atlas |
+| `MONGODB_COLECAO_CHUNKS` | Não | `chunks_edital` | Nome da coleção que guarda os chunks do edital |
+| `MONGODB_INDICE_VETORIAL` | Não | `idx_chunks_vetor` | Nome do índice `vectorSearch` usado na busca. Mudar aqui não recria o índice sozinho — ele continua precisando ser criado manualmente no Atlas com esse mesmo nome (ver [Uso de Dados e RAG](../ia/rag_dados.md)) |
 | `EMBEDDING_MODEL` | Não | `text-embedding-3-small` | Modelo de embedding da OpenAI usado para indexar e buscar ([`app/storage/vetorial.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/vetorial.py)). **Ao trocar, reindexe tudo** (o espaço vetorial muda) e recrie o índice `vectorSearch` com a nova dimensão |
 | `TOP_K_EDITAL` | Não | `3` | Quantos chunks a busca vetorial casa por pergunta — ver a tool [`buscar_contexto_edital`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/tools/contexto_edital.py) |
 | `MONGO_RETENCAO_DIAS` | Não | `2` | Dias de retenção dos chunks com `origem: "upload_usuario"` antes de o job [`app/jobs/limpeza_mongo.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/jobs/limpeza_mongo.py) apagá-los. Não afeta registros com outra origem |

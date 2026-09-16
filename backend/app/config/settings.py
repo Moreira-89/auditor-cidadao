@@ -77,6 +77,12 @@ elif AMBIENTE_PRODUCAO:
 # Conexão com MongoDB Atlas — armazena e busca os chunks do edital (RAG hierárquico).
 MONGODB_URI = os.getenv("MONGODB_URI")
 
+# Nomenclatura do banco vetorial — configurável para não fixar nome de
+# banco/coleção/índice no código (ver app/storage/mongo_db.py).
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "auditor_cidadao")
+MONGODB_COLECAO_CHUNKS = os.getenv("MONGODB_COLECAO_CHUNKS", "chunks_edital")
+MONGODB_INDICE_VETORIAL = os.getenv("MONGODB_INDICE_VETORIAL", "idx_chunks_vetor")
+
 # Juiz LLM da métrica de Fidelidade (G-Eval), ver backend/evaluation/metricas/fidelidade.py.
 # Só OpenAI é suportado como juiz hoje; removemos o prefixo "openai:" se vier
 # (mesmo formato "provider:model" do LLM_MODEL, mas aqui só um provider existe).

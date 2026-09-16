@@ -100,12 +100,15 @@ a relação linha/coluna. Cada filho vira um documento na coleção `chunks_edit
 | `timestamp_indexacao` | Epoch (UTC) da indexação — usado pelo job de limpeza |
 | `origem` | `"upload_usuario"` no `/upload/`, `"avaliacao"` no golden dataset. Só `"upload_usuario"` expira pelo job de limpeza |
 
-Nome da coleção e do índice são constantes em
-[`app/storage/mongo_db.py:13-14`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/mongo_db.py#L13-L14)
-(`COLECAO_CHUNKS`, `NOME_INDICE_VETORIAL`). Um índice **Atlas Search** do tipo `vectorSearch`
-(`idx_chunks_vetor`) cobre o campo `embedding`, com `edital_id`/`estado`/`municipio` declarados
-como campos de filtro — só um campo declarado assim no índice pode ser usado no `filter` do
-`$vectorSearch`. Criado uma vez (via `mongosh` ou `pymongo`, não faz parte do código da aplicação):
+Nome do banco, da coleção e do índice são configuráveis por variável de ambiente
+(`MONGODB_DATABASE`, `MONGODB_COLECAO_CHUNKS`, `MONGODB_INDICE_VETORIAL` — ver
+[Variáveis de ambiente](../operacional/variaveis_ambiente.md)), lidos em
+[`app/storage/mongo_db.py`](https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/storage/mongo_db.py).
+Um índice **Atlas Search** do tipo `vectorSearch` (`idx_chunks_vetor` por default, via
+`MONGODB_INDICE_VETORIAL`) cobre o campo `embedding`, com `edital_id`/`estado`/`municipio`
+declarados como campos de filtro — só um campo declarado assim no índice pode ser usado no
+`filter` do `$vectorSearch`. Criado uma vez (via `mongosh` ou `pymongo`, não faz parte do código
+da aplicação — o `name` abaixo precisa bater com `MONGODB_INDICE_VETORIAL`):
 
 ```python
 from pymongo.operations import SearchIndexModel
