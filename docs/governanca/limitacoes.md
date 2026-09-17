@@ -66,6 +66,15 @@ Eliminar o upload manual: o agente busca, baixa e indexa o PDF a partir de uma c
 `municipio`/`estado` para `cnpjs` extraídos automaticamente — habilitando o cruzamento
 cross-município.
 
+### Controle de contexto
+A V1 não aplica nenhum controle ou limite de contexto — o objetivo desta entrega é validar a ideia,
+não otimizar custo de token ainda. Ideia em estudo para uma próxima versão: sumarização de contexto
+via um modelo auxiliar (menor/mais barato) antes de repassar ao modelo principal, em vez de mandar o
+texto recuperado (ver [padrão pai-filho](../ia/rag_dados.md#padrao-pai-filho-descartado-uma-vez-reintroduzido-depois))
+integralmente a cada chamada. Complementa o item já registrado em
+[Uso de Dados e RAG](../ia/rag_dados.md#limitacoes-conhecidas-do-retrieval) sobre gerenciamento de
+contexto mais sofisticado.
+
 ### Reescrever `RecallAnomaliasMetric` como G-Eval
 Hoje a métrica é regex determinístico sobre o Markdown do laudo — rápido e sem custo de LLM, mas
 frágil a variação de formato (foi a causa de uma reprovação intermitente contornada apertando o

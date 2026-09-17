@@ -417,9 +417,63 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 12 — ANATOMIA DE UM TURNO
+         SLIDE 12 — PERSISTÊNCIA E LIMPEZA DE DADOS
          ============================================================ -->
-    <section class="slide" id="slide-12" aria-label="Anatomia de um turno">
+    <section class="slide" id="slide-12" aria-label="Persistência e limpeza de dados">
+        <div class="slide-inner">
+            <div class="eyebrow" data-reveal>Infraestrutura &amp; retenção</div>
+            <h2 class="slide-title" data-reveal>MongoDB guarda o edital — mas não pra sempre.</h2>
+            <div class="infra-diagram" data-reveal>
+                <svg class="dg" viewBox="0 0 960 360" role="img" aria-label="Topologia: navegador, serviços no Railway (FastAPI, subprocesso MCP, Redis) e serviços externos gerenciados, incluindo o MongoDB Atlas">
+                    <defs>
+                        <marker id="arrow5" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L7,3 L0,6 Z" class="dg-arrow-head"></path>
+                        </marker>
+                    </defs>
+                    <path class="dg-edge" d="M150,190 C186,190 186,90 222,90" marker-end="url(#arrow5)"></path>
+                    <text class="dg-edge-label" x="185" y="150">HTTPS</text>
+                    <path class="dg-edge" d="M315,116 L315,132" marker-end="url(#arrow5)"></path>
+                    <path class="dg-edge dg-edge-dim" d="M408,100 C420,150 420,200 408,226" marker-end="url(#arrow5)"></path>
+                    <path class="dg-edge dg-edge-dim" d="M408,90 C560,80 620,70 700,67" marker-end="url(#arrow5)"></path>
+                    <path class="dg-edge dg-edge-strong" d="M408,96 C560,120 620,135 700,141" marker-end="url(#arrow5)"></path>
+                    <path class="dg-edge dg-edge-dim" d="M408,102 C560,220 620,270 700,289" marker-end="url(#arrow5)"></path>
+                    <path class="dg-edge" d="M408,166 C560,190 620,205 700,215" marker-end="url(#arrow5)"></path>
+                    <rect class="dg-node dg-node-pill" x="20" y="162" width="130" height="56" rx="28"></rect>
+                    <text class="dg-node-label sm" x="85" y="195">Navegador</text>
+                    <rect class="dg-container" x="200" y="40" width="230" height="250" rx="14"></rect>
+                    <text class="dg-container-label" x="315" y="64">Railway</text>
+                    <rect class="dg-node dg-node-primary" x="222" y="64" width="186" height="52" rx="9"></rect>
+                    <text class="dg-node-label sm" x="315" y="95">FastAPI + Uvicorn</text>
+                    <rect class="dg-node" x="222" y="132" width="186" height="52" rx="9"></rect>
+                    <text class="dg-node-label sm" x="315" y="163">Node.js — MCP</text>
+                    <rect class="dg-node" x="222" y="200" width="186" height="52" rx="9"></rect>
+                    <text class="dg-node-label sm" x="315" y="231">Redis</text>
+                    <text class="dg-node-sub" x="315" y="245">histórico · cache · rate limit</text>
+                    <rect class="dg-node dg-ext" x="700" y="40" width="200" height="54" rx="9"></rect>
+                    <text class="dg-node-label sm" x="800" y="72">LLM &amp; embeddings</text>
+                    <text class="dg-node-sub" x="800" y="88">Maritaca + OpenAI</text>
+                    <rect class="dg-node dg-node-primary" x="700" y="114" width="200" height="54" rx="9"></rect>
+                    <text class="dg-node-label sm" x="800" y="146">MongoDB Atlas</text>
+                    <text class="dg-node-sub" x="800" y="162">editais indexados</text>
+                    <rect class="dg-node dg-ext dg-ext-pncp" x="700" y="188" width="200" height="54" rx="9"></rect>
+                    <text class="dg-node-label sm" x="800" y="220">PNCP</text>
+                    <rect class="dg-node dg-ext" x="700" y="262" width="200" height="54" rx="9"></rect>
+                    <text class="dg-node-label sm" x="800" y="294">APIs de dados</text>
+                    <text class="dg-node-sub" x="800" y="310">BrasilAPI · CGU · Tavily</text>
+                </svg>
+            </div>
+            <ul class="bullets bullets-row">
+                <li data-reveal>Chunk apagado quando <code>origem == "upload_usuario"</code> <strong>e</strong> mais antigo que <code>MONGO_RETENCAO_DIAS</code> (default 2 dias).</li>
+                <li data-reveal>Job standalone (<code>limpeza_mongo.py</code>), pensado pra rodar via cron — termina com erro explícito se falhar, nunca em silêncio.</li>
+                <li data-reveal>Outras origens (ex.: futura indexação automática via PNCP) não são afetadas por essa expiração — racional de retenção próprio.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 13 — ANATOMIA DE UM TURNO
+         ============================================================ -->
+    <section class="slide" id="slide-13" aria-label="Anatomia de um turno">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Fluxo de dados</div>
             <h2 class="slide-title" data-reveal>De "Enter" (ou upload) à resposta, sempre em streaming.</h2>
@@ -457,9 +511,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 13 — GUARDRAILS DE SEGURANÇA
+         SLIDE 14 — GUARDRAILS DE SEGURANÇA
          ============================================================ -->
-    <section class="slide" id="slide-13" aria-label="Guardrails de segurança">
+    <section class="slide" id="slide-14" aria-label="Guardrails de segurança">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Guardrails de segurança</div>
             <h2 class="slide-title" data-reveal>Dois escudos: injeção e alucinação.</h2>
@@ -507,9 +561,9 @@ Essa empresa tem sanção?
     </section>
 
         <!-- ============================================================
-         SLIDE 14 — T4: METODOLOGIA DE AVALIAÇÃO
+         SLIDE 15 — T4: METODOLOGIA DE AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-14" aria-label="Metodologia de avaliação">
+    <section class="slide" id="slide-15" aria-label="Metodologia de avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Avaliação</div>
             <h2 class="slide-title" data-reveal>G-Eval em vez de nota livre — critério fixo, não "opinião" do juiz.</h2>
@@ -543,9 +597,9 @@ Essa empresa tem sanção?
     </section>
 
     <!-- ============================================================
-         SLIDE 15 — T4: RESULTADOS DA AVALIAÇÃO
+         SLIDE 16 — T4: RESULTADOS DA AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-15" aria-label="Resultados da avaliação">
+    <section class="slide" id="slide-16" aria-label="Resultados da avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Resultados</div>
             <h2 class="slide-title" data-reveal>4/4 real, 9/9 sintético — estável em 3 rodadas.</h2>
@@ -585,9 +639,9 @@ Essa empresa tem sanção?
     </section>
 
     <!-- ============================================================
-         SLIDE 16 — CUSTO REAL DO MVP
+         SLIDE 17 — CUSTO REAL DO MVP
          ============================================================ -->
-    <section class="slide" id="slide-16" aria-label="Custo real do MVP">
+    <section class="slide" id="slide-17" aria-label="Custo real do MVP">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Custo real</div>
             <h2 class="slide-title" data-reveal>R$ 220,33 pra validar a ideia inteira.</h2>
@@ -611,9 +665,9 @@ Essa empresa tem sanção?
     </section>
 
     <!-- ============================================================
-         SLIDE 17 — LIMITAÇÕES CONHECIDAS E PRÓXIMOS PASSOS
+         SLIDE 18 — LIMITAÇÕES CONHECIDAS E PRÓXIMOS PASSOS
          ============================================================ -->
-    <section class="slide" id="slide-17" aria-label="Próximos passos">
+    <section class="slide" id="slide-18" aria-label="Próximos passos">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Limitações &amp; próximos passos</div>
@@ -625,6 +679,7 @@ Essa empresa tem sanção?
                     <li data-reveal>Autenticação de usuário — hoje a cota é por cookie de sessão, não por identidade.</li>
                     <li data-reveal>Expandir o golden dataset para <strong>30+ casos</strong> cobrindo as 9 categorias.</li>
                     <li data-reveal><strong>Em estudo:</strong> sistema de observabilidade centralizando tokens, requisições e logs — com avaliação contínua do modelo já em produção, não só sob demanda.</li>
+                    <li data-reveal>Controle de contexto — hoje não há nenhum (V1 é só validação); a ideia é sumarizar com um modelo auxiliar antes de repassar ao modelo principal.</li>
                 </ul>
             </div>
             <div class="split-visual" data-reveal>
@@ -641,9 +696,9 @@ Essa empresa tem sanção?
     </section>
 
         <!-- ============================================================
-         SLIDE 18 — PERGUNTAS
+         SLIDE 19 — PERGUNTAS
          ============================================================ -->
-    <section class="slide slide-thanks" id="slide-18" aria-label="Perguntas">
+    <section class="slide slide-thanks" id="slide-19" aria-label="Perguntas">
         <div class="slide-inner slide-inner-center">
             <div class="brand center" data-reveal>
                 <svg class="brand-logo" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d992" stroke-width="2" stroke-linecap="round" aria-hidden="true">
