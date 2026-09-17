@@ -593,9 +593,35 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 18 — LIMITAÇÕES CONHECIDAS E PRÓXIMOS PASSOS
+         SLIDE 18 — CUSTO REAL DO MVP
          ============================================================ -->
-    <section class="slide" id="slide-18" aria-label="Limitações conhecidas e próximos passos">
+    <section class="slide" id="slide-18" aria-label="Custo real do MVP">
+        <div class="slide-inner">
+            <div class="eyebrow" data-reveal>Custo real</div>
+            <h2 class="slide-title" data-reveal>R$ 220,33 pra validar a ideia inteira.</h2>
+            <div class="table-wrap" data-reveal>
+                <table class="tbl">
+                    <thead><tr><th>Serviço</th><th>Uso</th><th class="center">Gasto</th></tr></thead>
+                    <tbody>
+                        <tr><td>Maritaca AI</td><td class="mute">LLM do agente — API, desde o início</td><td class="center mono">R$ 40,00</td></tr>
+                        <tr><td>OpenAI</td><td class="mute">Embeddings — API</td><td class="center mono">R$ 103,05</td></tr>
+                        <tr><td>MongoDB Atlas</td><td class="mute">Banco vetorial — plano free</td><td class="center mono">R$ 0,00</td></tr>
+                        <tr><td>Railway</td><td class="mute">Hospedagem — plano "Hobby" (US$5/mês)</td><td class="center mono">R$ 77,28</td></tr>
+                        <tr><td class="primary"><strong>Total</strong></td><td></td><td class="center mono primary"><strong>R$ 220,33</strong></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="callout callout-warn" data-reveal>
+                <span class="material-symbols-outlined">warning</span>
+                <p>O próprio Railway descreve esse plano como <strong>"para projetos hobby"</strong> — não aguenta milhares de usuários simultâneos. É um MVP para validar a ideia, não a arquitetura final: migrar pra uma nuvem maior (AWS, Azure ou GCP) é o primeiro passo antes de pensar em escala real.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SLIDE 19 — LIMITAÇÕES CONHECIDAS E PRÓXIMOS PASSOS
+         ============================================================ -->
+    <section class="slide" id="slide-19" aria-label="Limitações conhecidas e próximos passos">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Limitações &amp; próximos passos</div>
@@ -621,9 +647,9 @@
     </section>
 
         <!-- ============================================================
-         SLIDE 19 — PERGUNTAS
+         SLIDE 20 — PERGUNTAS
          ============================================================ -->
-    <section class="slide slide-thanks" id="slide-19" aria-label="Perguntas">
+    <section class="slide slide-thanks" id="slide-20" aria-label="Perguntas">
         <div class="slide-inner slide-inner-center">
             <div class="brand center" data-reveal>
                 <svg class="brand-logo" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d992" stroke-width="2" stroke-linecap="round" aria-hidden="true">
