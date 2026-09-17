@@ -1,8 +1,9 @@
 # Roteiro — Apresentação Auditor Cidadão
 
 > Guia rápido pra não se perder na hora. Não é pra ler na tela — é pra consultar de relance entre
-> um slide e outro. 20 slides + demo ao vivo, pensados pra caber em **~50 min**, deixando **~30 min**
-> de folga pra perguntas dentro de 1h30 total.
+> um slide e outro. 18 slides + demo ao vivo, pensados pra caber em **~48 min**, deixando **~30 min**
+> de folga pra perguntas dentro de 1h30 total. Banca técnica — pode (e deve) usar nome de campo,
+> função e classe real em vez de parafrasear.
 
 ## Antes de começar
 
@@ -80,53 +81,58 @@ Passo 2: todo mundo escaneia o segundo QR e acessa a plataforma.
 
 ---
 
-## Bloco 3 — Arquitetura, RAG e ferramentas (≈ 12 min)
+## Bloco 3 — Arquitetura, RAG e ferramentas (≈ 9:30)
 
 ### 9. Arquitetura do agente — o grafo — 2:30
-O ciclo ReAct: `agente` decide → `router` confere se pediu ferramenta → `ferramentas` executa →
-volta pro `agente` → repete até responder. `AsyncRedisSaver` guarda o histórico por thread.
+O ciclo ReAct: `agente` decide → `router` (`tools_condition`) confere se pediu ferramenta →
+`ferramentas` executa → volta pro `agente` → repete até responder. `AsyncRedisSaver` guarda o
+histórico por `thread_id`, expira após 24h de inatividade.
 
 ### 10. Ferramentas & protocolo MCP — 2 min
 4 ferramentas nativas (Receita Federal, RAG do edital, sanções, busca web) + 11 de PNCP herdadas
 via protocolo MCP — zero linha de integração própria com o PNCP. Cache no Redis (TTL 24h) sobre
-quase tudo.
+quase tudo, compartilhado entre réplicas.
 
-### 11. RAG — indexação — 2 min
-Docling em vez de extrator de texto plano — reconhece tabela e estrutura de seção. Padrão
-**pai-filho**: só o parágrafo pequeno vira vetor, mas a seção inteira viaja junto pro agente.
+### 11. RAG — indexação e recuperação — 2:30
+Slide dividido: de um lado o pipeline de indexação (Docling → chunk filho → embedding →
+MongoDB), do outro um **exemplo real** de documento gravado em `chunks_edital` — mostra o campo
+`secao_ordem` (chave do dedup) e `secao_texto_completo` (o pai inteiro, sem embedding próprio).
+Embaixo, a recuperação condensada: `$vectorSearch` com `top_k=3`, filtro por `edital_id` +
+`estado` + `município`, dedup por `secao_ordem` e por thread (`secoes_vistas`, via `Command` do
+LangGraph). **Não precisa ler o JSON linha por linha** — é pra banca técnica olhar enquanto você
+fala do padrão pai-filho.
 
-### 12. RAG — recuperação — 1:30
-As 5 etapas da tabela: vetor → filtro por edital/estado/município → devolve a seção inteira →
-dedup por seção → dedup por thread (não repete conteúdo já mostrado na conversa).
-
-### 13. Fluxo de dados ponta a ponta — 1:30
-Os dois pipelines (upload e conversa), sempre em streaming SSE. **Lembrar de dizer:** o relatório
-automático não é um caminho separado — é só o primeiro turno da thread.
-
-### 14. Anatomia de um turno — 2 min
-As 6 paradas, rápido. Ponto que costuma gerar pergunta: o `SYSTEM_PROMPT` nunca fica salvo no
-histórico — é preposto a cada chamada.
+### 12. Anatomia de um turno — 2:30
+Slide dividido: upload (validação → Docling → indexação → SSE) de um lado, turno de conversa (as
+6 paradas: navegador → FastAPI/cookie/cota → stream devolvido → `run_agent` monta o turno → ciclo
+ReAct → eventos viram SSE) do outro. **Ponto que costuma gerar pergunta:** o `SYSTEM_PROMPT` nunca
+fica salvo no histórico do Redis — é preposto a cada chamada. E o grafo é montado uma vez só, no
+startup.
 
 ---
 
 ## Bloco 4 — Guardrails e avaliação (≈ 8 min)
 
-### 15. Guardrails de segurança — 2 min
-Dois escudos: anti-injeção (todo campo do usuário passa por `escape_xml()`, tentativa de manipulação
-vira achado de auditoria) e anti-alucinação (proibição de "vocabulário emprestado" — nenhum campo
-pode vir de uma fonte que não foi consultada naquele turno).
+### 13. Guardrails de segurança — 2:30
+Dois escudos: anti-injeção (todo campo do usuário passa por `escape_xml()` — não só a pergunta —
+tentativa de manipulação vira achado de auditoria) e anti-alucinação (proibição de "vocabulário
+emprestado" — nenhum campo pode vir de uma fonte que não foi consultada naquele turno). O slide
+mostra o envelope `PROMPT_DINAMICO` de verdade, com as tags `<CNPJS_NO_EDITAL>`/`<METADADOS>`/
+`<PROMPT_USUARIO>`, e um exemplo de tentativa de injeção via `municipio` antes/depois do
+`escape_xml()` — vale parar 1 segundo nesse antes/depois, é o tipo de coisa que a banca técnica
+gosta de ver de verdade, não só descrito.
 
-### 16. Metodologia de avaliação — 2 min
+### 14. Metodologia de avaliação — 2 min
 G-Eval em vez de nota livre — critério fixo pro juiz, não "opinião". 4 métricas (Tool Correctness,
 Argumentos, Fidelidade, Cobertura/Recall). Golden dataset de 13 casos, rodando o mesmo código de
 produção (`run_agent()`).
 
-### 17. Resultados da avaliação — 2 min
+### 15. Resultados da avaliação — 2 min
 **O número que importa:** real 4/4, sintético 9/9, estável em 3 rodadas seguidas sem mudar código.
 **Não esconder a limitação:** 2 confusões conhecidas entre categorias vizinhas do catálogo (E × I) —
 documentadas, não escondidas.
 
-### 18. Custo real do MVP — 1:30
+### 16. Custo real do MVP — 1:30
 R$ 220,33 gastos até hoje (Maritaca, OpenAI, MongoDB free, Railway). **Frase de efeito:** o próprio
 Railway chama esse plano de "para projetos hobby" — é MVP pra validar ideia, não arquitetura final.
 
@@ -134,12 +140,12 @@ Railway chama esse plano de "para projetos hobby" — é MVP pra validar ideia, 
 
 ## Bloco 5 — Fechamento (≈ 2:30)
 
-### 19. Próximos passos — 2 min
+### 17. Próximos passos — 2 min
 Não ler todos os bullets — escolher 2-3 pra destacar em voz alta (sugestão: migração de nuvem,
 autenticação, indexação automática via PNCP) e deixar o resto como "está tudo documentado, quem
 quiser ver depois pode conferir".
 
-### 20. Obrigado — 0:30
+### 18. Obrigado — 0:30
 Fechar e abrir pra perguntas.
 
 ---
@@ -147,9 +153,10 @@ Fechar e abrir pra perguntas.
 ## Se o tempo apertar
 
 Corte nesta ordem (do menos crítico pro mais crítico):
-1. Slide 12 (RAG — recuperação) — pode resumir em 1 frase durante o slide 11.
-2. Slide 13 (Fluxo de dados) — sobrepõe com o slide 14, pode pular direto.
-3. Detalhamento do catálogo de anomalias (slide 7) — mostrar só o callout final.
+1. Slide 12 (Anatomia de um turno) — resumir em 1 frase o lado do upload, focar só no turno de conversa.
+2. Detalhamento do catálogo de anomalias (slide 7) — mostrar só o callout final.
+3. Exemplo JSON do slide 11 — mencionar que existe, sem parar pra ler os campos em voz alta.
 
-**Nunca corte:** slides 5 (por que não ChatGPT), 8 (demo), 17 (resultados) e 18 (custo) — são os
-que mais seguram a atenção e respondem as perguntas que a banca mais provavelmente vai fazer.
+**Nunca corte:** slides 5 (por que não ChatGPT), 8 (demo), 13 (guardrails com o exemplo de
+injeção), 15 (resultados) e 16 (custo) — são os que mais seguram a atenção e respondem as
+perguntas que a banca mais provavelmente vai fazer.
