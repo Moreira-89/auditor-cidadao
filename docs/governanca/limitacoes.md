@@ -89,6 +89,17 @@ Fica como item recorrente de V2 revisitar essa pesquisa periodicamente, verifica
 novos padrões de irregularidade que mereçam virar uma 10ª categoria (ou mais), em vez de tratar o
 catálogo como definitivo.
 
+### Observabilidade e avaliação contínua em produção
+Hoje a avaliação (golden dataset + G-Eval, ver [Avaliação](../ia/avaliacao.md)) só roda sob demanda,
+manualmente, quando alguém decide validar uma mudança antes de subir pra produção — não há nada que
+rode o mesmo tipo de checagem contra o tráfego real depois que o sistema já está no ar. Ideia em
+estudo para uma próxima versão: um sistema (próprio ou uma ferramenta de observabilidade de LLM já
+existente no mercado) que centralize, num único lugar, consumo de tokens por conversa, volume de
+requisições por ferramenta/fonte externa, logs do agente e — o ponto mais importante — a capacidade
+de rodar avaliação de qualidade continuamente contra o modelo **em produção**, não só contra o
+golden dataset local. Ainda não há desenho de arquitetura definido; fica registrado aqui como
+direção, não como especificação.
+
 ### Frontend dedicado
 Migração do frontend estático servido pelo FastAPI para uma stack dedicada (React), separando
 frontend e backend em dois serviços — ver [Operacional](../operacional/index.md).
