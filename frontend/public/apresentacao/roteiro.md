@@ -23,6 +23,12 @@ Passar rápido pelos 6 blocos. Não detalhar — é só o mapa. Avisar aqui que 
 demo ao vivo no meio.
 
 ### 3. O problema — 2 min
+**Antes de entrar no problema, contextualize em 1 frase o que é uma licitação** (parte da banca pode
+não ser da área): é o processo pelo qual um órgão público (prefeitura, governo) é obrigado por lei a
+comprar um bem ou contratar um serviço — a empresa que vence é escolhida por critérios definidos em
+edital, não por escolha livre do gestor. É aí que mora o risco de fraude: alguém pode desenhar o
+edital ou o processo pra favorecer uma empresa específica.
+
 **Ponto central:** fiscalizar uma licitação hoje exige cruzar manualmente PNCP, Receita Federal e
 CEIS/CNEP — trabalho de especialista, fora do alcance de cidadão comum e jornalista.
 **Fechar com:** a maior parte das licitações municipais no Brasil nunca é auditada por ninguém.
