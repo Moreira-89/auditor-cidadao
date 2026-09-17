@@ -208,13 +208,10 @@ vetorizada e buscada no banco a cada consulta. Medido contra o dataset de teste 
 que o atual), remover o pai e devolver só o pedaço pequeno cortou o tamanho médio do contexto por
 caso à metade, sem piorar a métrica de detecção de anomalia medida então.
 
-**Por que voltou.** Duas coisas mudaram desde essa primeira medição. Primeiro, o instrumento de
-medição mudou (métricas mais rigorosas, dataset maior cobrindo todo o catálogo de anomalias) — o
-"sem piorar a métrica" antigo não necessariamente se sustentava com a régua nova. Segundo, e mais
-concreto: rodando o dataset novo, o padrão observado foi o agente chamar a ferramenta de busca de
-10 a 16 vezes no mesmo caso, porque cada chamada só devolvia um pedaço pequeno demais pra montar o
-quadro completo sozinho. Trazer a seção inteira ataca isso direto — menos chamadas de ferramenta por
-caso, o que também ajuda a não estourar o rate limit de alguns providers.
+**Por que voltou.** O instrumento de medição mudou (métricas mais rigorosas, dataset maior cobrindo
+todo o catálogo de anomalias) — o "sem piorar a métrica" antigo não necessariamente se sustentava
+com a régua nova. Trazer a seção inteira ataca o problema de fragmentação direto — menos chamadas de
+ferramenta por caso, o que também ajuda a não estourar o rate limit de alguns providers.
 
 O custo — mais tokens por chamada — é aceito conscientemente, não ignorado: a aposta é que mais
 contexto correto vale mais que a economia de token, com o dedup contra o histórico da thread como

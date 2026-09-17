@@ -83,7 +83,7 @@
                 <li class="agenda-item" data-reveal><span class="agenda-num">02</span><span class="agenda-label">Catálogo de anomalias</span></li>
                 <li class="agenda-item" data-reveal><span class="agenda-num">03</span><span class="agenda-label">Demonstração ao vivo</span></li>
                 <li class="agenda-item" data-reveal><span class="agenda-num">04</span><span class="agenda-label">Arquitetura: agente, RAG, ferramentas</span></li>
-                <li class="agenda-item" data-reveal><span class="agenda-num">05</span><span class="agenda-label">Guardrails, ética e avaliação <span class="mute">(com números reais)</span></span></li>
+                <li class="agenda-item" data-reveal><span class="agenda-num">05</span><span class="agenda-label">Guardrails e avaliação <span class="mute">(com números reais)</span></span></li>
                 <li class="agenda-item" data-reveal><span class="agenda-num">06</span><span class="agenda-label">Limitações e próximos passos</span></li>
             </ol>
         </div>
@@ -428,10 +428,6 @@
                     </tbody>
                 </table>
             </div>
-            <div class="callout" data-reveal>
-                <span class="material-symbols-outlined">history</span>
-                <p>Esse padrão já foi <strong>removido e reintroduzido</strong>: sem a seção-pai, o agente chegou a chamar a busca de 10 a 16 vezes no mesmo caso pra montar o quadro completo sozinho.</p>
-            </div>
         </div>
     </section>
 
@@ -518,26 +514,10 @@
         </div>
     </section>
 
-    <!-- ============================================================
-         SLIDE 16 — T6: ÉTICA, LGPD E RESPONSABILIDADE
+        <!-- ============================================================
+         SLIDE 16 — T4: METODOLOGIA DE AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-16" aria-label="Ética, LGPD e responsabilidade">
-        <div class="slide-inner">
-            <div class="eyebrow" data-reveal>Ética, LGPD &amp; responsabilidade</div>
-            <h2 class="slide-title" data-reveal>Dado público, laudo humano, decisão humana.</h2>
-            <div class="principle-grid">
-                <div class="principle" data-reveal><span class="material-symbols-outlined">public</span><p>Dados tratados são <strong>apenas informação pública</strong>: CNPJ, editais e bases governamentais.</p></div>
-                <div class="principle" data-reveal><span class="material-symbols-outlined">person_off</span><p>O nome do usuário <strong>não é mais coletado</strong> — reduz a superfície de dado pessoal.</p></div>
-                <div class="principle" data-reveal><span class="material-symbols-outlined">balance</span><p>O laudo é um <strong>indício para investigação humana</strong>, nunca uma acusação ou decisão final.</p></div>
-                <div class="principle" data-reveal><span class="material-symbols-outlined">inventory_2</span><p>Retenção de editais no Pinecone é <strong>decisão deliberada</strong> — sem dado pessoal sensível envolvido.</p></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ============================================================
-         SLIDE 17 — T4: METODOLOGIA DE AVALIAÇÃO
-         ============================================================ -->
-    <section class="slide" id="slide-17" aria-label="Metodologia de avaliação">
+    <section class="slide" id="slide-16" aria-label="Metodologia de avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Avaliação</div>
             <h2 class="slide-title" data-reveal>G-Eval em vez de nota livre — critério fixo, não "opinião" do juiz.</h2>
@@ -571,9 +551,9 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 18 — T4: RESULTADOS DA AVALIAÇÃO
+         SLIDE 17 — T4: RESULTADOS DA AVALIAÇÃO
          ============================================================ -->
-    <section class="slide" id="slide-18" aria-label="Resultados da avaliação">
+    <section class="slide" id="slide-17" aria-label="Resultados da avaliação">
         <div class="slide-inner">
             <div class="eyebrow" data-reveal>Resultados</div>
             <h2 class="slide-title" data-reveal>4/4 real, 9/9 sintético — estável em 3 rodadas.</h2>
@@ -613,17 +593,17 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 19 — LIMITAÇÕES CONHECIDAS E PRÓXIMOS PASSOS
+         SLIDE 18 — LIMITAÇÕES CONHECIDAS E PRÓXIMOS PASSOS
          ============================================================ -->
-    <section class="slide" id="slide-19" aria-label="Limitações conhecidas e próximos passos">
+    <section class="slide" id="slide-18" aria-label="Limitações conhecidas e próximos passos">
         <div class="slide-inner split">
             <div class="split-copy">
                 <div class="eyebrow" data-reveal>Limitações &amp; próximos passos</div>
                 <h2 class="slide-title" data-reveal>O que vem depois da V1.</h2>
                 <ul class="bullets bullets-tight">
-                    <li data-reveal><code>context_recall</code> abaixo do limiar → aumentar <code>top_k</code> ou reranking.</li>
-                    <li data-reveal>Histórico em memória → migrar para <code>PostgresSaver</code>.</li>
-                    <li data-reveal>Indexação manual → <strong></strong> indexação automática via busca no PNCP.</li>
+                    <li data-reveal>Ampliar a cobertura de anomalias — catálogo de preços (sobrepreço) e quadro societário (cartel) ainda faltam.</li>
+                    <li data-reveal>Indexação manual → <strong>indexação automática via busca no PNCP</strong>.</li>
+                    <li data-reveal>Autenticação de usuário — hoje a cota é por cookie de sessão, não por identidade.</li>
                     <li data-reveal>Expandir o golden dataset para <strong>30+ casos</strong> cobrindo as 9 categorias.</li>
                 </ul>
             </div>
@@ -641,25 +621,25 @@
     </section>
 
     <!-- ============================================================
-         SLIDE 20 — CONCLUSÃO
+         SLIDE 19 — CONCLUSÃO
          ============================================================ -->
-    <section class="slide slide-conclusion" id="slide-20" aria-label="Conclusão">
+    <section class="slide slide-conclusion" id="slide-19" aria-label="Conclusão">
         <div class="slide-inner slide-inner-center">
             <div class="eyebrow center" data-reveal>Conclusão</div>
             <h2 class="conclusion-title" data-reveal>Ponta a ponta, e honesto sobre onde ainda falha.</h2>
             <ul class="conclusion-list">
                 <li data-reveal><span class="material-symbols-outlined">check_circle</span> Solução funcional, reproduzível e documentada, ponta a ponta.</li>
                 <li data-reveal><span class="material-symbols-outlined">check_circle</span> Arquitetura de agente com ferramentas, RAG e guardrails de segurança.</li>
-                <li data-reveal><span class="material-symbols-outlined">check_circle</span> Avaliação real, com resultados honestos — inclusive onde reprovou.</li>
-                <li data-reveal><span class="material-symbols-outlined">arrow_forward</span> Próximo passo: fechar os gaps de <code>context_recall</code> e ampliar a cobertura.</li>
+                <li data-reveal><span class="material-symbols-outlined">check_circle</span> Avaliação real, com números honestos — inclusive onde as limitações ainda estão.</li>
+                <li data-reveal><span class="material-symbols-outlined">arrow_forward</span> Próximo passo: ampliar a cobertura de anomalias e indexar via PNCP automaticamente.</li>
             </ul>
         </div>
     </section>
 
     <!-- ============================================================
-         SLIDE 21 — PERGUNTAS
+         SLIDE 20 — PERGUNTAS
          ============================================================ -->
-    <section class="slide slide-thanks" id="slide-21" aria-label="Perguntas">
+    <section class="slide slide-thanks" id="slide-20" aria-label="Perguntas">
         <div class="slide-inner slide-inner-center">
             <div class="brand center" data-reveal>
                 <svg class="brand-logo" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d992" stroke-width="2" stroke-linecap="round" aria-hidden="true">
