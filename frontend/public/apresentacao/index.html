@@ -570,47 +570,41 @@ Essa empresa tem sanção?
             <div class="metric-cards" style="grid-template-columns: repeat(4, 1fr);">
                 <div class="metric-card" data-reveal>
                     <div class="metric-name mono">Tool Correctness</div>
-                    <p>Chamou as ferramentas certas (só o nome).</p>
+                    <p>Comparação determinística: os nomes das tools chamadas batem com o gabarito, sem julgar argumento.</p>
                     <span class="chip-llm chip-off">sem LLM</span>
                 </div>
                 <div class="metric-card" data-reveal>
                     <div class="metric-name mono">Argumentos</div>
-                    <p>Os argumentos que importam (ex.: CNPJ) chegaram certos.</p>
+                    <p>Confere só os campos que realmente importam (ex.: o CNPJ certo chegou na tool de sanções) — aceita campos extras.</p>
                     <span class="chip-llm chip-off">sem LLM</span>
                 </div>
                 <div class="metric-card" data-reveal>
                     <div class="metric-name mono">Fidelidade</div>
-                    <p>O laudo só afirma o que as ferramentas realmente sustentam.</p>
+                    <p>Juiz G-Eval segue um roteiro de raciocínio fixo pra checar se cada afirmação do laudo é sustentada pelas fontes.</p>
                     <span class="chip-llm">G-Eval</span>
                 </div>
                 <div class="metric-card" data-reveal>
                     <div class="metric-name mono">Cobertura / Recall</div>
-                    <p>Achou o trecho certo do edital (real) ou a anomalia certa (sintético).</p>
+                    <p>Real: achou o trecho certo do edital. Sintético: achou a anomalia certa (F1 contra o gabarito A–I).</p>
                     <span class="chip-llm">G-Eval</span>
                 </div>
             </div>
-            <div class="split">
-                <div class="split-copy" data-reveal>
-                    <div class="pipeline">
-                        <div class="pipeline-title">Fidelidade — os <span class="mono mute">steps</span> do juiz</div>
-                        <div class="pipe-step"><span class="pipe-i">1</span><span>Lista cada afirmação factual do laudo</span></div>
-                        <div class="pipe-step"><span class="pipe-i">2</span><span>Procura se ela é sustentada pelo que as ferramentas devolveram</span></div>
-                        <div class="pipe-step pipe-step-end"><span class="pipe-i">3</span><span>Marca sustentada ou não — <strong>extrapolação conta como não sustentada</strong></span></div>
-                    </div>
+            <div class="guardrail-grid" data-reveal>
+                <div class="guardrail-card">
+                    <div class="guardrail-head"><span class="material-symbols-outlined">science</span><h3>Caso sintético — H (sanção vigente)</h3></div>
+                    <ul class="bullets bullets-tight">
+                        <li>Cenário: vencedora consta no CEIS, adjudicada mesmo assim.</li>
+                        <li>Gabarito escrito <strong>antes</strong> do PDF existir — sem margem pra interpretação.</li>
+                        <li>Cobre tool certa <strong>e</strong> anomalia certa (Recall/F1).</li>
+                    </ul>
                 </div>
-                <div class="split-visual" data-reveal>
-                    <div class="table-wrap">
-                        <table class="tbl">
-                            <thead><tr><th class="center">Nota</th><th>Rubrica — o que justifica essa nota</th></tr></thead>
-                            <tbody>
-                                <tr><td class="center mono primary">5</td><td>Todas as afirmações sustentadas.</td></tr>
-                                <tr><td class="center mono primary">4</td><td>1 não sustentada, detalhe menor que não muda o achado.</td></tr>
-                                <tr><td class="center mono primary">3</td><td>1 não sustentada que afeta a evidência de um achado.</td></tr>
-                                <tr><td class="center mono primary">2</td><td>2+ não sustentadas, ou 1 que inventa dado central (CNPJ, valor, sanção) sem base.</td></tr>
-                                <tr><td class="center mono primary">1</td><td>Achado (CONFIRMADO/INDÍCIO) cuja evidência central não existe em nenhuma fonte.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="guardrail-card">
+                    <div class="guardrail-head"><span class="material-symbols-outlined">description</span><h3>Caso real — <span class="mono">caso_02_saoluis_sancao</span></h3></div>
+                    <ul class="bullets bullets-tight">
+                        <li>Edital verdadeiro, baixado de portal real (São Luís/MA).</li>
+                        <li>Gabarito cobre só o <strong>objetivamente checável</strong>: achou o trecho certo, chamou a tool certa.</li>
+                        <li>Não cobra "achou a anomalia certa" — nem um especialista bate o martelo sempre.</li>
+                    </ul>
                 </div>
             </div>
             <div class="callout" data-reveal>

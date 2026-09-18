@@ -1,7 +1,7 @@
 # Roteiro — Apresentação Auditor Cidadão
 
 > Guia rápido pra não se perder na hora. Não é pra ler na tela — é pra consultar de relance entre
-> um slide e outro. 19 slides + demo ao vivo, pensados pra caber em **~52 min**, deixando **~30 min**
+> um slide e outro. 19 slides + demo ao vivo, pensados pra caber em **~51 min**, deixando **~30 min**
 > de folga pra perguntas dentro de 1h30 total. Banca técnica — pode (e deve) usar nome de campo,
 > função e classe real em vez de parafrasear.
 
@@ -120,7 +120,7 @@ startup.
 
 ---
 
-## Bloco 4 — Guardrails e avaliação (≈ 9 min)
+## Bloco 4 — Guardrails e avaliação (≈ 8:30)
 
 ### 14. Guardrails de segurança — 2:30
 Dois escudos: anti-injeção (todo campo do usuário passa por `escape_xml()` — não só a pergunta —
@@ -131,16 +131,22 @@ mostra o envelope `PROMPT_DINAMICO` de verdade, com as tags `<CNPJS_NO_EDITAL>`/
 `escape_xml()` — vale parar 1 segundo nesse antes/depois, é o tipo de coisa que a banca técnica
 gosta de ver de verdade, não só descrito.
 
-### 15. Metodologia de avaliação — 3 min
-G-Eval em vez de nota livre — critério fixo pro juiz, não "opinião". 4 métricas (Tool Correctness,
-Argumentos, Fidelidade, Cobertura/Recall). Golden dataset de 13 casos, rodando o mesmo código de
-produção (`run_agent()`).
+### 15. Metodologia de avaliação — 2:30
+G-Eval em vez de nota livre — critério fixo pro juiz, não "opinião". 4 métricas, cada uma com sua
+descrição no slide (Tool Correctness e Argumentos são determinísticas, sem LLM; Fidelidade e
+Cobertura/Recall usam G-Eval). Golden dataset de 13 casos, rodando o mesmo código de produção
+(`run_agent()`).
 
-Slide agora mostra os **3 steps** que o juiz segue pra avaliar Fidelidade (lista as afirmações →
-checa se são sustentadas pelas fontes → marca sustentada/não, extrapolação conta como não
-sustentada) e a **rubrica de nota 1 a 5** ao lado. Vale mencionar que essa rubrica foi testada de
-propósito — um caso que extrapola a fonte dá 0.32, um caso fiel dá 1.0, então a régua discrimina de
-verdade, não é só "nota alta porque o texto está bem escrito".
+Os dois exemplos do slide mostram a diferença entre os dois tipos de caso: o **sintético** (H —
+sanção vigente) tem gabarito escrito antes do PDF existir, então cobra tool certa *e* anomalia
+certa; o **real** (`caso_02_saoluis_sancao`, edital verdadeiro de São Luís) só cobra o que é
+objetivamente checável — achou o trecho certo, chamou a tool certa — porque nem um humano
+especialista bateria o martelo com certeza absoluta sobre um edital real.
+
+**Se perguntarem sobre a rubrica do juiz de Fidelidade** (não está mais no slide, mas pode vir):
+G-Eval usa uma régua de nota 1 a 5 testada de propósito — um caso que extrapola a fonte dá 0.32, um
+caso fiel dá 1.0. O critério: lista cada afirmação do laudo, checa se é sustentada pelas fontes,
+marca sustentada ou não (extrapolação conta como não sustentada).
 
 ### 16. Resultados da avaliação — 2:30
 **O número que importa:** real 4/4, sintético 9/9, estável em 3 rodadas seguidas sem mudar código.
