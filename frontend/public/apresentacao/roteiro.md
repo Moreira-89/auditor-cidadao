@@ -175,10 +175,25 @@ autenticação, indexação automática via PNCP, controle de contexto) e deixar
 documentado, quem quiser ver depois pode conferir".
 
 **Novo item — tokenização real no fatiamento de chunks:** hoje o corte de parágrafo longo antes do
-embedding usa `split()` por espaço (limite de "200 palavras"), não um tokenizador de verdade. Sem
-`tiktoken` na conta, o número real de tokens por chunk varia — texto jurídico/técnico longo pode
-gerar bem mais tokens do que o esperado. Vale mencionar se perguntarem sobre pré-processamento antes
-do embedding.
+embedding usa `split()` por espaço (limite de "200 palavras"), não um tokenizador de verdade.
+
+**Pergunta provável — "aplicam alguma tokenização antes do embedding?" — resposta pronta:**
+Não, hoje não. O texto do Docling vai só com `.strip()`, e o corte de parágrafo longo usa
+`str.split()` por espaço (limite de 200 "palavras"), sem `tiktoken` — o mesmo tokenizador que o
+`text-embedding-3-small` usa por baixo dos panos. Isso importa por 3 motivos, se pedirem pra
+aprofundar:
+
+1. **O modelo tem limite real de tokens** (8191 pro `text-embedding-3-small`), não de palavras —
+   contar palavra é proxy ruim porque o tokenizador quebra em subpalavras, e termo jurídico
+   longo/sigla/acentuação em português gera mais token por palavra que em inglês. Se estourar o
+   limite real, a chamada falha ou trunca **silenciosamente** — perda de conteúdo sem aviso.
+2. **É a unidade real de custo e de rate limit** — cobrança e cota são por token, não por palavra.
+3. **Afeta a qualidade do embedding** — chunk maior que o ideal em tokens dilui o vetor (mistura
+   tópico), chunk menor fragmenta contexto demais; o tamanho certo é decisão sobre tokens, porque é
+   isso que o modelo de fato processa.
+
+Registrado como próximo passo (trocar por `tiktoken`), tanto no slide 18 quanto em
+`docs/governanca/limitacoes.md`.
 
 ### 19. Obrigado — 0:30
 Fechar e abrir pra perguntas.
