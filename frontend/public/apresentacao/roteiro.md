@@ -174,6 +174,12 @@ Não ler todos os bullets — escolher 2-3 pra destacar em voz alta (sugestão: 
 autenticação, indexação automática via PNCP, controle de contexto) e deixar o resto como "está tudo
 documentado, quem quiser ver depois pode conferir".
 
+**Novo item — tokenização real no fatiamento de chunks:** hoje o corte de parágrafo longo antes do
+embedding usa `split()` por espaço (limite de "200 palavras"), não um tokenizador de verdade. Sem
+`tiktoken` na conta, o número real de tokens por chunk varia — texto jurídico/técnico longo pode
+gerar bem mais tokens do que o esperado. Vale mencionar se perguntarem sobre pré-processamento antes
+do embedding.
+
 ### 19. Obrigado — 0:30
 Fechar e abrir pra perguntas.
 

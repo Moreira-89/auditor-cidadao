@@ -75,6 +75,15 @@ integralmente a cada chamada. Complementa o item já registrado em
 [Uso de Dados e RAG](../ia/rag_dados.md#limitacoes-conhecidas-do-retrieval) sobre gerenciamento de
 contexto mais sofisticado.
 
+### Tokenização real no fatiamento de chunks
+O corte de parágrafo longo antes do embedding (`_fatiar_filhos`, `app/storage/vetorial.py`) hoje usa
+`str.split()` por espaço em branco — um limite de "200 palavras", não de tokens de verdade. Como
+nenhum tokenizador (`tiktoken`, o mesmo que o `text-embedding-3-small` usa por baixo) entra nessa
+conta, o número real de tokens por chunk varia com o texto — termos técnicos/jurídicos longos podem
+gerar bem mais tokens do que o esperado pelo corte por palavra. Trocar por contagem real de tokens
+via `tiktoken` é candidato de próxima versão; complementa o item de "texto cru, sem o caminho da
+seção" já registrado em [Uso de Dados e RAG](../ia/rag_dados.md#limitacoes-conhecidas-do-retrieval).
+
 ### Reescrever `RecallAnomaliasMetric` como G-Eval
 Hoje a métrica é regex determinístico sobre o Markdown do laudo — rápido e sem custo de LLM, mas
 frágil a variação de formato (foi a causa de uma reprovação intermitente contornada apertando o
