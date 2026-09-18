@@ -589,6 +589,30 @@ Essa empresa tem sanção?
                     <span class="chip-llm">G-Eval</span>
                 </div>
             </div>
+            <div class="split">
+                <div class="split-copy" data-reveal>
+                    <div class="pipeline">
+                        <div class="pipeline-title">Fidelidade — os <span class="mono mute">steps</span> do juiz</div>
+                        <div class="pipe-step"><span class="pipe-i">1</span><span>Lista cada afirmação factual do laudo</span></div>
+                        <div class="pipe-step"><span class="pipe-i">2</span><span>Procura se ela é sustentada pelo que as ferramentas devolveram</span></div>
+                        <div class="pipe-step pipe-step-end"><span class="pipe-i">3</span><span>Marca sustentada ou não — <strong>extrapolação conta como não sustentada</strong></span></div>
+                    </div>
+                </div>
+                <div class="split-visual" data-reveal>
+                    <div class="table-wrap">
+                        <table class="tbl">
+                            <thead><tr><th class="center">Nota</th><th>Rubrica — o que justifica essa nota</th></tr></thead>
+                            <tbody>
+                                <tr><td class="center mono primary">5</td><td>Todas as afirmações sustentadas.</td></tr>
+                                <tr><td class="center mono primary">4</td><td>1 não sustentada, detalhe menor que não muda o achado.</td></tr>
+                                <tr><td class="center mono primary">3</td><td>1 não sustentada que afeta a evidência de um achado.</td></tr>
+                                <tr><td class="center mono primary">2</td><td>2+ não sustentadas, ou 1 que inventa dado central (CNPJ, valor, sanção) sem base.</td></tr>
+                                <tr><td class="center mono primary">1</td><td>Achado (CONFIRMADO/INDÍCIO) cuja evidência central não existe em nenhuma fonte.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
             <div class="callout" data-reveal>
                 <span class="material-symbols-outlined">dataset</span>
                 <p><strong>Golden dataset:</strong> 13 casos — 4 editais reais + 9 sintéticos (um por letra do catálogo A–I) — rodando <code>run_agent()</code>, o mesmo caminho de código da produção.</p>
@@ -631,10 +655,6 @@ Essa empresa tem sanção?
                 <span class="verdict-val" style="color: var(--primary);">APROVADO</span>
                 <span class="verdict-cause">real 4/4 · sintético 9/9, 3 rodadas seguidas sem mudança de código</span>
             </div>
-            <div class="callout" data-reveal>
-                <span class="material-symbols-outlined">visibility</span>
-                <p>Honesto sobre os limites: 2 confusões conhecidas entre categorias vizinhas do catálogo (ex.: <strong>E</strong> × <strong>I</strong>) — não reprovam, mas ficam documentadas.</p>
-            </div>
         </div>
     </section>
 
@@ -656,10 +676,6 @@ Essa empresa tem sanção?
                         <tr><td class="primary"><strong>Total</strong></td><td></td><td class="center mono primary"><strong>R$ 220,33</strong></td></tr>
                     </tbody>
                 </table>
-            </div>
-            <div class="callout callout-warn" data-reveal>
-                <span class="material-symbols-outlined">warning</span>
-                <p>O próprio Railway descreve esse plano como <strong>"para projetos hobby"</strong> — não aguenta milhares de usuários simultâneos. É um MVP para validar a ideia, não a arquitetura final: migrar pra uma nuvem maior (AWS, Azure ou GCP) é o primeiro passo antes de pensar em escala real.</p>
             </div>
         </div>
     </section>
