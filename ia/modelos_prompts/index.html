@@ -1,0 +1,1487 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../arquitetura/protocolo_mcp/">
+      
+      
+        <link rel="next" href="../rag_dados/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Modelos e prompts - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#modelos-e-prompts" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Modelos e prompts
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operacional/" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../arquitetura/visao_geral/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/variaveis_ambiente/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visao_geral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/protocolo_mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#os-modelos-usados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Os modelos usados
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#por-que-sabia-4-maritaca-ai-como-agente-principal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que Sabiá-4 (Maritaca AI) como agente principal?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Por que Sabiá-4 (Maritaca AI) como agente principal?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#benchmark-contra-outros-modelos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benchmark contra outros modelos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#os-prompts-do-sistema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Os prompts do sistema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exemplo-real-o-que-o-modelo-recebe-no-primeiro-turno" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemplo real: o que o modelo recebe no primeiro turno
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tecnicas-de-engenharia-de-prompt-aplicadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Técnicas de engenharia de prompt aplicadas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rag_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../avaliacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (G-Eval)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#os-modelos-usados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Os modelos usados
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#por-que-sabia-4-maritaca-ai-como-agente-principal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que Sabiá-4 (Maritaca AI) como agente principal?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Por que Sabiá-4 (Maritaca AI) como agente principal?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#benchmark-contra-outros-modelos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benchmark contra outros modelos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#os-prompts-do-sistema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Os prompts do sistema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exemplo-real-o-que-o-modelo-recebe-no-primeiro-turno" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemplo real: o que o modelo recebe no primeiro turno
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tecnicas-de-engenharia-de-prompt-aplicadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Técnicas de engenharia de prompt aplicadas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="modelos-e-prompts">Modelos e Prompts</h1>
+<p>Este pilar cobre a <strong>inteligência</strong> do Auditor Cidadão: quais modelos de IA são usados e por quê,
+como os prompts garantem respostas consistentes e controladas, e como o conhecimento (o edital) é
+preparado e recuperado. Esta primeira página trata dos modelos e da engenharia de prompt.</p>
+<h2 id="os-modelos-usados">Os modelos usados</h2>
+<table>
+<thead>
+<tr>
+<th>Papel</th>
+<th>Modelo (default)</th>
+<th>Temperatura</th>
+<th>Onde</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agente principal</td>
+<td><code>maritaca:sabia-4</code></td>
+<td><code>0.1</code></td>
+<td>Conversa e relatório automático (<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/config/settings.py"><code>app/config/settings.py</code></a>)</td>
+</tr>
+<tr>
+<td>Juiz de Fidelidade (G-Eval)</td>
+<td><code>gpt-4o</code></td>
+<td><code>0.0</code></td>
+<td>Só no framework de avaliação — ver <a href="../avaliacao/">Avaliação</a></td>
+</tr>
+<tr>
+<td>Embeddings (RAG)</td>
+<td><code>text-embedding-3-small</code></td>
+<td>—</td>
+<td>Indexação e busca no MongoDB Atlas (ver <a href="../rag_dados/">Uso de Dados e RAG</a>)</td>
+</tr>
+</tbody>
+</table>
+<p>Todos os modelos de LLM são configuráveis por variável de ambiente (<code>LLM_MODEL</code>, <code>AVALIADOR_MODEL</code>)
+— ver <a href="../../operacional/variaveis_ambiente/">Variáveis de ambiente</a>. O
+<code>init_chat_model</code> do LangChain identifica o provider pelo prefixo do nome (<code>openai:</code>, <code>groq:</code>,
+<code>google_genai:</code>); a Maritaca não é provider nativo dele, então <code>app/llm.py</code> roteia via <code>ChatOpenAI</code>
+trocando <code>base_url</code> + chave (API compatível com a da OpenAI) quando o prefixo é <code>maritaca:</code>. Trocar
+de modelo não exige mudar código em nenhum dos casos.</p>
+<h2 id="por-que-sabia-4-maritaca-ai-como-agente-principal">Por que Sabiá-4 (Maritaca AI) como agente principal?</h2>
+<p>A escolha combina três fatores, não só custo:</p>
+<ol>
+<li><strong>Especialização no domínio jurídico-administrativo brasileiro.</strong> O Sabiá-4 foi treinado com
+   foco na realidade documental do Brasil — siglas do setor de licitação (SRP, ETP, TR), jargão da
+   Lei 14.133/21 e entendimento consolidado do TCU. Modelos generalistas globais tendem a tropeçar
+   mais nesse jargão burocrático específico.</li>
+<li><strong>Custo sustentável num pipeline de agente.</strong> O ciclo ReAct reavalia contexto e aciona
+   ferramentas a cada turno — isso multiplica o consumo de tokens em relação a uma chamada única de
+   LLM. Rodar esse loop inteiro com um modelo de fronteira como o <code>gpt-4o</code> seria caro demais para
+   operar em produção com uso real.</li>
+<li><strong>Validação empírica.</strong> No golden dataset de avaliação (ver <a href="../avaliacao/">Avaliação</a>), o
+   Sabiá-4 superou o <code>gpt-4o</code> em qualidade de laudo e aderência de ferramentas para essa tarefa
+   específica.</li>
+</ol>
+<p>O <code>gpt-4o</code> (mais caro) fica reservado ao <strong>juiz da avaliação</strong>, que roda poucas vezes e só quando o
+time executa o golden dataset.</p>
+<h3 id="benchmark-contra-outros-modelos">Benchmark contra outros modelos</h3>
+<p>O Sabiá-4 (Maritaca AI) foi comparado ao <code>gpt-4o</code> no golden dataset e saiu à frente para a tarefa —
+hoje é o modelo em produção, e a suíte de avaliação completa passa com ele (<code>real</code> 4/4, <code>sintetico</code>
+9/9 estável em 3 rodadas — ver <a href="../avaliacao/#estado-atual-do-veredito">Avaliação</a>). <code>LLM_MODEL</code>
+aceita qualquer provider suportado por <code>init_chat_model</code> (ou <code>maritaca:</code>, via o wrapper de
+<code>app/llm.py</code>) sem mudar código.</p>
+<p><strong>Backlog V2:</strong> o benchmark até hoje comparou só Sabiá-4 e <code>gpt-4o</code> — falta testar o sistema contra
+mais modelos, pagos e gratuitos (<code>o1</code>/<code>o3-mini</code>, <code>DeepSeek-R1</code>, Claude, Gemini).</p>
+<p>Por que o conhecimento do edital entra via RAG e não fine-tuning: ver
+<a href="../rag_dados/#por-que-rag">Por que RAG</a>.</p>
+<h2 id="os-prompts-do-sistema">Os prompts do sistema</h2>
+<p>Toda a engenharia de prompt vive num único arquivo,
+<a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py"><code>app/agents/prompt.py</code></a>
+— só texto, nenhuma lógica de código. São três prompts diferentes, cada um com um papel distinto:</p>
+<p>O <strong><code>SYSTEM_PROMPT</code></strong> é o maior dos três, e o único que existe uma vez só por conversa: é injetado
+no primeiro turno e continua valendo (implicitamente) pro resto da thread. Ele define quem o agente
+é (identidade de auditor), o que ele pode fazer (capacidades), o catálogo completo de anomalias que
+ele precisa procurar e as regras de segurança contra manipulação.</p>
+<p>O <strong><code>PROMPT_DINAMICO</code></strong> é o "envelope" que carrega os dados variáveis de cada conversa — os CNPJs
+encontrados no edital, o município e estado, e a pergunta em si — dentro de tags no estilo XML
+(<code>&lt;CNPJS_NO_EDITAL&gt;</code>, <code>&lt;METADADOS&gt;</code>, <code>&lt;PROMPT_USUARIO&gt;</code>). Ele é montado e enviado como a primeira
+mensagem de qualquer thread nova, seja a primeira pergunta de uma conversa normal, seja o turno do
+relatório automático que dispara sozinho depois do upload.</p>
+<p>O <strong><code>PROMPT_RELATORIO_INICIAL</code></strong> é um caso especial: é uma "pergunta" pré-escrita, usada no lugar
+do texto do usuário quando é o próprio sistema, não uma pessoa, quem dispara o primeiro turno — o
+relatório automático pós-upload. Ele entra no mesmo envelope acima, pelo mesmo caminho de código de
+qualquer outra pergunta (ver <a href="../../arquitetura/visao_geral/">Visão Geral</a>), e a avaliação usa essa
+mesma constante como entrada dos seus testes (ver <a href="../avaliacao/">Avaliação</a>) — não existe um prompt
+separado só para avaliação.</p>
+<p>Um quarto elemento, o <code>TOOL_STATUS_MAP</code>, não é bem um prompt: é um dicionário simples que traduz o
+nome técnico de cada ferramenta (<code>buscar_contexto_edital</code>) numa mensagem de status que o usuário
+lê durante a execução ("Analisando trechos do edital indexado...").</p>
+<h2 id="exemplo-real-o-que-o-modelo-recebe-no-primeiro-turno">Exemplo real: o que o modelo recebe no primeiro turno</h2>
+<p><code>SYSTEM_PROMPT</code> (abertura, <a href="https://github.com/Moreira-89/auditor-cidadao/blob/main/backend/app/agents/prompt.py"><code>app/agents/prompt.py</code></a> — texto literal, só cortado com <code>[...]</code> onde o
+prompt continua):</p>
+<div class="highlight"><pre><span></span><code># IDENTIDADE
+
+Você é o Auditor Cidadão, um agente especializado em triagem de riscos em
+licitações, contratos e editais públicos municipais brasileiros.
+
+Atue de forma cordial, profissional, objetiva e tecnicamente cautelosa.
+
+# MISSÃO
+
+Identificar fatos e sinais verificáveis que possam justificar investigação humana
+em documentos de contratação pública.
+
+Você não substitui auditoria formal, controle externo, investigação administrativa
+ou decisão judicial. Não acusa pessoas ou empresas e não emite conclusão jurídica
+definitiva.
+
+[...]
+</code></pre></div>
+<p><code>PROMPT_DINAMICO</code> é o <code>HumanMessage</code> enviado junto. Numa primeira pergunta de conversa, fica assim:</p>
+<div class="highlight"><pre><span></span><code>&lt;CNPJS_NO_EDITAL&gt;
+47417848000184
+&lt;/CNPJS_NO_EDITAL&gt;
+
+&lt;METADADOS&gt;
+Município: São Luís
+Estado: Maranhão (MA)
+Data de hoje: 20260815
+&lt;/METADADOS&gt;
+
+&lt;PROMPT_USUARIO&gt;
+Audite essa empresa e verifique se há alguma sanção que a impeça de contratar com o poder público.
+&lt;/PROMPT_USUARIO&gt;
+</code></pre></div>
+<p>Note que a pergunta do usuário nunca chega "pura" ao modelo — sempre dentro da tag
+<code>&lt;PROMPT_USUARIO&gt;</code>, depois de passar por <code>escape_xml()</code> (ver <a href="../../governanca/guardrails/">Guardrails</a>).
+No <strong>relatório automático</strong> (primeiro turno disparado pelo sistema, <code>inicial: true</code>), a mesma tag
+<code>&lt;PROMPT_USUARIO&gt;</code> carrega o <code>PROMPT_RELATORIO_INICIAL</code> no lugar do texto do usuário.</p>
+<h2 id="tecnicas-de-engenharia-de-prompt-aplicadas">Técnicas de engenharia de prompt aplicadas</h2>
+<p><strong>Identidade e missão explícitas.</strong> O <code>SYSTEM_PROMPT</code> abre definindo o agente como uma <strong>triagem de
+riscos</strong>, não uma auditoria formal — deixa explícito que ele "não substitui auditoria formal,
+controle externo, investigação administrativa ou decisão judicial" e "não acusa pessoas ou empresas".
+Isso mantém o modelo dentro do papel de sinalizar, não de veredito.</p>
+<p><strong>Hierarquia de evidências.</strong> O prompt estabelece uma ordem de confiança nas fontes: (1) APIs
+oficiais, (2) texto do documento, (3) busca web, (4) inferências próprias — sempre sinalizadas como
+tal. Isso reduz o risco de o modelo tratar um resultado de busca web com o mesmo peso de um dado da
+Receita Federal.</p>
+<p><strong>Regra anti-alucinação por "vocabulário emprestado".</strong> Uma regra específica (descoberta em teste
+real via log) proíbe o modelo de inferir um campo a partir de uma fonte que não foi consultada — por
+exemplo, afirmar a <code>situação cadastral</code> a partir de um resultado de sanções sem ter chamado a
+Receita Federal. Toda afirmação factual precisa remeter a um campo literal de uma tool efetivamente
+chamada naquele turno.</p>
+<p><strong>Dois modos de resposta com gatilhos explícitos.</strong> O prompt distingue <em>laudo completo</em> (Markdown
+estruturado, só quando o usuário pede análise/auditoria) de <em>resposta conversacional</em> (direta, sem
+score, para perguntas pontuais). Os gatilhos de cada modo estão listados no prompt.</p>
+<p><strong>Score conservador, sem número fixo.</strong> O score representa risco de triagem, nunca probabilidade de
+fraude ou conclusão jurídica. O prompt proíbe risco crítico automático para indício ou dado
+incompleto, proíbe reduzir a incerteza só porque uma fonte voltou "limpa", e só permite não atribuir
+score numérico quando não houver dados suficientes — se a aplicação exigir um valor mesmo assim, o
+prompt manda usar um "score conservador" e explicar a limitação, sem fixar um piso numérico. Isso
+conecta diretamente com a <a href="../../governanca/limitacoes/">Governança</a>: o laudo é indício, não veredito.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

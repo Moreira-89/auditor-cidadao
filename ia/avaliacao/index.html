@@ -1,0 +1,1736 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../rag_dados/">
+      
+      
+        <link rel="next" href="../anomalias/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Avaliação (G-Eval) - Auditor Cidadão - Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#avaliacao-de-desempenho" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-header__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Auditor Cidadão - Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Avaliação (G-Eval)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="teal"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../operacional/" class="md-tabs__link">
+          
+  
+  
+  Operacional
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../arquitetura/visao_geral/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../modelos_prompts/" class="md-tabs__link">
+          
+  
+  
+  Engenharia de IA
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governanca/lgpd/" class="md-tabs__link">
+          
+  
+  
+  Governança
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Auditor Cidadão - Documentação Técnica" class="md-nav__button md-logo" aria-label="Auditor Cidadão - Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Auditor Cidadão - Documentação Técnica
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operacional
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operacional
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/setup_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referência de API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker & Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operacional/variaveis_ambiente/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variáveis de ambiente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/visao_geral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/anatomia_de_um_turno/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anatomia de um turno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/fluxo_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arquitetura/protocolo_mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocolo MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engenharia de IA
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engenharia de IA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modelos_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos e prompts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rag_dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso de dados e RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (G-Eval)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avaliação (G-Eval)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-golden-dataset-um-conjunto-de-casos-com-gabarito" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O golden dataset: um conjunto de casos com gabarito
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-um-caso-roda-o-mesmo-caminho-de-codigo-da-producao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como um caso roda: o mesmo caminho de código da produção
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-cada-resposta-e-julgada-g-eval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como cada resposta é julgada: G-Eval
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#as-quatro-metricas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        As quatro métricas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="As quatro métricas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fidelidade-como-o-juiz-decide-a-nota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fidelidade: como o juiz decide a nota
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recall-de-anomalias-por-que-e-f1-nao-so-acertou-ou-nao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recall de Anomalias: por que é F1, não só "acertou ou não"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-pipeline-passo-a-passo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O pipeline, passo a passo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rodando" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rodando
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#por-que-vale-ler-o-motivo-nao-so-o-numero" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que vale ler o motivo, não só o número
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#estado-atual-do-veredito" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado atual do veredito
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anomalias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de anomalias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/lgpd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LGPD e privacidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governanca/limitacoes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitações conhecidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#o-golden-dataset-um-conjunto-de-casos-com-gabarito" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O golden dataset: um conjunto de casos com gabarito
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-um-caso-roda-o-mesmo-caminho-de-codigo-da-producao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como um caso roda: o mesmo caminho de código da produção
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-cada-resposta-e-julgada-g-eval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como cada resposta é julgada: G-Eval
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#as-quatro-metricas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        As quatro métricas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="As quatro métricas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fidelidade-como-o-juiz-decide-a-nota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fidelidade: como o juiz decide a nota
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recall-de-anomalias-por-que-e-f1-nao-so-acertou-ou-nao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recall de Anomalias: por que é F1, não só "acertou ou não"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-pipeline-passo-a-passo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O pipeline, passo a passo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rodando" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rodando
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#por-que-vale-ler-o-motivo-nao-so-o-numero" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que vale ler o motivo, não só o número
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#estado-atual-do-veredito" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado atual do veredito
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="avaliacao-de-desempenho">Avaliação de Desempenho</h1>
+<p>Toda vez que alguém mexe no prompt, troca o modelo ou ajusta uma ferramenta, existe o risco de
+piorar a qualidade das respostas sem perceber — o agente continua respondendo, só que pior, e
+ninguém nota até um caso real dar errado. Para não depender de "parece que ficou bom", o projeto
+mantém um framework de avaliação automatizado: um conjunto de casos de teste curados (o <strong>golden
+dataset</strong>) e um script que roda o agente de verdade contra cada caso e mede a qualidade da resposta
+com números, não com impressão.</p>
+<p>O código vive em <a href="https://github.com/Moreira-89/auditor-cidadao/tree/main/backend/evaluation"><code>backend/evaluation/</code></a>,
+ao lado de <code>backend/app/</code> (a avaliação importa do <code>app</code>, nunca o contrário — ela é consumidora do
+código de produção, não uma cópia dele). Roda assim:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>backend
+python<span class="w"> </span>-m<span class="w"> </span>evaluation.runner
+</code></pre></div>
+<h2 id="o-golden-dataset-um-conjunto-de-casos-com-gabarito">O golden dataset: um conjunto de casos com gabarito</h2>
+<p>Um "caso" é um edital (PDF real ou fabricado para o teste) mais um <strong>gabarito</strong>: quais ferramentas
+o agente deveria chamar, com quais argumentos, e quais anomalias deveria encontrar. Todos os casos
+vivem num único arquivo, <code>evaluation/dataset/golden_dataset.json</code>, e cada um é validado contra um
+schema Pydantic antes de rodar — um erro de digitação no gabarito (por exemplo, um código de
+anomalia que não existe) quebra na hora, não some em silêncio.</p>
+<p>Existem dois tipos de caso, guardados no mesmo dataset, mas cobrando coisas diferentes:</p>
+<table>
+<thead>
+<tr>
+<th>Tipo</th>
+<th>O que cobra</th>
+<th>Quantos casos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>real</code></td>
+<td>O agente recuperou o trecho certo do edital e chamou a ferramenta certa</td>
+<td>4 — editais verdadeiros, baixados de portais reais</td>
+</tr>
+<tr>
+<td><code>sintetico</code></td>
+<td>O agente encontrou a anomalia certa</td>
+<td>9 — um caso por letra do catálogo A–I</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Por que separar assim.</strong> Um edital real e complexo não tem um "gabarito de anomalia" 100%
+confiável — mesmo um humano especialista pode discordar se um trecho específico é ou não
+irregularidade. Isso já aconteceu na prática: em dois dos quatro casos reais, o agente apontou uma
+anomalia a mais do que o gabarito previa, e não dava pra saber com segurança se era erro do agente
+ou do gabarito (num dos dois, era mesmo erro de gabarito — corrigido depois de conferir CNPJ e CNAE
+reais). Por isso os 4 casos reais só cobram o que é <strong>objetivamente</strong> checável — achou o trecho
+certo, chamou a ferramenta certa — e toda a checagem de "achou a anomalia certa" foi para os 9 casos
+sintéticos, onde o gabarito é escrito antes de o PDF existir e não tem margem pra interpretação.</p>
+<p>Os 9 casos sintéticos, um por letra do catálogo (ver <a href="../anomalias/">Catálogo de Anomalias</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Anomalia</th>
+<th>Cenário resumido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A</strong> — sobrepreço</td>
+<td>Papel sulfite 40% acima da mediana de referência</td>
+</tr>
+<tr>
+<td><strong>B</strong> — direcionamento</td>
+<td>Cláusula de credenciamento sem relação demonstrada com o objeto</td>
+</tr>
+<tr>
+<td><strong>C</strong> — fracionamento</td>
+<td>Pavimentação dividida em 2 certames, ~2 meses de intervalo</td>
+</tr>
+<tr>
+<td><strong>D</strong> — indício de conluio</td>
+<td>3 empresas, mesmo endereço/sócios, propostas muito próximas</td>
+</tr>
+<tr>
+<td><strong>E</strong> — empresa incompatível</td>
+<td>Vencedora de obra de R$ 4,8 mi constituída 7 meses antes do edital</td>
+</tr>
+<tr>
+<td><strong>F</strong> — prazo insuficiente</td>
+<td>Sem os 30 dias mínimos entre publicação e sessão</td>
+</tr>
+<tr>
+<td><strong>C + G</strong> — fracionamento + concentração</td>
+<td>Uma empresa venceu 64,3% dos certames do órgão em 12 meses</td>
+</tr>
+<tr>
+<td><strong>H</strong> — sanção vigente</td>
+<td>Vencedora consta no CEIS, adjudicada mesmo assim</td>
+</tr>
+<tr>
+<td><strong>I</strong> — CNAE incompatível</td>
+<td>Empresa fictícia do ramo gráfico concorrendo a manutenção de climatização</td>
+</tr>
+</tbody>
+</table>
+<p>Um desses casos merece nota à parte: o caso-controle não espera <strong>nenhuma</strong> anomalia, mas ainda
+assim espera que o agente chame <code>buscar_contexto_edital</code> — ele precisa consultar o edital pra
+escrever o relatório, mesmo quando conclui que está tudo em ordem. "Não espero nenhuma ferramenta"
+e "não tenho gabarito de ferramenta pra este caso" são coisas diferentes, e o schema do dataset
+distingue as duas.</p>
+<h2 id="como-um-caso-roda-o-mesmo-caminho-de-codigo-da-producao">Como um caso roda: o mesmo caminho de código da produção</h2>
+<p>Este é o ponto mais importante do design: <strong>a avaliação não tem um "modo de teste" separado do
+agente real.</strong> Ela chama exatamente a mesma função que o endpoint <code>/conversar-com-auditor/</code> chama
+em produção:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># é isso que o harness de avaliação chama por trás — mesma função, mesmo grafo, mesmo prompt</span>
+<span class="k">await</span> <span class="n">run_agent</span><span class="p">(</span>
+    <span class="n">pergunta_usuario</span><span class="o">=</span><span class="n">PROMPT_RELATORIO_INICIAL</span><span class="p">,</span>  <span class="c1"># mesma constante que o relatório automático usa</span>
+    <span class="n">lista_cnpj</span><span class="o">=</span><span class="n">caso</span><span class="o">.</span><span class="n">cnpjs</span><span class="p">,</span>
+    <span class="n">estado</span><span class="o">=</span><span class="n">caso</span><span class="o">.</span><span class="n">estado</span><span class="p">,</span>
+    <span class="n">municipio</span><span class="o">=</span><span class="n">caso</span><span class="o">.</span><span class="n">municipio</span><span class="p">,</span>
+    <span class="n">thread_id</span><span class="o">=</span><span class="n">edital_id</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Isso importa porque elimina uma categoria inteira de bug: "passou na avaliação, mas quebrou em
+produção porque o caminho de teste era diferente do caminho real". Se <code>run_agent()</code> muda amanhã, a
+avaliação sente a mudança imediatamente — não existe uma segunda cópia da lógica do agente pra
+manter sincronizada.</p>
+<p>Depois que o agente termina o turno, o harness precisa reconstruir duas coisas a partir do que
+sobrou: o texto final do laudo (juntando os tokens que <code>run_agent()</code> foi emitindo) e a lista de
+ferramentas que ele chamou, com os argumentos — isso não vem pronto no stream de eventos (que só
+manda o <em>nome</em> da ferramenta, pra atualizar a UI), então o harness lê o checkpoint do LangGraph
+depois do turno terminar e extrai os <code>tool_calls</code> do histórico de mensagens salvo ali.</p>
+<p><strong>Como os achados de anomalia são extraídos: regex, não um segundo LLM.</strong> O prompt já obriga o
+agente a escrever cada achado num formato fixo (<code>**[ESTADO: CONFIRMADO] [NÍVEL DE RISCO: ALTO] —
+H. Sanção...**</code>), então basta procurar esse padrão no Markdown:</p>
+<div class="highlight"><pre><span></span><code><span class="n">_PADRAO_ACHADO</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">"\*\*\[ESTADO:\s*(CONFIRMADO|INDÍCIO)\]\s*"</span>
+    <span class="sa">r</span><span class="s2">"\[NÍVEL DE RISCO:\s*(?:BAIXO|MÉDIO|ALTO|CRÍTICO)\]\s*"</span>
+    <span class="sa">r</span><span class="s2">"[—-]\s*([A-I])\."</span>
+<span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">extrair_anomalias</span><span class="p">(</span><span class="n">texto_laudo</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Devolve [(codigo, estado), ...] achados no laudo."""</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">_PADRAO_ACHADO</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">texto_laudo</span><span class="p">)]</span>
+</code></pre></div>
+<p>Nada de chamar um LLM pra "ler e extrair" — o dado já está lá, formatado, só precisa ser lido. Mais
+rápido, sem custo de API, e sem a instabilidade de pedir pra outro modelo interpretar o texto.</p>
+<h2 id="como-cada-resposta-e-julgada-g-eval">Como cada resposta é julgada: G-Eval</h2>
+<p>A pergunta que a avaliação precisa responder é semântica, não textual: <em>"o laudo afirma algo que as
+fontes consultadas não sustentam?"</em> — não <em>"o texto se parece com um texto de referência?"</em>. Isso
+já descarta métricas clássicas de comparação de texto (BLEU, ROUGE): elas comparam string contra
+string, e não existe um "laudo perfeito" único pra comparar — dois laudos com redação totalmente
+diferente podem estar igualmente certos.</p>
+<p>Sobra julgar com outro LLM. A forma mais comum de fazer isso é dar a um "LLM-juiz" a resposta e o
+contexto, e pedir uma nota — é o que o <a href="https://docs.ragas.io/">RAGAS</a> faz, e foi o que o projeto
+usou antes. O problema medido na prática: rodando a <strong>mesma</strong> avaliação 4 vezes seguidas, sem mudar
+nada no código, uma das métricas do RAGAS saiu <code>0.0</code>, <code>0.33</code>, <code>0.67</code> e <code>1.0</code> nas quatro rodadas — a
+variação não vinha do que estava sendo avaliado, vinha da falta de um critério explícito de
+julgamento.</p>
+<p><strong>G-Eval</strong> ataca esse problema na raiz: em vez de pedir "julgue a qualidade" e deixar o juiz
+decidir sozinho o que isso significa, quem escreve a métrica define os <strong>passos de raciocínio</strong> que
+o juiz precisa seguir e uma <strong>régua de nota</strong> fixa antes de rodar. O juiz tem menos espaço pra
+divergir de rodada pra rodada porque o critério já está escrito no prompt, não na "opinião" livre
+do modelo. A biblioteca <a href="https://deepeval.com/"><code>deepeval</code></a> já entrega isso pronto.</p>
+<h2 id="as-quatro-metricas">As quatro métricas</h2>
+<table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th>O que mede</th>
+<th>Limiar para passar</th>
+<th>Usa LLM?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tool Correctness</strong></td>
+<td>O agente chamou as ferramentas certas (só o nome, não os argumentos)</td>
+<td>≥ 0.50</td>
+<td>Não</td>
+</tr>
+<tr>
+<td><strong>Argumentos da Tool</strong></td>
+<td>Os argumentos que importam (ex.: o CNPJ) chegaram certos na ferramenta</td>
+<td>≥ 1.00</td>
+<td>Não</td>
+</tr>
+<tr>
+<td><strong>Fidelidade</strong></td>
+<td>O laudo só afirma o que as ferramentas realmente sustentam</td>
+<td>≥ 0.60</td>
+<td>Sim</td>
+</tr>
+<tr>
+<td><strong>Cobertura de Contexto</strong> (só <code>real</code>) / <strong>Recall de Anomalias</strong> (só <code>sintetico</code>)</td>
+<td>O agente recuperou o trecho certo do edital / achou a anomalia certa</td>
+<td>≥ 0.70 / ≥ 0.65</td>
+<td>Sim / Não</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Por que duas métricas de ferramenta em vez de uma.</strong> A métrica nativa do <code>deepeval</code> para tool use
+compara os argumentos por igualdade exata — o que quebraria casos onde o argumento esperado é
+intencionalmente vazio (a pergunta que vai pra <code>buscar_contexto_edital</code> é texto livre, nunca faz
+sentido cobrar um valor exato). Por isso uma segunda métrica, escrita para este projeto, cobra só os
+argumentos que realmente importam (como o CNPJ que uma tool de sanção recebeu), aceitando que a
+chamada real tenha outros campos a mais.</p>
+<h3 id="fidelidade-como-o-juiz-decide-a-nota">Fidelidade: como o juiz decide a nota</h3>
+<p>O juiz recebe uma lista de passos: listar cada afirmação factual do laudo, procurar se ela é
+sustentada pelo que as ferramentas devolveram, e marcar cada uma como sustentada ou não. Uma
+afirmação que <strong>extrapola</strong> a fonte conta como não sustentada — se a fonte diz "3 sanções" e o
+laudo diz "sanções recorrentes e graves", isso é extrapolação, mesmo sem inventar um número novo.
+Depois de aplicar esses passos, o juiz usa esta régua para converter em nota de 1 a 5:</p>
+<div class="highlight"><pre><span></span><code><span class="n">rubric</span><span class="o">=</span><span class="p">[</span>
+    <span class="n">Rubric</span><span class="p">(</span><span class="n">score_range</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">expected_outcome</span><span class="o">=</span><span class="s2">"Todas as afirmações sustentadas."</span><span class="p">),</span>
+    <span class="n">Rubric</span><span class="p">(</span><span class="n">score_range</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">expected_outcome</span><span class="o">=</span><span class="s2">"1 não sustentada, detalhe menor que não muda o achado."</span><span class="p">),</span>
+    <span class="n">Rubric</span><span class="p">(</span><span class="n">score_range</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">expected_outcome</span><span class="o">=</span><span class="s2">"1 não sustentada que afeta a evidência de um achado."</span><span class="p">),</span>
+    <span class="n">Rubric</span><span class="p">(</span>
+        <span class="n">score_range</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">expected_outcome</span><span class="o">=</span><span class="s2">"2+ não sustentadas, ou 1 que inventa dado central "</span>
+        <span class="s2">"(CNPJ, valor, sanção, cláusula) sem base em nenhuma fonte."</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">Rubric</span><span class="p">(</span>
+        <span class="n">score_range</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">expected_outcome</span><span class="o">=</span><span class="s2">"Achado (CONFIRMADO/INDÍCIO) cuja evidência central "</span>
+        <span class="s2">"não existe em nenhuma fonte consultada."</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+</code></pre></div>
+<p>Essa régua foi testada de propósito: rodando a métrica isolada contra um caso onde o laudo
+propositalmente extrapola a fonte, ela deu 0.32 (reprovado); contra um caso fiel, deu 1.0
+(aprovado). Ou seja, a régua discrimina de verdade — não dá nota alta só porque o texto está bem
+escrito.</p>
+<h3 id="recall-de-anomalias-por-que-e-f1-nao-so-acertou-ou-nao">Recall de Anomalias: por que é F1, não só "acertou ou não"</h3>
+<p>Essa métrica compara os códigos que o agente apontou (A a I) contra os que o gabarito esperava, e
+faz duas perguntas diferentes sobre a mesma comparação:</p>
+<ul>
+<li><strong>Precisão</strong> — "das anomalias que o agente apontou, quantas estavam certas?" Pega um agente que
+  chuta todas as 9 letras em todo edital: ele nunca erra por falta (acha tudo, óbvio), mas a
+  precisão dele despenca porque a maioria dos chutes está errada.</li>
+<li><strong>Recall</strong> — "das anomalias que o gabarito esperava, quantas o agente achou?" Pega o oposto: um
+  agente caladão, que só fala quando tem certeza absoluta, pode ter precisão perfeita mas deixar
+  passar metade das anomalias reais.</li>
+</ul>
+<p>Nenhuma das duas sozinha basta — cada uma pode ser "enganada" isoladamente, como nos dois exemplos
+acima. A métrica final é o <strong>F1</strong>, a média harmônica entre as duas:</p>
+<div class="highlight"><pre><span></span><code>F1 = 2 × (precisão × recall) / (precisão + recall)
+</code></pre></div>
+<p>Diferente de uma média simples, o F1 pune desequilíbrio: se uma das duas for zero, o F1 vai a zero
+junto, mesmo que a outra seja perfeita.</p>
+<p><strong>Exemplo real, o caso "fracionamento + concentração"</strong> (gabarito esperava <code>["C", "G"]</code>, o agente
+só apontou <code>["G"]</code>):</p>
+<ul>
+<li>Precisão = 1/1 = <strong>1.0</strong> — tudo que ele disse (<code>G</code>) estava certo.</li>
+<li>Recall = 1/2 = <strong>0.5</strong> — achou 1 das 2 anomalias esperadas.</li>
+<li>F1 = 2 × (1.0 × 0.5) / (1.0 + 0.5) = <strong>0.667</strong> — acima do limiar de 0.65, esse caso passa, mesmo
+  sem detectar a anomalia secundária.</li>
+</ul>
+<h2 id="o-pipeline-passo-a-passo">O pipeline, passo a passo</h2>
+<p>Para cada caso do dataset, na ordem:</p>
+<ol>
+<li><strong>Prepara o ambiente</strong> — monta o mesmo conjunto de ferramentas que a produção usa (nativas + MCP</li>
+<li>cache), com a temperatura do LLM zerada para reduzir variação entre rodadas.</li>
+<li><strong>Indexa o caso</strong> — roda o mesmo pipeline de extração (Docling) e indexação (MongoDB) que o
+   <code>/upload/</code> real usa.</li>
+<li><strong>Executa</strong> — chama <code>run_agent()</code>, o mesmo caminho de produção (ver acima).</li>
+<li><strong>Limpa</strong> — remove o edital indexado do banco, sempre, mesmo se o passo anterior falhou.</li>
+</ol>
+<p>Um detalhe de isolamento: como o pipeline usa o mesmo Redis de cache que a produção, a avaliação
+roda num banco lógico separado do Redis (não o mesmo namespace de chaves) e limpa esse banco antes
+de cada rodada — sem isso, um caso corrigido no dataset continuaria batendo num resultado
+cacheado de uma rodada anterior, e a correção não apareceria no resultado.</p>
+<p><strong>Se um provider de LLM falhar no meio de um caso</strong> (erro 500/503 transiente — já aconteceu com
+OpenAI, Gemini e Maritaca), o caso é re-tentado até 3 vezes antes de ser descartado. Sem isso, uma
+falha de rede no meio da lista jogaria fora o trabalho de todos os casos já rodados antes dele.</p>
+<p>No final, os casos <code>real</code> e <code>sintetico</code> são avaliados separadamente (cobram métricas diferentes) e
+o resultado de cada rodada é salvo num arquivo JSON com timestamp. Se qualquer caso reprovar em
+qualquer métrica — ou se algum caso foi descartado pelo retry — o script termina com erro, pra ficar
+óbvio no terminal (ou no CI) que algo não passou.</p>
+<h2 id="rodando">Rodando</h2>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>backend
+python<span class="w"> </span>-m<span class="w"> </span>evaluation.runner<span class="w">                          </span><span class="c1"># todos os casos</span>
+python<span class="w"> </span>-m<span class="w"> </span>evaluation.runner<span class="w"> </span>caso_02_saoluis_sancao<span class="w">    </span><span class="c1"># um caso específico</span>
+python<span class="w"> </span>-m<span class="w"> </span>evaluation.runner<span class="w"> </span>--tipo<span class="o">=</span>sintetico<span class="w">          </span><span class="c1"># só a suíte sintética (mais rápida)</span>
+python<span class="w"> </span>-m<span class="w"> </span>evaluation.runner<span class="w"> </span>--tipo<span class="o">=</span>real<span class="w">               </span><span class="c1"># só a suíte real</span>
+</code></pre></div>
+<p>Precisa das mesmas variáveis de ambiente da produção (<code>OPENAI_API_KEY</code>, <code>MONGODB_URI</code>, <code>REDIS_URI</code>,
+Node.js no PATH para o MCP) — porque, de novo, é o mesmo código de produção rodando. O juiz (LLM
+que avalia Fidelidade e Cobertura de Contexto) é configurável separadamente do modelo do agente
+(<code>AVALIADOR_MODEL</code>), útil quando o provider padrão tem um limite de taxa baixo demais para um edital
+grande — ver <a href="../../operacional/variaveis_ambiente/">Variáveis de ambiente</a>.</p>
+<h2 id="por-que-vale-ler-o-motivo-nao-so-o-numero">Por que vale ler o motivo, não só o número</h2>
+<p>Cada métrica do <code>deepeval</code> devolve, além da nota, uma explicação em texto de por que deu aquela
+nota — a Fidelidade aponta exatamente qual frase do laudo não tem base na fonte; a Tool Correctness
+lista exatamente quais ferramentas faltaram ou sobraram. Essa explicação é o que de fato orienta uma
+correção: dá pra levar direto pro <code>SYSTEM_PROMPT</code> ou pra docstring de uma ferramenta, em vez de só
+saber que "a nota caiu" sem saber por quê.</p>
+<h2 id="estado-atual-do-veredito">Estado atual do veredito</h2>
+<div class="admonition success">
+<p class="admonition-title">Suíte <code>real</code>: 4/4 — Tool Correctness, Argumentos e Cobertura de Contexto em 1.0, Fidelidade 0.89-0.99</p>
+<p>Os 4 casos reais passam em todas as métricas. O caso de Belém (Fidelidade 0.889, o mais baixo
+do lote) ainda mostra sinal do problema de retrieval documentado em
+<a href="../rag_dados/#limitacoes-conhecidas-do-retrieval">Uso de Dados e RAG</a> — mas não reprova.</p>
+</div>
+<div class="admonition success">
+<p class="admonition-title">Suíte <code>sintetico</code>: 9/9 estável em 3 rodadas seguidas</p>
+<p>Três rodadas completas contra os 9 casos (um por letra do catálogo A-I), sem mudança de código
+entre a 2ª e a 3ª: Tool Correctness e Argumentos da Tool em 1.0 nas 3, Fidelidade sempre ≥ 0.92.</p>
+<p>Duas divergências de classificação se repetiram nas 3 rodadas — tratadas como limitações
+conhecidas, não bugs de pipeline:</p>
+<ul>
+<li>O caso de <strong>empresa recém-criada em obra complexa</strong> (esperado <strong>E</strong>): o modelo às vezes
+  classifica o mesmo achado como <strong>I</strong> (CNAE incompatível) em vez de <strong>E</strong> (capacidade
+  técnica) — confusão entre duas categorias vizinhas do catálogo, não uma alucinação de fato.</li>
+<li>O caso de <strong>fracionamento + reincidência</strong> (esperado <strong>C + G</strong>): o modelo consistentemente só
+  aponta <strong>G</strong>, nunca o <strong>C</strong> que também tem evidência textual no PDF — o F1 fica em 0.667
+  (acima do limiar de 0.65, então passa), mas não detecta a anomalia secundária.</li>
+</ul>
+<p>O caso de <strong>cartel</strong> (esperado <strong>D</strong>) teve uma ocorrência intermitente (1 das 3 rodadas) de
+apontar também <strong>B</strong> (direcionamento), emprestando evidência do próprio achado D sem uma
+cláusula de direcionamento real no edital — não é consistente como os dois casos acima, por ora
+só anotado.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.16.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>
