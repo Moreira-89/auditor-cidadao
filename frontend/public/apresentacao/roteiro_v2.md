@@ -24,11 +24,11 @@
 
 ## Bloco 1 — Abertura (≈ 8:30)
 
-**Página:** `README.md` do repositório (github.com/Moreira-89/auditor-cidadao) — ou a home da doc
-(`/`), que resume o mesmo conteúdo.
+**Página:** home da doc (`/`, `docs/index.md`).
 
 ### O problema — 2:30
-Não tem página própria — fale de cabeça, é a abertura, então merece estar bem mastigada.
+**Página:** home da doc, seção **"O problema"** — pode abrir e deixar no fundo enquanto fala, mas
+o texto abaixo é mais completo que o parágrafo da doc, então fale de cabeça em cima dele.
 
 **O que é uma licitação, em 1 frase** (parte da banca pode não ser da área): é o processo pelo qual
 um órgão público — prefeitura, governo estadual, autarquia — é **obrigado por lei** (Lei
@@ -52,8 +52,9 @@ licitações municipais no Brasil nunca passa por esse crivo, simplesmente porqu
 tempo suficiente pra fazer isso em escala — são milhares de municípios publicando editais todo dia.
 
 ### Como funciona, na teoria — 2 min
-Abra o README na seção **"📋 O caso"** e **"✨ Destaques"** — aponte a tabela de destaques sem ler
-célula por célula, mas explique os 3 passos em voz alta enquanto aponta:
+**Página:** home da doc, seção **"A solução"** — o parágrafo já resume os 3 passos e fecha com a
+mesma ressalva ("o sistema sinaliza padrões, não substitui uma auditoria formal"). Aponte a lista de
+bullets da seção sem ler célula por célula, e explique os 3 passos em voz alta:
 
 1. **Upload & indexação** — o usuário sobe o PDF do edital, o sistema indexa automaticamente em
    segundos (RAG).
@@ -90,12 +91,12 @@ automatizado às ferramentas certas." É esse acesso automatizado, não o modelo
 diferencial real.
 
 ### Stack — 1:30
-README, seção **"🛠️ Stack tecnológica"** — a tabela já está pronta, só apontar. Rápido: FastAPI +
-LangGraph no backend, Maritaca Sabiá-4 como LLM principal (embeddings via OpenAI), MongoDB Atlas +
-Redis pros dados, Docker no Railway. Não justificar cada escolha aqui — se quiser aprofundar o
-porquê do Sabiá-4 especificamente, a razão está em `ia/modelos_prompts.md` (especialização em
-domínio jurídico-administrativo brasileiro + custo sustentável num agente que faz várias chamadas
-de LLM por turno), mas só abra essa página se sobrar tempo — não é bloco planejado.
+Sem página própria — fale direto, rápido, sem justificar cada escolha: **FastAPI + LangGraph** no
+backend, **Maritaca Sabiá-4** como LLM principal (embeddings via OpenAI), **MongoDB Atlas + Redis**
+pros dados, **Docker no Railway** pro deploy. Se quiser aprofundar o porquê do Sabiá-4
+especificamente, a razão está em `ia/modelos_prompts.md` (especialização em domínio
+jurídico-administrativo brasileiro + custo sustentável num agente que faz várias chamadas de LLM por
+turno), mas só abra essa página se sobrar tempo — não é bloco planejado.
 
 ---
 
