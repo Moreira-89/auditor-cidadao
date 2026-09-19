@@ -22,31 +22,80 @@
 
 ---
 
-## Bloco 1 — Abertura (≈ 9 min)
+## Bloco 1 — Abertura (≈ 8:30)
 
 **Página:** `README.md` do repositório (github.com/Moreira-89/auditor-cidadao) — ou a home da doc
 (`/`), que resume o mesmo conteúdo.
 
-### O problema — 2 min
-Fale de cabeça, sem precisar de página aberta ainda: fiscalizar uma licitação exige cruzar
-manualmente PNCP, Receita Federal e CEIS/CNEP — trabalho de especialista. **Antes disso**,
-contextualize em 1 frase o que é uma licitação (parte da banca pode não ser da área): processo
-pelo qual um órgão público é obrigado por lei a comprar/contratar, empresa vencedora escolhida por
-critério do edital — é aí que mora o risco de fraude.
+### O problema — 2:30
+Não tem página própria — fale de cabeça, é a abertura, então merece estar bem mastigada.
+
+**O que é uma licitação, em 1 frase** (parte da banca pode não ser da área): é o processo pelo qual
+um órgão público — prefeitura, governo estadual, autarquia — é **obrigado por lei** (Lei
+14.133/2021) a abrir concorrência antes de comprar um bem ou contratar um serviço, em vez de
+escolher livremente um fornecedor. A empresa vencedora é definida por critérios fixados no
+**edital** (o documento que rege aquela contratação específica): menor preço, melhor técnica, ou
+uma combinação das duas.
+
+**Onde mora o risco.** Justamente porque o processo é regrado, ele também pode ser manipulado por
+dentro das próprias regras: um edital pode ser escrito com uma especificação técnica tão específica
+que só uma empresa combinada de antemão consegue atender (direcionamento); o prazo entre a
+publicação e a sessão pode ser curto demais de propósito, pra afastar concorrentes que não foram
+avisados com antecedência; uma empresa pode vencer repetidamente contratos do mesmo órgão de forma
+suspeita. Nada disso aparece como "ilegal" à primeira vista — precisa cruzar informação de várias
+fontes pra enxergar o padrão.
+
+**O problema prático.** Cruzar manualmente o edital com PNCP (histórico de contratações), Receita
+Federal (dados cadastrais da empresa) e CEIS/CNEP (sanções) é trabalho de especialista — advogado,
+auditor, jornalista investigativo com tempo disponível. **Fechar com:** a esmagadora maioria das
+licitações municipais no Brasil nunca passa por esse crivo, simplesmente porque não há gente nem
+tempo suficiente pra fazer isso em escala — são milhares de municípios publicando editais todo dia.
 
 ### Como funciona, na teoria — 2 min
-Abra o README na seção **"📋 O caso"** e **"✨ Destaques"** — aponte a tabela de destaques (upload +
-relatório automático, agente de auditoria, streaming, guardrails) sem ler célula por célula.
+Abra o README na seção **"📋 O caso"** e **"✨ Destaques"** — aponte a tabela de destaques sem ler
+célula por célula, mas explique os 3 passos em voz alta enquanto aponta:
+
+1. **Upload & indexação** — o usuário sobe o PDF do edital, o sistema indexa automaticamente em
+   segundos (RAG).
+2. **O agente investiga** — um agente de IA decide sozinho quais fontes oficiais consultar,
+   varrendo as 9 categorias do catálogo de anomalias, sem um roteiro fixo de perguntas.
+3. **Recebe o laudo** — estruturado, com evidência, fonte de cada afirmação e um score de risco,
+   entregue em streaming (token a token, como um ChatGPT).
+
+**Não esquecer a ressalva, repetir aqui pela primeira vez:** o sistema **sinaliza padrões pra
+investigação humana** — não substitui auditoria formal, não acusa, não emite veredito. Essa frase
+volta em outros pontos da apresentação, então plantar ela cedo ajuda.
 
 ### Por que não ChatGPT/Claude direto — 2:30
-Não tem página própria na doc — fale direto, é o argumento mais "de venda" da apresentação:
-ChatGPT/Claude não acessam PNCP/Receita/CEIS-CNEP de verdade, só direcionam. Replicar isso manual
-exige conhecimento técnico que jornalista/cidadão comum não tem. **Frase de efeito:** "não é sobre
-o modelo ser melhor — é sobre ter acesso automatizado às ferramentas certas."
+Não tem página própria na doc — fale direto, é o argumento mais "de venda" da apresentação, e o que
+a banca provavelmente já está pensando antes de você falar.
+
+**O que ChatGPT/Claude direto NÃO fazem:**
+- Não têm acesso direto ao PNCP, à Receita Federal ou ao CEIS/CNEP — são APIs específicas, não algo
+  que um chat genérico acessa sozinho.
+- No máximo **direcionam** onde procurar ("consulte o portal da transparência") — não confirmam nem
+  justificam um achado com dado oficial de verdade.
+- Replicar esse cruzamento manualmente (abrir cada API/portal, extrair o dado, comparar) exige
+  conhecimento técnico que um cidadão comum ou um jornalista sem formação em programação não tem.
+
+**O que o Auditor Cidadão faz diferente:**
+- Consulta as bases oficiais de verdade, em tempo real, dentro da própria conversa — o agente decide
+  e chama a ferramenta certa sozinho.
+- Cruza os resultados de várias fontes e devolve um laudo com evidência e fonte citada, não uma
+  sugestão de busca.
+- A única habilidade técnica exigida do usuário é saber fazer upload de um PDF.
+
+**Frase de efeito pra fechar:** "não é sobre o modelo de IA ser 'melhor' — é sobre ter acesso
+automatizado às ferramentas certas." É esse acesso automatizado, não o modelo em si, que é o
+diferencial real.
 
 ### Stack — 1:30
-README, seção **"🛠️ Stack tecnológica"** — a tabela já está pronta, só apontar. Não justificar cada
-escolha aqui.
+README, seção **"🛠️ Stack tecnológica"** — a tabela já está pronta, só apontar. Rápido: FastAPI +
+LangGraph no backend, Maritaca Sabiá-4 como LLM principal (embeddings via OpenAI), MongoDB Atlas +
+Redis pros dados, Docker no Railway. Não justificar cada escolha aqui — se quiser aprofundar o
+porquê do Sabiá-4 especificamente, a razão está em `ia/modelos_prompts.md` (especialização em
+domínio jurídico-administrativo brasileiro + custo sustentável num agente que faz várias chamadas
+de LLM por turno), mas só abra essa página se sobrar tempo — não é bloco planejado.
 
 ---
 
@@ -79,26 +128,49 @@ corte e continue. É a parte de maior risco de esticar o tempo total.
 
 ---
 
-## Bloco 3 — Arquitetura, RAG e persistência (≈ 13 min)
+## Bloco 3 — Arquitetura, RAG e persistência (≈ 12:30)
 
 ### Arquitetura do agente — o grafo — 2:30
 **Página:** `arquitetura/visao_geral.md`, seção **"O grafo do agente"**.
-Mostre o diagrama Mermaid do ciclo (`agente` → `router` → `ferramentas` → volta) e o trecho de
-código do `graph.py` logo acima. Fale do `AsyncRedisSaver` (seção **"Persistência da conversa"**
-mais abaixo na mesma página) — histórico por thread, expira em 24h de inatividade.
+Mostre o diagrama Mermaid do ciclo — é o padrão **ReAct**: o modelo decide se precisa de uma
+ferramenta, o `router` (`tools_condition`) checa se a última resposta trouxe uma chamada de
+ferramenta, se sim executa e volta pro agente decidir de novo, até responder sem pedir mais nada.
+`recursion_limit=50` é o teto que impede um loop infinito entre os dois nós — vale citar, é o tipo
+de detalhe que mostra cuidado de engenharia. Mostre o trecho de código do `graph.py` logo acima do
+diagrama. Fale do `AsyncRedisSaver` (seção **"Persistência da conversa"** mais abaixo na mesma
+página) — histórico por thread, expira em 24h de **inatividade** (não é um teto fixo — uma conversa
+em uso nunca expira no meio).
 
 ### Ferramentas & protocolo MCP — 2 min
 **Página:** mesma (`visao_geral.md`), seção **"Ferramentas disponíveis ao agente"** — a tabela já
-lista as 4 nativas + as 11 de PNCP via MCP. Se quiser aprofundar o *como* o MCP carrega, pule pra
-`arquitetura/protocolo_mcp.md` (diagrama de carregamento no startup) — mas só se sobrar tempo.
+lista as 4 nativas (Receita Federal, RAG do edital, sanções CEIS/CNEP, busca web) + as 11 de PNCP
+via **MCP** (Model Context Protocol) — um pacote npm de terceiro entrega essas 11 ferramentas
+prontas, zero linha de integração própria com a API do PNCP. Cite o cache: quase todas as tools
+passam por Redis com TTL de 24h, compartilhado entre as réplicas — uma consulta repetida ao mesmo
+CNPJ no mesmo dia não gera tráfego novo pra fonte externa. Se quiser aprofundar o *como* o MCP
+carrega, pule pra `arquitetura/protocolo_mcp.md` (diagrama de carregamento no startup) — mas só se
+sobrar tempo.
 
 ### RAG — indexação e recuperação — 3 min
 **Página:** `ia/rag_dados.md`.
-Abra em **"O pipeline de indexação"** — mostre o exemplo real de documento gravado (o bloco de
-código JSON com `secao_ordem`, `secao_texto_completo`) logo abaixo do texto sobre Docling. Desça até
-**"O pipeline de busca"** pra mostrar o código do `$vectorSearch` com `top_k=3` e o dedup por
-`secao_ordem`. **Não precisa ler o código Python linha por linha** — aponte os nomes de campo
-enquanto fala do padrão pai-filho.
+
+**Por que RAG e não fine-tuning, em 1 frase se perguntarem:** o edital é um documento novo a cada
+upload, que não existe no treino de nenhum modelo — fine-tuning ensinaria estilo, não o conteúdo
+específico daquele documento, e teria que ser refeito a cada edital novo.
+
+Abra em **"O pipeline de indexação"** — explique o padrão **pai-filho** (small-to-big): o Docling
+extrai texto + estrutura de seções (diferente de um extrator de texto plano, reconhece tabela e
+hierarquia); só o parágrafo pequeno (filho, até 200 palavras) vira embedding, mas quem é gravado
+junto — sem embedding próprio — é o texto da seção inteira (pai). Mostre o exemplo real de
+documento gravado (o bloco de código JSON com `secao_ordem`, `secao_texto_completo`) logo abaixo do
+texto sobre Docling.
+
+Desça até **"O pipeline de busca"** pra mostrar o código do `$vectorSearch`: busca vetorial sobre o
+filho (é ele que compete por similaridade), mas devolve a seção-pai inteira pro agente, com
+`top_k=3` e filtro obrigatório por `edital_id`+`estado`+`município` (nunca mistura dois editais).
+Cite o dedup por `secao_ordem` — a mesma seção não volta duas vezes na mesma busca, nem se repete
+se já apareceu numa pergunta anterior da conversa. **Não precisa ler o código Python linha por
+linha** — aponte os nomes de campo enquanto fala do conceito.
 
 ### Persistência e limpeza de dados — 2:30
 **Pergunta que a banca provavelmente vai fazer — responda antes.**
@@ -119,14 +191,25 @@ histórico do Redis, é preposto a cada chamada.
 
 ---
 
-## Bloco 4 — Guardrails e avaliação (≈ 9 min)
+## Bloco 4 — Guardrails e avaliação (≈ 9:30)
 
 ### Guardrails de segurança — 2:30
 **Página:** `governanca/guardrails.md`.
+
+Dois escudos, dois riscos diferentes: **injeção de prompt** (o documento ou um campo do usuário
+tentando reprogramar o agente) e **alucinação** (o agente afirmando algo que não verificou).
+
 A página já tem o exemplo real pronto — seção **"Exemplo real: uma tentativa de injeção via
-`municipio`"**, com o antes/depois do `escape_xml()`. Abra direto nela, é mais forte que descrever
-de memória. Complemente com **"Anti-alucinação"** mais abaixo (vocabulário emprestado, hierarquia de
-evidências).
+`municipio`"**, com o antes/depois do `escape_xml()`: um valor malicioso tentando fechar a tag
+`<METADADOS>` e injetar uma instrução falsa, neutralizado porque `<`/`>` viram `&lt;`/`&gt;` antes
+de entrar no prompt. Abra direto nela, é mais forte que descrever de memória — mostra o guardrail
+funcionando na prática, não só descrito.
+
+Complemente com **"Anti-alucinação"** mais abaixo: a regra de **"vocabulário emprestado"** proíbe o
+agente de inferir um campo a partir de uma fonte que não foi chamada naquele turno (ex.: afirmar
+situação cadastral usando só o resultado de sanções, sem ter chamado a Receita Federal) — foi
+descoberta em teste real, via análise de log, não é uma regra teórica. E a hierarquia de evidências:
+API oficial > texto do edital > busca web > inferência própria, sempre sinalizada como tal.
 
 ### Metodologia de avaliação — 2:30
 **Página:** `ia/avaliacao.md`.
@@ -145,10 +228,28 @@ verdes (`real` 4/4, `sintético` 9/9 estável em 3 rodadas) são o "gráfico" de
 semântica (G-Eval/juiz LLM), as outras são determinísticas ou recall binário — uma extrapolação
 pequena de texto já custa ponto na rubrica.
 
-### Custo real do MVP — 1:30
+### Custo real do MVP — 2 min
 **Sem página própria na doc — fale direto, os números estão aqui:**
-R$ 220,33 gastos até hoje: Maritaca AI R$ 40, OpenAI R$ 103,05, MongoDB Atlas free, Railway R$ 77,28
-(plano "Hobby", US$5/mês). É um MVP pra validar a ideia, não a arquitetura final.
+
+| Serviço | Uso | Gasto |
+|---|---|---|
+| Maritaca AI | LLM do agente — API, desde o início do projeto | R$ 40,00 |
+| OpenAI | Embeddings (RAG) — API | R$ 103,05 |
+| MongoDB Atlas | Banco vetorial — plano free | R$ 0,00 |
+| Railway | Hospedagem — plano "Hobby" (US$5/mês) | R$ 77,28 |
+| **Total** | | **R$ 220,33** |
+
+**Por que a OpenAI custou mais que a Maritaca**, se a Maritaca é o LLM principal: embeddings são
+gerados a cada chunk indexado (todo o RAG passa por lá), enquanto o LLM principal só é chamado por
+turno de conversa — volume de chamada diferente.
+
+**Por que Railway e não MongoDB/Maritaca pagos:** os planos free de MongoDB Atlas e Maritaca
+cobriram a demanda de um MVP em validação; a hospedagem (Railway) é o único item realmente pago
+porque não existe "plano free" viável pra manter o serviço no ar 24/7.
+
+**Frase de efeito pra fechar:** é um MVP pra validar a ideia, não a arquitetura final — o próprio
+Railway descreve o plano usado como "para projetos hobby". Migrar pra uma nuvem maior (AWS, Azure
+ou GCP) é o primeiro passo antes de pensar em escala real, o que puxa direto pro próximo bloco.
 
 ---
 
@@ -156,10 +257,23 @@ R$ 220,33 gastos até hoje: Maritaca AI R$ 40, OpenAI R$ 103,05, MongoDB Atlas f
 
 ### Limitações e próximos passos — 2:30
 **Página:** `governanca/limitacoes.md`.
-Role até **"Backlog V2"** — não leia a lista inteira, escolha 2-3 pra destacar em voz alta (sugestão:
-migração de nuvem em **"Escalabilidade e persistência"**, autenticação, indexação automática via
-PNCP em **"Fase 7"**). Os itens mais recentes — controle de contexto, tokenização real, e a ideia de
-observabilidade — também estão nessa página, cada um com sua própria seção.
+
+Antes do backlog, vale citar o princípio que abre a página — **"indício, não veredito"**: o laudo
+sempre recomenda checagem manual, nunca é decisão final. É o fechamento natural pra retomar a
+ressalva do início da apresentação.
+
+Role até **"Backlog V2"** — não leia a lista inteira, escolha 2-3 pra destacar em voz alta:
+- **Escalabilidade e persistência** — migrar do Railway pra uma nuvem maior (GCP como preferência,
+  por hospedagem rápida de configurar + opção de GPU dedicada se o projeto rodar modelo próprio).
+- **Fase 7** — indexação automática via PNCP, eliminando o upload manual.
+- **Autenticação** — hoje a cota é por cookie de sessão, não por identidade; resolve só metade do
+  problema de custo (não impede reset de cookie/aba anônima).
+
+Os itens mais recentes — **controle de contexto** (sumarização com modelo auxiliar, hoje inexistente
+porque a V1 é só validação), **tokenização real** (troca do `split()` por `tiktoken` no fatiamento
+de chunk) e a ideia de **observabilidade** (centralizar tokens/requisições/logs, com avaliação
+contínua em produção) — também estão nessa página, cada um com sua própria seção, casos a banca
+pergunte por detalhe.
 
 ### Obrigado — 0:30
 Fechar e abrir pra perguntas.
