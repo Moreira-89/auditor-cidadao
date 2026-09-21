@@ -217,3 +217,77 @@ Corte nesta ordem (do menos crítico pro mais crítico):
 **Nunca corte:** slides 5 (por que não ChatGPT), 8 (demo), 12 (persistência/limpeza — responde uma
 pergunta certa da banca), 14 (guardrails com o exemplo de injeção), 16 (resultados) e 17 (custo) —
 são os que mais seguram a atenção e respondem as perguntas que a banca mais provavelmente vai fazer.
+
+---
+
+## Respostas rápidas — perguntas prováveis da banca
+
+Campo de consulta rápida. Não precisa decorar frase por frase — só ter o argumento na ponta da
+língua.
+
+**"A indexação do edital demora ~2 minutos. Isso não é um problema? E se no futuro o próprio agente
+for indexar editais do PNCP automaticamente, não corre risco de timeout?"**
+Sim, é um problema conhecido. O Docling ainda roda dentro do próprio request HTTP do upload hoje.
+Já mitigamos o sintoma mais grave — trocamos pra streaming SSE com `progress`/`heartbeat`, porque
+antes o request síncrono batia timeout de conexão ociosa (`Failed to fetch` no navegador mesmo com
+o backend terminando certo). Mas isso resolve só o sintoma, não reduz o tempo de processamento em
+si. O próximo passo, já registrado no roadmap, é mover o Docling pra um job assíncrono em
+background: o `/upload/` responde em segundos e o status de indexação chega por outro mecanismo. E
+esse desacoplamento é justamente pré-requisito pra Fase 7 (indexação automática via PNCP) — sem
+isso, cada indexação automática multiplicaria o mesmo risco de timeout, então já sei que preciso
+resolver essa base antes de construir aquela feature em cima.
+
+**"Por que a métrica de Fidelidade tem nota mais baixa que as outras?"**
+Porque é a única das 4 métricas que é semântica, julgada por LLM (G-Eval) — Tool Correctness e
+Argumentos são determinísticas, comparação direta, não têm essa variância. Fidelidade compara o
+texto gerado com a evidência recuperada, e isso é mais sensível a nuance de linguagem. Mesmo assim
+ficou entre 0.89 e 0.99 nos 13 casos, estável em 3 rodadas.
+
+**"Vocês têm casos onde o agente erra ou confunde categoria de anomalia?"**
+Sim, documentamos 2 casos de confusão entre categorias próximas (ex.: E×I) — não são falhas no
+sentido de quebrar o teste, mas ficam registrados como limitação conhecida porque as categorias têm
+fronteira semântica próxima. O caso de Fidelidade mais baixa (0.889, Belém) está ligado a uma
+limitação de recuperação (RAG trouxe o trecho certo mas não o mais completo), não a uma alucinação.
+
+**"Vocês tokenizam o texto antes de gerar o embedding?"**
+Não, hoje é um gap conhecido. O corte de chunk usa `str.split()` por espaço (~200 "palavras"), não
+um tokenizador real. Isso importa por três motivos: (1) `text-embedding-3-small` tem limite real de
+8191 tokens — estimativa por palavra é pouco confiável, principalmente em português jurídico, e pode
+truncar silenciosamente; (2) token é a unidade real de custo e rate limit; (3) o tamanho certo do
+chunk em tokens afeta a qualidade do embedding. Já está registrado como próximo passo, trocar por
+`tiktoken`.
+
+**"Por que gastou mais com OpenAI do que com o modelo de linguagem (Maritaca)?"**
+Porque o LLM (Sabiá, via Maritaca) só processa quando o usuário faz uma pergunta, mas o embedding
+roda toda vez que um documento novo é indexado — e cada edital vira dezenas de chunks. Uso de
+embedding é mais frequente que uso de chat nesse estágio do projeto.
+
+**"Por que só o Railway está pago, e o resto no free tier? Isso não é uma arquitetura de MVP frágil
+pra produção?"**
+É, e é assumido como tal. O objetivo aqui é validar a ideia com o menor custo possível antes de
+investir em infra maior — o próprio Railway vende esse plano como "para projetos hobby". O primeiro
+passo antes de qualquer escala real é migrar pra uma cloud maior (AWS/Azure/GCP — GCP é a preferida),
+já registrado no roadmap.
+
+**"Por que não usar direto o ChatGPT ou Claude pra essa auditoria?"**
+Porque eles não têm acesso às bases públicas (PNCP, Receita Federal, CEIS/CNEP) nem ao conteúdo do
+edital especificamente indexado — precisariam de tudo colado manualmente no prompt, sem
+citação de fonte nem verificação automática. O Auditor Cidadão automatiza a decisão de qual fonte
+consultar, cruza os dados sozinho e formata o laudo estruturado no final — o "trabalho de várias abas
+abertas" que citamos na abertura.
+
+**"Como vocês lidam com dados pessoais / LGPD nos editais?"**
+O sistema trabalha só com dados públicos de contratação (editais, CNPJs de empresas participantes,
+sanções públicas) — não há coleta de dado pessoal sensível de cidadão. Detalhe completo está
+documentado em `docs/governanca/lgpd.md`.
+
+**"O sistema depende de um pacote de terceiros pro PNCP (`@licinexusbr/mcp`). Isso não é um risco?"**
+É um risco real e assumido conscientemente pro MVP — evita reescrever integração com 11
+ferramentas do zero. Se o pacote for descontinuado, o impacto fica isolado nas tools PNCP (as 4
+tools nativas — Receita Federal, RAG do edital, sanções, busca web — continuam funcionando), e a
+troca seria por uma integração própria ou outro provedor MCP compatível.
+
+**"O rate limit por cookie não é fácil de burlar limpando o navegador?"**
+Sim, é uma limitação conhecida do MVP — o objetivo hoje é conter abuso casual, não resistir a um
+usuário malicioso decidido. Endurecer isso (ex.: rate limit por IP ou autenticação) é um ajuste de
+próxima fase, não bloqueador pra validar a ideia.
