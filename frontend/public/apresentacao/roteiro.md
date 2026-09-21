@@ -141,13 +141,16 @@ descrição no slide (Tool Correctness e Argumentos são determinísticas, sem L
 Cobertura/Recall usam G-Eval). Golden dataset de 13 casos, rodando o mesmo código de produção
 (`run_agent()`).
 
-Os dois exemplos do slide mostram a diferença entre os dois tipos de caso: o **sintético** (H —
-sanção vigente) tem gabarito escrito antes do PDF existir, então cobra tool certa *e* anomalia
-certa; o **real** (`caso_02_saoluis_sancao`, edital verdadeiro de São Luís) só cobra o que é
-objetivamente checável — achou o trecho certo, chamou a tool certa — porque nem um humano
-especialista bateria o martelo com certeza absoluta sobre um edital real.
+O slide agora tem uma nota sobre o **G-Eval** em si (Liu et al., 2023): em vez de pedir nota direta
+à LLM juíza, o método força ela a seguir passos intermediários de raciocínio (*Evaluation Steps*,
+técnica de Chain-of-Thought) antes de emitir o parecer — reduz aleatoriedade, aproxima da avaliação
+humana. Implementado via a lib **deepeval**. Vale citar de cabeça, se quiser, os dois tipos de caso
+do dataset: o **sintético** (ex.: H — sanção vigente) tem gabarito escrito antes do PDF existir,
+cobra tool certa *e* anomalia certa; o **real** (`caso_02_saoluis_sancao`, edital verdadeiro de São
+Luís) só cobra o objetivamente checável — achou o trecho certo, chamou a tool certa — porque nem um
+humano especialista bateria o martelo com certeza absoluta sobre um edital real.
 
-**Se perguntarem sobre a rubrica do juiz de Fidelidade** (não está mais no slide, mas pode vir):
+**Se perguntarem sobre a rubrica do juiz de Fidelidade** (não está no slide, mas pode vir):
 G-Eval usa uma régua de nota 1 a 5 testada de propósito — um caso que extrapola a fonte dá 0.32, um
 caso fiel dá 1.0. O critério: lista cada afirmação do laudo, checa se é sustentada pelas fontes,
 marca sustentada ou não (extrapolação conta como não sustentada).

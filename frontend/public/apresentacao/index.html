@@ -589,23 +589,9 @@ Essa empresa tem sanção?
                     <span class="chip-llm">G-Eval</span>
                 </div>
             </div>
-            <div class="guardrail-grid" data-reveal>
-                <div class="guardrail-card">
-                    <div class="guardrail-head"><span class="material-symbols-outlined">science</span><h3>Caso sintético — H (sanção vigente)</h3></div>
-                    <ul class="bullets bullets-tight">
-                        <li>Cenário: vencedora consta no CEIS, adjudicada mesmo assim.</li>
-                        <li>Gabarito escrito <strong>antes</strong> do PDF existir — sem margem pra interpretação.</li>
-                        <li>Cobre tool certa <strong>e</strong> anomalia certa (Recall/F1).</li>
-                    </ul>
-                </div>
-                <div class="guardrail-card">
-                    <div class="guardrail-head"><span class="material-symbols-outlined">description</span><h3>Caso real — <span class="mono">caso_02_saoluis_sancao</span></h3></div>
-                    <ul class="bullets bullets-tight">
-                        <li>Edital verdadeiro, baixado de portal real (São Luís/MA).</li>
-                        <li>Gabarito cobre só o <strong>objetivamente checável</strong>: achou o trecho certo, chamou a tool certa.</li>
-                        <li>Não cobra "achou a anomalia certa" — nem um especialista bate o martelo sempre.</li>
-                    </ul>
-                </div>
+            <div class="callout callout-strong" data-reveal>
+                <span class="material-symbols-outlined">psychology</span>
+                <p>Usamos o <strong>G-Eval</strong> (Liu et al., 2023), que aplica <strong>Chain-of-Thought (CoT)</strong>: em vez de pedir uma nota direta à LLM juíza, o método a força a seguir <strong>passos intermediários de raciocínio</strong> (<em>Evaluation Steps</em>) antes de emitir o parecer — reduz a aleatoriedade e aproxima a nota da avaliação humana. Implementado via a lib <strong>deepeval</strong>.</p>
             </div>
             <div class="callout" data-reveal>
                 <span class="material-symbols-outlined">dataset</span>
