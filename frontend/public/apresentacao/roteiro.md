@@ -269,12 +269,13 @@ investir em infra maior — o próprio Railway vende esse plano como "para proje
 passo antes de qualquer escala real é migrar pra uma cloud maior (AWS/Azure/GCP — GCP é a preferida),
 já registrado no roadmap.
 
-**"Por que não usar direto o ChatGPT ou Claude pra essa auditoria?"**
-Porque eles não têm acesso às bases públicas (PNCP, Receita Federal, CEIS/CNEP) nem ao conteúdo do
-edital especificamente indexado — precisariam de tudo colado manualmente no prompt, sem
-citação de fonte nem verificação automática. O Auditor Cidadão automatiza a decisão de qual fonte
-consultar, cruza os dados sozinho e formata o laudo estruturado no final — o "trabalho de várias abas
-abertas" que citamos na abertura.
+**"Por que não usou o RAGAS pra avaliação, em vez do G-Eval/deepeval?"**
+RAGAS é focado em pipelines RAG puros (métricas como context precision/recall, faithfulness sobre
+chunk recuperado). O G-Eval via deepeval encaixou melhor porque a avaliação aqui não é só do RAG —
+é do agente completo, incluindo decisão de qual tool chamar (Tool Correctness) e uso correto dos
+argumentos, que não são o foco do RAGAS. O G-Eval também permite customizar os critérios e os steps
+de raciocínio por métrica, o que deixou a nota mais alinhada com o que a banca de auditoria
+realmente considera "certo" num laudo, e não só fidelidade textual ao chunk recuperado.
 
 **"Como vocês lidam com dados pessoais / LGPD nos editais?"**
 O sistema trabalha só com dados públicos de contratação (editais, CNPJs de empresas participantes,
