@@ -500,8 +500,8 @@
                 </div>
             </div>
             <div class="callout" data-reveal>
-                <span class="material-symbols-outlined">smart_toy</span>
-                <p>O <strong>relatório automático</strong> não é um caminho separado — é só o primeiro turno da thread, disparado com <code>inicial: true</code> assim que o upload termina.</p>
+                <span class="material-symbols-outlined">bolt</span>
+                <p>Por que SSE no upload: indexação leva <strong>~2 min</strong> — um request síncrono estourava timeout de conexão ociosa (<code>Failed to fetch</code>) mesmo com o backend terminando certo. <code>progress</code>/<code>heartbeat</code> mantêm a conexão viva.</p>
             </div>
             <ul class="bullets bullets-row">
                 <li data-reveal>O <code>SYSTEM_PROMPT</code> é preposto a cada chamada — nunca fica salvo no histórico do Redis.</li>

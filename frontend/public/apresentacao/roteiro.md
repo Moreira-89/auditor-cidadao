@@ -118,6 +118,10 @@ ReAct → eventos viram SSE) do outro. **Ponto que costuma gerar pergunta:** o `
 fica salvo no histórico do Redis — é preposto a cada chamada. E o grafo é montado uma vez só, no
 startup.
 
+**Por que SSE no upload** (callout do slide): a indexação leva ~2 min — um request síncrono
+estourava timeout de conexão ociosa (`Failed to fetch` no navegador, mesmo com o backend terminando
+certo). `progress`/`heartbeat` mantêm a conexão viva durante esse tempo todo.
+
 ---
 
 ## Bloco 4 — Guardrails e avaliação (≈ 8:30)
